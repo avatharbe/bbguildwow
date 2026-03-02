@@ -65,7 +65,7 @@ class schema extends \phpbb\db\migration\migration
 						'description'     => ['VCHAR_UNI:255', ''],
 						'itemlevel'       => ['UINT', 0],
 						'quality'         => ['UINT', 0],
-						'icon'            => ['VCHAR:255', 0],
+						'icon'            => ['VCHAR:255', ''],
 					],
 					'PRIMARY_KEY' => 'rewards_item_id',
 				],
