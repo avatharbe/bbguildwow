@@ -1,3 +1,6 @@
+imports:
+    - { resource: tables.yml }
+
 services:
     avathar.bbguild_wow.installer:
         class: avathar\bbguild_wow\game\wow_installer
@@ -15,3 +18,13 @@ services:
             - '@ext.manager'
         tags:
             - { name: bbguild.game_provider }
+
+    avathar.bbguild_wow.achievement:
+        class: avathar\bbguild_wow\model\achievement
+        arguments:
+            - '%avathar.bbguild_wow.tables.bb_achievement_track%'
+            - '%avathar.bbguild_wow.tables.bb_achievement%'
+            - '%avathar.bbguild_wow.tables.bb_achievement_rewards%'
+            - '%avathar.bbguild_wow.tables.bb_criteria_track%'
+            - '%avathar.bbguild_wow.tables.bb_achievement_criteria%'
+            - '%avathar.bbguild_wow.tables.bb_relations_table%'

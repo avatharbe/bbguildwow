@@ -1,0 +1,7 @@
+parameters:
+    avathar.bbguild_wow.tables.bb_achievement_track: '%core.table_prefix%bb_achievement_track'
+    avathar.bbguild_wow.tables.bb_achievement: '%core.table_prefix%bb_achievement'
+    avathar.bbguild_wow.tables.bb_achievement_rewards: '%core.table_prefix%bb_achievement_rewards'
+    avathar.bbguild_wow.tables.bb_criteria_track: '%core.table_prefix%bb_criteria_track'
+    avathar.bbguild_wow.tables.bb_achievement_criteria: '%core.table_prefix%bb_achievement_criteria'
+    avathar.bbguild_wow.tables.bb_relations_table: '%core.table_prefix%bb_relations_table'
