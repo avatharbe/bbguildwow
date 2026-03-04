@@ -1,0 +1,22 @@
+{% if GAME_ID == 'wow' %}
+<dl>
+    <dt><label for="apikey">{{ lang('WOWAPIKEY') }}:</label><br /><span>{{ lang('WOWAPIKEY_EXPLAIN') }} </span></dt>
+    <dd><input name="apikey" type="text" id="apikey" size="60" maxlength="100" value="{{ APIKEY }}"/></dd>
+</dl>
+
+<dl>
+    <dt><label for="privkey">{{ lang('WOWPRIVKEY') }}:</label><br /><span>{{ lang('WOWPRIVKEY_EXPLAIN') }} </span></dt>
+    <dd><input name="privkey" type="text" id="privkey" size="60" maxlength="100" value="{{ PRIVKEY }}"/></dd>
+</dl>
+
+<dl>
+    <dt><label for="apilocale">{{ lang('WOWAPILOCALE') }}:</label><br /><span>{{ lang('WOWAPILOCALE_EXPLAIN') }} </span></dt>
+    <dd>
+        <select id="apilocale" name="apilocale" class="input">
+            {% for apilocale_row in loops.apilocale_row %}
+            <option value="{{ apilocale_row.VALUE }}"{{ apilocale_row.SELECTED }}>{{ apilocale_row.OPTION }}</option>
+            {% endfor %}
+        </select>
+    </dd>
+</dl>
+{% endif %}

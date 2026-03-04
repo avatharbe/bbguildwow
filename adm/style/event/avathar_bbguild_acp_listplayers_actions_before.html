@@ -1,0 +1,15 @@
+{% if HAS_API %}
+<dl>
+    <dt style="width: 55%;"><label for="activeplayers">{{ lang('CHARACTERAPICALL') }}:</label>{{ lang('CALL_BATTLENET_CHAR_API') }}</dt>
+    <dd style="margin-left: 55%;">
+        <fieldset class="submit-buttons" style=" text-align: left;">
+            <input class="button1" name="charapicall" type="submit" value="{{ lang('UPDATE') }}" title="{{ lang('CHARACTERAPICALL') }}"/>
+            <input type="hidden" name="hidden_minlevel" value="{{ MINLEVEL }}" />
+            <input type="hidden" name="hidden_maxlevel" value="{{ MAXLEVEL }}" />
+            <input type="hidden" name="hidden_active" value="{{ F_SELECTACTIVE }}" />
+            <input type="hidden" name="hidden_nonactive" value="{{ F_SELECTNONACTIVE }}" />
+            <input type="hidden" name="hidden_player_name" value="{{ PLAYER_NAME }}" />
+        </fieldset>
+    </dd>
+</dl>
+{% endif %}

@@ -32,4 +32,6 @@ $lang = array_merge(
 	'WOWAPI_NO_GUILD' => 'guilde non specifié.',
 	'WOWAPI_INVALID_FIELD' => 'champs invalide : %s',
 	'WOWAPI_NO_CHARACTER' => 'Character name not specified.',
+	'CHARACTERAPICALL' => 'mise à jour membres depuis API',
+	'CALL_BATTLENET_CHAR_API' => 'Appel Battle.NET Character API pour 50 membres WoW ayant la mise à jour la plus ancienne. Désactivation si la dernière activité sur l\'armurerie remonte à 180 jours.',
 ));

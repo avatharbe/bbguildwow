@@ -28,6 +28,7 @@ services:
         arguments:
             - '@template'
             - '@dbal.conn'
+            - '@request'
             - '%avathar.bbguild_wow.tables.bb_guild_wow%'
         tags:
             - { name: event.listener }
