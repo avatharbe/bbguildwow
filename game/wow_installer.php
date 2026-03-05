@@ -53,19 +53,20 @@ class wow_installer extends abstract_game_install
 		// classes (note class 10 does not exist)
 		$db->sql_query('DELETE FROM ' . $this->table('bb_classes_table') . " WHERE game_id = '" . $db->sql_escape($this->game_id) . "'");
 		$sql_ary = array();
-		$sql_ary[] = array('game_id' => $this->game_id, 'class_id' => 0,  'class_armor_type' => 'PLATE',   'class_min_level' => 1,  'class_max_level' => 110, 'colorcode' => '#999',    'imagename' => 'wow_unknown');
-		$sql_ary[] = array('game_id' => $this->game_id, 'class_id' => 1,  'class_armor_type' => 'PLATE',   'class_min_level' => 1,  'class_max_level' => 110, 'colorcode' => '#c69b6d', 'imagename' => 'wow_warrior');
-		$sql_ary[] = array('game_id' => $this->game_id, 'class_id' => 4,  'class_armor_type' => 'LEATHER', 'class_min_level' => 1,  'class_max_level' => 110, 'colorcode' => '#fff468', 'imagename' => 'wow_rogue');
-		$sql_ary[] = array('game_id' => $this->game_id, 'class_id' => 3,  'class_armor_type' => 'MAIL',    'class_min_level' => 1,  'class_max_level' => 110, 'colorcode' => '#aad372', 'imagename' => 'wow_hunter');
-		$sql_ary[] = array('game_id' => $this->game_id, 'class_id' => 2,  'class_armor_type' => 'PLATE',   'class_min_level' => 1,  'class_max_level' => 110, 'colorcode' => '#f48cba', 'imagename' => 'wow_paladin');
-		$sql_ary[] = array('game_id' => $this->game_id, 'class_id' => 7,  'class_armor_type' => 'MAIL',    'class_min_level' => 1,  'class_max_level' => 110, 'colorcode' => '#2359ff', 'imagename' => 'wow_shaman');
-		$sql_ary[] = array('game_id' => $this->game_id, 'class_id' => 11, 'class_armor_type' => 'LEATHER', 'class_min_level' => 1,  'class_max_level' => 110, 'colorcode' => '#ff7c0a', 'imagename' => 'wow_druid');
-		$sql_ary[] = array('game_id' => $this->game_id, 'class_id' => 9,  'class_armor_type' => 'CLOTH',   'class_min_level' => 1,  'class_max_level' => 110, 'colorcode' => '#9382c9', 'imagename' => 'wow_warlock');
-		$sql_ary[] = array('game_id' => $this->game_id, 'class_id' => 8,  'class_armor_type' => 'CLOTH',   'class_min_level' => 1,  'class_max_level' => 110, 'colorcode' => '#68ccef', 'imagename' => 'wow_mage');
-		$sql_ary[] = array('game_id' => $this->game_id, 'class_id' => 5,  'class_armor_type' => 'CLOTH',   'class_min_level' => 1,  'class_max_level' => 110, 'colorcode' => '#f0ebe0', 'imagename' => 'wow_priest');
-		$sql_ary[] = array('game_id' => $this->game_id, 'class_id' => 6,  'class_armor_type' => 'PLATE',   'class_min_level' => 55, 'class_max_level' => 110, 'colorcode' => '#c41e3b', 'imagename' => 'wow_death_knight');
-		$sql_ary[] = array('game_id' => $this->game_id, 'class_id' => 10, 'class_armor_type' => 'LEATHER', 'class_min_level' => 1,  'class_max_level' => 110, 'colorcode' => '#00ffba', 'imagename' => 'wow_monk');
-		$sql_ary[] = array('game_id' => $this->game_id, 'class_id' => 12, 'class_armor_type' => 'LEATHER', 'class_min_level' => 98, 'class_max_level' => 110, 'colorcode' => '#A330C3', 'imagename' => 'wow_demon_hunter');
+		$sql_ary[] = array('game_id' => $this->game_id, 'class_id' => 0,  'class_armor_type' => 'PLATE',   'class_min_level' => 1, 'class_max_level' => 80, 'colorcode' => '#999',    'imagename' => 'wow_unknown');
+		$sql_ary[] = array('game_id' => $this->game_id, 'class_id' => 1,  'class_armor_type' => 'PLATE',   'class_min_level' => 1, 'class_max_level' => 80, 'colorcode' => '#c69b6d', 'imagename' => 'wow_warrior');
+		$sql_ary[] = array('game_id' => $this->game_id, 'class_id' => 4,  'class_armor_type' => 'LEATHER', 'class_min_level' => 1, 'class_max_level' => 80, 'colorcode' => '#fff468', 'imagename' => 'wow_rogue');
+		$sql_ary[] = array('game_id' => $this->game_id, 'class_id' => 3,  'class_armor_type' => 'MAIL',    'class_min_level' => 1, 'class_max_level' => 80, 'colorcode' => '#aad372', 'imagename' => 'wow_hunter');
+		$sql_ary[] = array('game_id' => $this->game_id, 'class_id' => 2,  'class_armor_type' => 'PLATE',   'class_min_level' => 1, 'class_max_level' => 80, 'colorcode' => '#f48cba', 'imagename' => 'wow_paladin');
+		$sql_ary[] = array('game_id' => $this->game_id, 'class_id' => 7,  'class_armor_type' => 'MAIL',    'class_min_level' => 1, 'class_max_level' => 80, 'colorcode' => '#2359ff', 'imagename' => 'wow_shaman');
+		$sql_ary[] = array('game_id' => $this->game_id, 'class_id' => 11, 'class_armor_type' => 'LEATHER', 'class_min_level' => 1, 'class_max_level' => 80, 'colorcode' => '#ff7c0a', 'imagename' => 'wow_druid');
+		$sql_ary[] = array('game_id' => $this->game_id, 'class_id' => 9,  'class_armor_type' => 'CLOTH',   'class_min_level' => 1, 'class_max_level' => 80, 'colorcode' => '#9382c9', 'imagename' => 'wow_warlock');
+		$sql_ary[] = array('game_id' => $this->game_id, 'class_id' => 8,  'class_armor_type' => 'CLOTH',   'class_min_level' => 1, 'class_max_level' => 80, 'colorcode' => '#68ccef', 'imagename' => 'wow_mage');
+		$sql_ary[] = array('game_id' => $this->game_id, 'class_id' => 5,  'class_armor_type' => 'CLOTH',   'class_min_level' => 1, 'class_max_level' => 80, 'colorcode' => '#f0ebe0', 'imagename' => 'wow_priest');
+		$sql_ary[] = array('game_id' => $this->game_id, 'class_id' => 6,  'class_armor_type' => 'PLATE',   'class_min_level' => 8, 'class_max_level' => 80, 'colorcode' => '#c41e3b', 'imagename' => 'wow_death_knight');
+		$sql_ary[] = array('game_id' => $this->game_id, 'class_id' => 10, 'class_armor_type' => 'LEATHER', 'class_min_level' => 1, 'class_max_level' => 80, 'colorcode' => '#00ffba', 'imagename' => 'wow_monk');
+		$sql_ary[] = array('game_id' => $this->game_id, 'class_id' => 12, 'class_armor_type' => 'LEATHER', 'class_min_level' => 8, 'class_max_level' => 80, 'colorcode' => '#A330C3', 'imagename' => 'wow_demon_hunter');
+		$sql_ary[] = array('game_id' => $this->game_id, 'class_id' => 13, 'class_armor_type' => 'MAIL',    'class_min_level' => 1, 'class_max_level' => 80, 'colorcode' => '#33937F', 'imagename' => 'wow_evoker');
 		$db->sql_multi_insert($this->table('bb_classes_table'), $sql_ary);
 		unset($sql_ary);
 
@@ -87,6 +88,7 @@ class wow_installer extends abstract_game_install
 		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 6,  'language' => 'en', 'attribute' => 'class', 'name' => 'Death Knight', 'name_short' => 'Death Knight');
 		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 10, 'language' => 'en', 'attribute' => 'class', 'name' => 'Monk',         'name_short' => 'Monk');
 		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 12, 'language' => 'en', 'attribute' => 'class', 'name' => 'Demon Hunter', 'name_short' => 'Demon Hunter');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 13, 'language' => 'en', 'attribute' => 'class', 'name' => 'Evoker',       'name_short' => 'Evoker');
 
 		// fr
 		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 0,  'language' => 'fr', 'attribute' => 'class', 'name' => 'Unknown',               'name_short' => 'Unknown');
@@ -102,6 +104,7 @@ class wow_installer extends abstract_game_install
 		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 6,  'language' => 'fr', 'attribute' => 'class', 'name' => 'Chevalier de la Mort',  'name_short' => 'Chevalier de la Mort');
 		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 10, 'language' => 'fr', 'attribute' => 'class', 'name' => 'Moine',                 'name_short' => 'Moine');
 		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 12, 'language' => 'fr', 'attribute' => 'class', 'name' => 'Chasseur de démons',    'name_short' => 'Chasseur de démons');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 13, 'language' => 'fr', 'attribute' => 'class', 'name' => 'Évocateur',              'name_short' => 'Évocateur');
 
 		// de
 		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 0,  'language' => 'de', 'attribute' => 'class', 'name' => 'Unbekannt',      'name_short' => 'Unbekannt');
@@ -117,6 +120,7 @@ class wow_installer extends abstract_game_install
 		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 6,  'language' => 'de', 'attribute' => 'class', 'name' => 'Todesritter',    'name_short' => 'Todesritter');
 		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 10, 'language' => 'de', 'attribute' => 'class', 'name' => 'Mönch',          'name_short' => 'Mönch');
 		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 12, 'language' => 'de', 'attribute' => 'class', 'name' => 'Dämonenjäger',   'name_short' => 'Dämonenjäger');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 13, 'language' => 'de', 'attribute' => 'class', 'name' => 'Rufer',          'name_short' => 'Rufer');
 
 		// it
 		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 0,  'language' => 'it', 'attribute' => 'class', 'name' => 'Sconosciuto',            'name_short' => 'Sconosciuto');
@@ -132,6 +136,7 @@ class wow_installer extends abstract_game_install
 		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 6,  'language' => 'it', 'attribute' => 'class', 'name' => 'Cavaliere della Morte',  'name_short' => 'Cavaliere della Morte');
 		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 10, 'language' => 'it', 'attribute' => 'class', 'name' => 'Monaco',                 'name_short' => 'Monaco');
 		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 12, 'language' => 'it', 'attribute' => 'class', 'name' => 'Cacciatore di Demoni',   'name_short' => 'Cacciatore di Demoni');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 13, 'language' => 'it', 'attribute' => 'class', 'name' => 'Evocatore',              'name_short' => 'Evocatore');
 
 		$db->sql_multi_insert($this->table('bb_language_table'), $sql_ary);
 	}
@@ -159,7 +164,22 @@ class wow_installer extends abstract_game_install
 		$sql_ary[] = array('game_id' => $this->game_id, 'race_id' => 11, 'race_faction_id' => 1, 'image_female' => 'wow_draenei_female',  'image_male' => 'wow_draenei_male');
 		$sql_ary[] = array('game_id' => $this->game_id, 'race_id' => 22, 'race_faction_id' => 1, 'image_female' => 'wow_worgen_female',   'image_male' => 'wow_worgen_male');
 		$sql_ary[] = array('game_id' => $this->game_id, 'race_id' => 25, 'race_faction_id' => 1, 'image_female' => 'wow_pandaren_female', 'image_male' => 'wow_pandaren_male');
-		$sql_ary[] = array('game_id' => $this->game_id, 'race_id' => 26, 'race_faction_id' => 2, 'image_female' => 'wow_pandaren_female', 'image_male' => 'wow_pandaren_male');
+		$sql_ary[] = array('game_id' => $this->game_id, 'race_id' => 26, 'race_faction_id' => 2, 'image_female' => 'wow_pandaren_female',           'image_male' => 'wow_pandaren_male');
+		$sql_ary[] = array('game_id' => $this->game_id, 'race_id' => 27, 'race_faction_id' => 2, 'image_female' => 'wow_nightborne_female',          'image_male' => 'wow_nightborne_male');
+		$sql_ary[] = array('game_id' => $this->game_id, 'race_id' => 28, 'race_faction_id' => 2, 'image_female' => 'wow_highmountaintauren_female',  'image_male' => 'wow_highmountaintauren_male');
+		$sql_ary[] = array('game_id' => $this->game_id, 'race_id' => 29, 'race_faction_id' => 1, 'image_female' => 'wow_voidelf_female',             'image_male' => 'wow_voidelf_male');
+		$sql_ary[] = array('game_id' => $this->game_id, 'race_id' => 30, 'race_faction_id' => 1, 'image_female' => 'wow_lightforgeddraenei_female',  'image_male' => 'wow_lightforgeddraenei_male');
+		$sql_ary[] = array('game_id' => $this->game_id, 'race_id' => 31, 'race_faction_id' => 2, 'image_female' => 'wow_zandalari_female',           'image_male' => 'wow_zandalari_male');
+		$sql_ary[] = array('game_id' => $this->game_id, 'race_id' => 32, 'race_faction_id' => 1, 'image_female' => 'wow_kultiran_female',            'image_male' => 'wow_kultiran_male');
+		$sql_ary[] = array('game_id' => $this->game_id, 'race_id' => 34, 'race_faction_id' => 1, 'image_female' => 'wow_darkirondwarf_female',       'image_male' => 'wow_darkirondwarf_male');
+		$sql_ary[] = array('game_id' => $this->game_id, 'race_id' => 35, 'race_faction_id' => 2, 'image_female' => 'wow_vulpera_female',             'image_male' => 'wow_vulpera_male');
+		$sql_ary[] = array('game_id' => $this->game_id, 'race_id' => 36, 'race_faction_id' => 2, 'image_female' => 'wow_magharorc_female',           'image_male' => 'wow_magharorc_male');
+		$sql_ary[] = array('game_id' => $this->game_id, 'race_id' => 37, 'race_faction_id' => 1, 'image_female' => 'wow_mechagnome_female',          'image_male' => 'wow_mechagnome_male');
+		$sql_ary[] = array('game_id' => $this->game_id, 'race_id' => 52, 'race_faction_id' => 1, 'image_female' => 'wow_dracthyr_female',            'image_male' => 'wow_dracthyr_male');
+		$sql_ary[] = array('game_id' => $this->game_id, 'race_id' => 70, 'race_faction_id' => 2, 'image_female' => 'wow_dracthyr_female',            'image_male' => 'wow_dracthyr_male');
+		$sql_ary[] = array('game_id' => $this->game_id, 'race_id' => 84, 'race_faction_id' => 2, 'image_female' => 'wow_earthen_female',             'image_male' => 'wow_earthen_male');
+		$sql_ary[] = array('game_id' => $this->game_id, 'race_id' => 85, 'race_faction_id' => 1, 'image_female' => 'wow_earthen_female',             'image_male' => 'wow_earthen_male');
+		$sql_ary[] = array('game_id' => $this->game_id, 'race_id' => 86, 'race_faction_id' => 0, 'image_female' => 'wow_haranir_female',             'image_male' => 'wow_haranir_male');
 		$db->sql_multi_insert($this->table('bb_races_table'), $sql_ary);
 		unset($sql_ary);
 
@@ -183,6 +203,21 @@ class wow_installer extends abstract_game_install
 		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 22, 'language' => 'en', 'attribute' => 'race', 'name' => 'Worgen',             'name_short' => 'Worgen');
 		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 25, 'language' => 'en', 'attribute' => 'race', 'name' => 'Pandaren Alliance',  'name_short' => 'Pandaren Alliance');
 		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 26, 'language' => 'en', 'attribute' => 'race', 'name' => 'Pandaren Horde',     'name_short' => 'Pandaren Horde');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 27, 'language' => 'en', 'attribute' => 'race', 'name' => 'Nightborne',         'name_short' => 'Nightborne');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 28, 'language' => 'en', 'attribute' => 'race', 'name' => 'Highmountain Tauren','name_short' => 'Highmountain Tauren');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 29, 'language' => 'en', 'attribute' => 'race', 'name' => 'Void Elf',           'name_short' => 'Void Elf');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 30, 'language' => 'en', 'attribute' => 'race', 'name' => 'Lightforged Draenei','name_short' => 'Lightforged Draenei');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 31, 'language' => 'en', 'attribute' => 'race', 'name' => 'Zandalari Troll',    'name_short' => 'Zandalari Troll');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 32, 'language' => 'en', 'attribute' => 'race', 'name' => 'Kul Tiran',          'name_short' => 'Kul Tiran');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 34, 'language' => 'en', 'attribute' => 'race', 'name' => 'Dark Iron Dwarf',    'name_short' => 'Dark Iron Dwarf');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 35, 'language' => 'en', 'attribute' => 'race', 'name' => 'Vulpera',            'name_short' => 'Vulpera');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 36, 'language' => 'en', 'attribute' => 'race', 'name' => 'Mag\'har Orc',       'name_short' => 'Mag\'har Orc');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 37, 'language' => 'en', 'attribute' => 'race', 'name' => 'Mechagnome',         'name_short' => 'Mechagnome');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 52, 'language' => 'en', 'attribute' => 'race', 'name' => 'Dracthyr',           'name_short' => 'Dracthyr');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 70, 'language' => 'en', 'attribute' => 'race', 'name' => 'Dracthyr',           'name_short' => 'Dracthyr');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 84, 'language' => 'en', 'attribute' => 'race', 'name' => 'Earthen',            'name_short' => 'Earthen');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 85, 'language' => 'en', 'attribute' => 'race', 'name' => 'Earthen',            'name_short' => 'Earthen');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 86, 'language' => 'en', 'attribute' => 'race', 'name' => 'Haranir',            'name_short' => 'Haranir');
 
 		// fr
 		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 0,  'language' => 'fr', 'attribute' => 'race', 'name' => 'Inconnu',            'name_short' => 'Inconnu');
@@ -200,6 +235,21 @@ class wow_installer extends abstract_game_install
 		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 22, 'language' => 'fr', 'attribute' => 'race', 'name' => 'Worgen',             'name_short' => 'Worgen');
 		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 25, 'language' => 'fr', 'attribute' => 'race', 'name' => 'Pandaren Alliance',  'name_short' => 'Pandaren Alliance');
 		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 26, 'language' => 'fr', 'attribute' => 'race', 'name' => 'Pandaren Horde',     'name_short' => 'Pandaren Horde');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 27, 'language' => 'fr', 'attribute' => 'race', 'name' => 'Sacrenuit',          'name_short' => 'Sacrenuit');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 28, 'language' => 'fr', 'attribute' => 'race', 'name' => 'Tauren de Haut-Roc', 'name_short' => 'Tauren de Haut-Roc');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 29, 'language' => 'fr', 'attribute' => 'race', 'name' => 'Elfe du Vide',       'name_short' => 'Elfe du Vide');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 30, 'language' => 'fr', 'attribute' => 'race', 'name' => 'Draeneï sancteforge','name_short' => 'Draeneï sancteforge');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 31, 'language' => 'fr', 'attribute' => 'race', 'name' => 'Troll zandalari',    'name_short' => 'Troll zandalari');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 32, 'language' => 'fr', 'attribute' => 'race', 'name' => 'Kultirassien',       'name_short' => 'Kultirassien');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 34, 'language' => 'fr', 'attribute' => 'race', 'name' => 'Nain sombrefer',     'name_short' => 'Nain sombrefer');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 35, 'language' => 'fr', 'attribute' => 'race', 'name' => 'Vulpérin',           'name_short' => 'Vulpérin');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 36, 'language' => 'fr', 'attribute' => 'race', 'name' => 'Orc mag\'har',       'name_short' => 'Orc mag\'har');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 37, 'language' => 'fr', 'attribute' => 'race', 'name' => 'Mécagnome',          'name_short' => 'Mécagnome');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 52, 'language' => 'fr', 'attribute' => 'race', 'name' => 'Dracthyr',           'name_short' => 'Dracthyr');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 70, 'language' => 'fr', 'attribute' => 'race', 'name' => 'Dracthyr',           'name_short' => 'Dracthyr');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 84, 'language' => 'fr', 'attribute' => 'race', 'name' => 'Terrestre',          'name_short' => 'Terrestre');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 85, 'language' => 'fr', 'attribute' => 'race', 'name' => 'Terrestre',          'name_short' => 'Terrestre');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 86, 'language' => 'fr', 'attribute' => 'race', 'name' => 'Haranir',            'name_short' => 'Haranir');
 
 		// de
 		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 0,  'language' => 'de', 'attribute' => 'race', 'name' => 'Unbekannt',          'name_short' => 'Unbekannt');
@@ -217,13 +267,28 @@ class wow_installer extends abstract_game_install
 		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 22, 'language' => 'de', 'attribute' => 'race', 'name' => 'Worgen',             'name_short' => 'Worgen');
 		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 25, 'language' => 'de', 'attribute' => 'race', 'name' => 'Pandaren Alliance',  'name_short' => 'Pandaren Alliance');
 		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 26, 'language' => 'de', 'attribute' => 'race', 'name' => 'Pandaren Horde',     'name_short' => 'Pandaren Horde');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 27, 'language' => 'de', 'attribute' => 'race', 'name' => 'Nachtgeborener',     'name_short' => 'Nachtgeborener');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 28, 'language' => 'de', 'attribute' => 'race', 'name' => 'Hochbergtauren',     'name_short' => 'Hochbergtauren');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 29, 'language' => 'de', 'attribute' => 'race', 'name' => 'Leerenelf',          'name_short' => 'Leerenelf');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 30, 'language' => 'de', 'attribute' => 'race', 'name' => 'Lichtgeschmiedeter Draenei', 'name_short' => 'Lichtgeschmiedeter Draenei');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 31, 'language' => 'de', 'attribute' => 'race', 'name' => 'Zandalari-Troll',    'name_short' => 'Zandalari-Troll');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 32, 'language' => 'de', 'attribute' => 'race', 'name' => 'Kul Tiraner',        'name_short' => 'Kul Tiraner');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 34, 'language' => 'de', 'attribute' => 'race', 'name' => 'Dunkeleisenzwerg',   'name_short' => 'Dunkeleisenzwerg');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 35, 'language' => 'de', 'attribute' => 'race', 'name' => 'Vulpera',            'name_short' => 'Vulpera');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 36, 'language' => 'de', 'attribute' => 'race', 'name' => 'Mag\'har-Orc',       'name_short' => 'Mag\'har-Orc');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 37, 'language' => 'de', 'attribute' => 'race', 'name' => 'Mechagnome',         'name_short' => 'Mechagnome');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 52, 'language' => 'de', 'attribute' => 'race', 'name' => 'Dracthyr',           'name_short' => 'Dracthyr');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 70, 'language' => 'de', 'attribute' => 'race', 'name' => 'Dracthyr',           'name_short' => 'Dracthyr');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 84, 'language' => 'de', 'attribute' => 'race', 'name' => 'Irdener',            'name_short' => 'Irdener');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 85, 'language' => 'de', 'attribute' => 'race', 'name' => 'Irdener',            'name_short' => 'Irdener');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 86, 'language' => 'de', 'attribute' => 'race', 'name' => 'Haranir',            'name_short' => 'Haranir');
 
 		// it
 		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 0,  'language' => 'it', 'attribute' => 'race', 'name' => 'Sconosciuto',        'name_short' => 'Sconosciuto');
 		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 1,  'language' => 'it', 'attribute' => 'race', 'name' => 'Umani',              'name_short' => 'Umani');
 		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 2,  'language' => 'it', 'attribute' => 'race', 'name' => 'Orchi',              'name_short' => 'Orchi');
 		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 3,  'language' => 'it', 'attribute' => 'race', 'name' => 'Nani',               'name_short' => 'Nani');
-		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 4,  'language' => 'it', 'attribute' => 'race', 'name' => 'Elfi del Sangue',    'name_short' => 'Elfi del Sangue');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 4,  'language' => 'it', 'attribute' => 'race', 'name' => 'Elfi della Notte',   'name_short' => 'Elfi della Notte');
 		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 5,  'language' => 'it', 'attribute' => 'race', 'name' => 'Non Morti',          'name_short' => 'Non Morti');
 		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 6,  'language' => 'it', 'attribute' => 'race', 'name' => 'Tauren',             'name_short' => 'Tauren');
 		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 7,  'language' => 'it', 'attribute' => 'race', 'name' => 'Gnomi',              'name_short' => 'Gnomi');
@@ -234,6 +299,21 @@ class wow_installer extends abstract_game_install
 		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 22, 'language' => 'it', 'attribute' => 'race', 'name' => 'Worgen',             'name_short' => 'Worgen');
 		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 25, 'language' => 'it', 'attribute' => 'race', 'name' => 'Pandaren Alleanza',  'name_short' => 'Pandaren Alleanza');
 		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 26, 'language' => 'it', 'attribute' => 'race', 'name' => 'Pandaren Orda',      'name_short' => 'Pandaren Orda');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 27, 'language' => 'it', 'attribute' => 'race', 'name' => 'Nobile Oscuro',      'name_short' => 'Nobile Oscuro');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 28, 'language' => 'it', 'attribute' => 'race', 'name' => 'Tauren di Alto Monte','name_short' => 'Tauren di Alto Monte');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 29, 'language' => 'it', 'attribute' => 'race', 'name' => 'Elfo del Vuoto',     'name_short' => 'Elfo del Vuoto');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 30, 'language' => 'it', 'attribute' => 'race', 'name' => 'Draenei Forgialuce', 'name_short' => 'Draenei Forgialuce');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 31, 'language' => 'it', 'attribute' => 'race', 'name' => 'Troll Zandalari',    'name_short' => 'Troll Zandalari');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 32, 'language' => 'it', 'attribute' => 'race', 'name' => 'Kul Tirano',         'name_short' => 'Kul Tirano');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 34, 'language' => 'it', 'attribute' => 'race', 'name' => 'Nano Ferroscuro',    'name_short' => 'Nano Ferroscuro');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 35, 'language' => 'it', 'attribute' => 'race', 'name' => 'Vulpera',            'name_short' => 'Vulpera');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 36, 'language' => 'it', 'attribute' => 'race', 'name' => 'Orco Mag\'har',      'name_short' => 'Orco Mag\'har');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 37, 'language' => 'it', 'attribute' => 'race', 'name' => 'Mechagnomo',         'name_short' => 'Mechagnomo');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 52, 'language' => 'it', 'attribute' => 'race', 'name' => 'Dracthyr',           'name_short' => 'Dracthyr');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 70, 'language' => 'it', 'attribute' => 'race', 'name' => 'Dracthyr',           'name_short' => 'Dracthyr');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 84, 'language' => 'it', 'attribute' => 'race', 'name' => 'Terrigeno',          'name_short' => 'Terrigeno');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 85, 'language' => 'it', 'attribute' => 'race', 'name' => 'Terrigeno',          'name_short' => 'Terrigeno');
+		$sql_ary[] = array('game_id' => $this->game_id, 'attribute_id' => 86, 'language' => 'it', 'attribute' => 'race', 'name' => 'Haranir',            'name_short' => 'Haranir');
 
 		$db->sql_multi_insert($this->table('bb_language_table'), $sql_ary);
 	}
