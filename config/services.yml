@@ -6,14 +6,14 @@ services:
         class: avathar\bbguild_wow\game\wow_installer
         arguments:
             - '@dbal.conn'
-            - '@cache'
+            - '@cache.driver'
             - '@config'
             - '@user'
 
     avathar.bbguild_wow.api:
         class: avathar\bbguild_wow\game\wow_api
         arguments:
-            - '@cache'
+            - '@cache.driver'
             - '@dbal.conn'
             - '%avathar.bbguild_wow.tables.bb_guild_wow%'
             - '%avathar.bbguild.tables.bb_players%'
