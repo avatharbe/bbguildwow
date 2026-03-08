@@ -287,7 +287,20 @@ class achievement_module
 	 */
 	private function GetGuild()
 	{
-		$Guild     = new guilds();
+		$Guild     = new guilds(
+			$this->db,
+			$this->user,
+			$this->phpbb_container->get('config'),
+			$this->phpbb_container->get('cache.driver'),
+			$this->phpbb_container->get('avathar.bbguild.log'),
+			$this->phpbb_container->getParameter('avathar.bbguild.tables.bb_players'),
+			$this->phpbb_container->getParameter('avathar.bbguild.tables.bb_ranks'),
+			$this->phpbb_container->getParameter('avathar.bbguild.tables.bb_classes'),
+			$this->phpbb_container->getParameter('avathar.bbguild.tables.bb_races'),
+			$this->phpbb_container->getParameter('avathar.bbguild.tables.bb_language'),
+			$this->phpbb_container->getParameter('avathar.bbguild.tables.bb_guild'),
+			$this->phpbb_container->getParameter('avathar.bbguild.tables.bb_factions')
+		);
 		$guildlist = $Guild->guildlist(1);
 		// guild dropdown query
 		$getguild_dropdown = $this->request->is_set_post('achievement_guild_id');
@@ -322,7 +335,18 @@ class achievement_module
 			}
 		}
 		$Guild->get_guild();
-		$this->game          = new game;
+		$this->game = new game(
+			$this->db,
+			$this->phpbb_container->get('cache.driver'),
+			$this->phpbb_container->get('config'),
+			$this->user,
+			$this->phpbb_container->get('ext.manager'),
+			$this->phpbb_container->getParameter('avathar.bbguild.tables.bb_classes'),
+			$this->phpbb_container->getParameter('avathar.bbguild.tables.bb_races'),
+			$this->phpbb_container->getParameter('avathar.bbguild.tables.bb_language'),
+			$this->phpbb_container->getParameter('avathar.bbguild.tables.bb_factions'),
+			$this->phpbb_container->getParameter('avathar.bbguild.tables.bb_games')
+		);
 		$this->game->game_id = $Guild->getGameId();
 		$this->game->get_game();
 
@@ -357,7 +381,14 @@ class achievement_module
 		}
 
 		// faction  dropdown
-		$listfactions = new faction($this->game->game_id);
+		$listfactions = new faction(
+			$this->db,
+			$this->phpbb_container->get('cache.driver'),
+			$this->user,
+			$this->game->game_id,
+			$this->phpbb_container->getParameter('avathar.bbguild.tables.bb_factions'),
+			$this->phpbb_container->getParameter('avathar.bbguild.tables.bb_races')
+		);
 		$fa = $listfactions->get_factions();
 		foreach ($fa as $faction_id => $faction)
 		{
