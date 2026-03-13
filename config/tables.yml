@@ -6,3 +6,4 @@ parameters:
     avathar.bbguild_wow.tables.bb_criteria_track: '%core.table_prefix%bb_criteria_track'
     avathar.bbguild_wow.tables.bb_achievement_criteria: '%core.table_prefix%bb_achievement_criteria'
     avathar.bbguild_wow.tables.bb_relations_table: '%core.table_prefix%bb_relations_table'
+    avathar.bbguild_wow.tables.bb_achievement_category: '%core.table_prefix%bb_achievement_category'

@@ -24,6 +24,7 @@
     opacity: 0.8;
 }
 
+/* Recently earned list */
 .achievements-recent ul {
     list-style: none;
     margin: 0;
@@ -75,4 +76,249 @@
 .achievements-recent .achiev-date {
     display: block;
     opacity: 0.7;
+}
+
+/* ===== Level 1: Category cards ===== */
+.achiev-categories {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+    margin: 12px 0;
+}
+
+.achiev-cat-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px 8px;
+    border: 1px solid rgba(128, 128, 128, 0.25);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.15s, border-color 0.15s;
+    text-align: center;
+}
+
+.achiev-cat-card:hover {
+    border-color: rgba(128, 128, 128, 0.5);
+    background-color: rgba(128, 128, 128, 0.08);
+}
+
+.achiev-ring {
+    width: 80px;
+    height: 80px;
+    transform: rotate(-90deg);
+}
+
+.achiev-ring-bg {
+    fill: none;
+    stroke: rgba(128, 128, 128, 0.2);
+    stroke-width: 6;
+}
+
+.achiev-ring-fill {
+    fill: none;
+    stroke: #4caf50;
+    stroke-width: 6;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.4s ease;
+}
+
+.achiev-cat-label {
+    margin-top: 8px;
+}
+
+.achiev-cat-name {
+    font-weight: bold;
+    font-size: 0.9em;
+}
+
+.achiev-cat-stats {
+    font-size: 0.8em;
+    opacity: 0.7;
+    margin-top: 2px;
+}
+
+.achiev-no-categories {
+    text-align: center;
+    opacity: 0.6;
+    padding: 20px;
+}
+
+/* ===== Level 2: Achievement list ===== */
+.achiev-breadcrumb {
+    margin-bottom: 8px;
+}
+
+.achiev-breadcrumb a {
+    font-size: 0.9em;
+    text-decoration: none;
+}
+
+.achiev-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 4px;
+    border-bottom: 1px solid rgba(128, 128, 128, 0.15);
+    cursor: pointer;
+    transition: background-color 0.1s;
+}
+
+.achiev-row:hover {
+    background-color: rgba(128, 128, 128, 0.08);
+}
+
+.achiev-row:last-child {
+    border-bottom: none;
+}
+
+.achiev-incomplete {
+    opacity: 0.5;
+}
+
+.achiev-row-icon img {
+    border-radius: 3px;
+    vertical-align: middle;
+}
+
+.achiev-row-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.achiev-row-info strong {
+    display: block;
+}
+
+.achiev-row-desc {
+    display: block;
+    font-size: 0.85em;
+    opacity: 0.7;
+}
+
+.achiev-row-meta {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.achiev-row-date {
+    display: block;
+    font-size: 0.8em;
+    opacity: 0.7;
+}
+
+.achiev-points-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, #c9a400, #e6c200);
+    color: #fff;
+    font-weight: bold;
+    font-size: 0.85em;
+    padding: 2px 8px;
+    border-radius: 10px;
+    min-width: 24px;
+    text-align: center;
+}
+
+.achiev-points-lg {
+    font-size: 1em;
+    padding: 3px 12px;
+}
+
+/* ===== Level 3: Detail modal ===== */
+.achiev-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.achiev-modal {
+    background: #fff;
+    border-radius: 8px;
+    padding: 24px;
+    max-width: 520px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.achiev-modal-close {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    border: none;
+    background: none;
+    font-size: 1.5em;
+    cursor: pointer;
+    opacity: 0.6;
+    line-height: 1;
+}
+
+.achiev-modal-close:hover {
+    opacity: 1;
+}
+
+.achiev-detail-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.achiev-detail-icon img {
+    border-radius: 4px;
+}
+
+.achiev-detail-title h3 {
+    margin: 0 0 4px;
+}
+
+.achiev-detail-desc {
+    margin: 8px 0;
+}
+
+.achiev-detail-reward {
+    font-style: italic;
+    color: #6a6a6a;
+}
+
+.achiev-detail-date {
+    font-size: 0.9em;
+    opacity: 0.8;
+}
+
+.achiev-criteria {
+    margin-top: 16px;
+}
+
+.achiev-criteria h4 {
+    margin: 0 0 8px;
+}
+
+.achiev-criterion {
+    margin-bottom: 8px;
+}
+
+.achiev-criterion-desc {
+    display: block;
+    font-size: 0.85em;
+    margin-bottom: 2px;
+}
+
+/* Dark theme support */
+.dark_theme .achiev-modal {
+    background: #2a2a2a;
+    color: #ddd;
+}
+
+.dark_theme .achiev-detail-reward {
+    color: #aaa;
 }

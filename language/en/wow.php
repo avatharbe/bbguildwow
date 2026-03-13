@@ -51,4 +51,12 @@ $lang = array_merge(
 	'ACHIEV_RECENTLY_EARNED'   => 'Recently Earned',
 	'ACHIEV_POINTS_TOTAL'      => 'Achievement Points',
 	'ACHIEV_COMPLETED_LABEL'   => 'achievements completed',
+
+	// Achievement browser
+	'ACHIEV_BACK'              => 'Achievements',
+	'ACHIEV_NO_CATEGORIES'     => 'No achievement categories synced yet. Sync categories via ACP.',
+	'ACHIEV_NOT_COMPLETED'     => 'Not completed',
+	'ACHIEV_CRITERIA'          => 'Criteria',
+	'ACHIEV_FEATS_OF_STRENGTH' => 'Feats of Strength',
+	'ACHIEV_SYNC_CATEGORIES'   => 'Sync Categories',
 ));

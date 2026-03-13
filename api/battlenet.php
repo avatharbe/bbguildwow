@@ -29,7 +29,7 @@ class battlenet
 	protected $region = array('us', 'eu', 'kr', 'tw');
 
 	/** @var array */
-	protected $api = array('guild', 'realm', 'character', 'achievement', 'playable-data');
+	protected $api = array('guild', 'realm', 'character', 'achievement', 'achievement-category', 'playable-data');
 
 	/** @var battlenet_realm */
 	public $Realm;
@@ -42,6 +42,9 @@ class battlenet
 
 	/** @var battlenet_character */
 	public $character;
+
+	/** @var battlenet_achievement_category */
+	public $achievement_category;
 
 	/** @var battlenet_static_data */
 	public $static_data;
@@ -63,8 +66,9 @@ class battlenet
 		'realm'          => 'dynamic',
 		'guild'          => 'profile',
 		'character'      => 'profile',
-		'achievement'    => 'static',
-		'playable-data'  => 'static',
+		'achievement'            => 'static',
+		'achievement-category'   => 'static',
+		'playable-data'          => 'static',
 	);
 
 	/**
@@ -128,6 +132,13 @@ class battlenet
 				$this->achievement->locale = $locale;
 				$this->achievement->privkey = $privkey;
 				$this->achievement->namespace_type = $namespace_type;
+				break;
+			case 'achievement-category':
+				$this->achievement_category = new battlenet_achievement_category($this->cache, $region, $this->cacheTtl);
+				$this->achievement_category->apikey = $apikey;
+				$this->achievement_category->locale = $locale;
+				$this->achievement_category->privkey = $privkey;
+				$this->achievement_category->namespace_type = $namespace_type;
 				break;
 			case 'playable-data':
 				$this->static_data = new battlenet_static_data($this->cache, $region, $this->cacheTtl);

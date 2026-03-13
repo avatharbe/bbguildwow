@@ -1,0 +1,19 @@
+avathar_bbguild_wow_achiev_categories:
+    path: /bbguild_wow/achievements/categories/{guild_id}
+    defaults: { _controller: avathar.bbguild_wow.achievement_controller:categories }
+    requirements:
+        guild_id: \d+
+
+avathar_bbguild_wow_achiev_list:
+    path: /bbguild_wow/achievements/list/{guild_id}/{category_id}
+    defaults: { _controller: avathar.bbguild_wow.achievement_controller:achievement_list }
+    requirements:
+        guild_id: \d+
+        category_id: \d+
+
+avathar_bbguild_wow_achiev_detail:
+    path: /bbguild_wow/achievements/detail/{guild_id}/{achievement_id}
+    defaults: { _controller: avathar.bbguild_wow.achievement_controller:achievement_detail }
+    requirements:
+        guild_id: \d+
+        achievement_id: \d+

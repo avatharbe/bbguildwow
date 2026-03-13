@@ -49,4 +49,12 @@ $lang = array_merge(
 	'ACHIEV_RECENTLY_EARNED'   => 'Obtenus récemment',
 	'ACHIEV_POINTS_TOTAL'      => 'Points de hauts faits',
 	'ACHIEV_COMPLETED_LABEL'   => 'hauts faits accomplis',
+
+	// Achievement browser
+	'ACHIEV_BACK'              => 'Hauts Faits',
+	'ACHIEV_NO_CATEGORIES'     => 'Aucune cat&eacute;gorie de hauts faits synchronis&eacute;e. Synchronisez les cat&eacute;gories via l\'ACP.',
+	'ACHIEV_NOT_COMPLETED'     => 'Non accompli',
+	'ACHIEV_CRITERIA'          => 'Crit&egrave;res',
+	'ACHIEV_FEATS_OF_STRENGTH' => 'Exploits',
+	'ACHIEV_SYNC_CATEGORIES'   => 'Synchroniser les cat&eacute;gories',
 ));

@@ -28,6 +28,7 @@ class achievement
 	public $bb_achievement_criteria_table;
 	public $bb_relations_table;
 	public $bb_guild_wow_table;
+	public $bb_achievement_category_table;
 
 	/**
 	 * achievement id
@@ -372,7 +373,7 @@ class achievement
 		\avathar\bbguild\model\admin\util $util,
 		$bb_achievement_track_table, $bb_achievement_table,
 		$bb_achievement_rewards_table, $bb_criteria_track_table, $bb_achievement_criteria_table,
-		$bb_relations_table, $bb_guild_wow_table)
+		$bb_relations_table, $bb_guild_wow_table, $bb_achievement_category_table)
 	{
 		$this->db = $db;
 		$this->cache = $cache;
@@ -384,6 +385,7 @@ class achievement
 		$this->bb_achievement_criteria_table = $bb_achievement_criteria_table;
 		$this->bb_relations_table = $bb_relations_table;
 		$this->bb_guild_wow_table = $bb_guild_wow_table;
+		$this->bb_achievement_category_table = $bb_achievement_category_table;
 	}
 
 	/**
@@ -1104,6 +1106,250 @@ class achievement
 				$this->flatten_criteria($child, $achievement_id, $criteria_rows, $relation_rows, $idx);
 			}
 		}
+	}
+
+	/**
+	 * Sync achievement categories from the Battle.net Game Data API.
+	 *
+	 * Fetches the category index (root + child structure), truncates and
+	 * re-inserts all categories, then fetches leaf category details to
+	 * map achievements to categories.
+	 *
+	 * @param game $game
+	 * @return array Result with 'success' (bool), 'message' (string), 'count' (int)
+	 */
+	public function syncCategories(game $game): array
+	{
+		$db = $this->db;
+		$cache = $this->cache;
+
+		if (!$game->getArmoryEnabled())
+		{
+			return array('success' => false, 'message' => 'Armory is not enabled for this game.', 'count' => 0);
+		}
+
+		$region = $game->getRegion();
+		$apikey = $game->getApikey();
+		$privkey = $game->get_privkey();
+
+		if (empty($apikey) || empty($privkey))
+		{
+			return array('success' => false, 'message' => 'Battle.net API credentials not configured.', 'count' => 0);
+		}
+
+		$locale = $game->get_apilocale();
+
+		// Fetch the category index
+		$api = new battlenet('achievement-category', $region, $apikey, $locale, $privkey, '', $cache);
+		$response = $api->achievement_category->getCategoryIndex();
+		$data = isset($response['response']) ? $response['response'] : null;
+
+		if (!is_array($data) || isset($data['code']))
+		{
+			$detail = isset($data['detail']) ? $data['detail'] : 'Unknown error';
+			unset($api);
+			return array('success' => false, 'message' => 'Category index API error: ' . $detail, 'count' => 0);
+		}
+
+		// Truncate existing categories
+		$db->sql_query('DELETE FROM ' . $this->bb_achievement_category_table . " WHERE game_id = '" . $db->sql_escape($game->game_id) . "'");
+
+		$categories = array();
+		$insert_rows = array();
+		$order = 0;
+
+		// Root categories
+		$root_cats = isset($data['root_categories']) ? $data['root_categories'] : (isset($data['categories']) ? $data['categories'] : array());
+		foreach ($root_cats as $cat)
+		{
+			$cat_id = isset($cat['id']) ? (int) $cat['id'] : 0;
+			if ($cat_id === 0)
+			{
+				continue;
+			}
+			$insert_rows[] = array(
+				'id'            => $cat_id,
+				'game_id'       => $game->game_id,
+				'parent_id'     => 0,
+				'name'          => isset($cat['name']) ? $cat['name'] : '',
+				'display_order' => $order++,
+			);
+			$categories[$cat_id] = true;
+
+			// Subcategories
+			if (isset($cat['subcategories']) && is_array($cat['subcategories']))
+			{
+				$sub_order = 0;
+				foreach ($cat['subcategories'] as $sub)
+				{
+					$sub_id = isset($sub['id']) ? (int) $sub['id'] : 0;
+					if ($sub_id === 0)
+					{
+						continue;
+					}
+					$insert_rows[] = array(
+						'id'            => $sub_id,
+						'game_id'       => $game->game_id,
+						'parent_id'     => $cat_id,
+						'name'          => isset($sub['name']) ? $sub['name'] : '',
+						'display_order' => $sub_order++,
+					);
+					$categories[$sub_id] = true;
+				}
+			}
+		}
+
+		// Also handle guild_categories and character_categories if present
+		foreach (array('guild_categories', 'character_categories') as $cat_group)
+		{
+			if (!isset($data[$cat_group]) || !is_array($data[$cat_group]))
+			{
+				continue;
+			}
+			foreach ($data[$cat_group] as $cat)
+			{
+				$cat_id = isset($cat['id']) ? (int) $cat['id'] : 0;
+				if ($cat_id === 0 || isset($categories[$cat_id]))
+				{
+					continue;
+				}
+				$insert_rows[] = array(
+					'id'            => $cat_id,
+					'game_id'       => $game->game_id,
+					'parent_id'     => 0,
+					'name'          => isset($cat['name']) ? $cat['name'] : '',
+					'display_order' => $order++,
+				);
+				$categories[$cat_id] = true;
+			}
+		}
+
+		if (!empty($insert_rows))
+		{
+			$db->sql_multi_insert($this->bb_achievement_category_table, $insert_rows);
+		}
+
+		$cat_count = count($insert_rows);
+
+		// Now fetch detail for each leaf category to map achievements to categories.
+		// Leaf categories are those that have no children (are not parent_id of any other).
+		$parent_ids = array();
+		foreach ($insert_rows as $row)
+		{
+			if ($row['parent_id'] > 0)
+			{
+				$parent_ids[$row['parent_id']] = true;
+			}
+		}
+
+		// All categories that are NOT a parent are leaf categories
+		$leaf_ids = array();
+		foreach ($insert_rows as $row)
+		{
+			if (!isset($parent_ids[$row['id']]))
+			{
+				$leaf_ids[] = $row['id'];
+			}
+		}
+
+		// Also include root categories that have no subcategories (they are their own leaf)
+		$time_start = time();
+		$time_limit = 20;
+		$mapped_count = 0;
+
+		foreach ($leaf_ids as $leaf_id)
+		{
+			if ((time() - $time_start) >= $time_limit)
+			{
+				break;
+			}
+
+			$detail_response = $api->achievement_category->getCategoryDetail($leaf_id);
+			$detail_data = isset($detail_response['response']) ? $detail_response['response'] : null;
+
+			if (!is_array($detail_data) || isset($detail_data['code']))
+			{
+				continue;
+			}
+
+			$achievement_ids = array();
+			if (isset($detail_data['achievements']) && is_array($detail_data['achievements']))
+			{
+				foreach ($detail_data['achievements'] as $ach)
+				{
+					$aid = isset($ach['id']) ? (int) $ach['id'] : 0;
+					if ($aid > 0)
+					{
+						$achievement_ids[] = $aid;
+					}
+				}
+			}
+
+			if (!empty($achievement_ids))
+			{
+				$db->sql_query('UPDATE ' . $this->bb_achievement_table .
+					' SET category_id = ' . (int) $leaf_id .
+					' WHERE ' . $db->sql_in_set('id', $achievement_ids));
+				$mapped_count += count($achievement_ids);
+			}
+		}
+
+		unset($api);
+
+		$message = sprintf('Synced %d categories, mapped %d achievements.', $cat_count, $mapped_count);
+
+		return array(
+			'success' => true,
+			'message' => $message,
+			'count'   => $cat_count,
+		);
+	}
+
+	/**
+	 * Get per-root-category achievement progress for a guild.
+	 *
+	 * Returns an array of root categories with total/earned points and counts.
+	 *
+	 * @param int $guild_id
+	 * @return array
+	 */
+	public function getCategoryProgress(int $guild_id): array
+	{
+		$db = $this->db;
+
+		$sql = 'SELECT ac.id, ac.name, ac.display_order,
+				COUNT(a.id) AS total_count,
+				COUNT(at.achievement_id) AS completed_count,
+				SUM(a.points) AS total_points,
+				COALESCE(SUM(CASE WHEN at.achievement_id IS NOT NULL THEN a.points ELSE 0 END), 0) AS earned_points
+			FROM ' . $this->bb_achievement_category_table . ' ac
+			INNER JOIN ' . $this->bb_achievement_category_table . ' child
+				ON (child.parent_id = ac.id OR child.id = ac.id)
+			INNER JOIN ' . $this->bb_achievement_table . ' a
+				ON a.category_id = child.id AND a.game_id = \'wow\'
+			LEFT JOIN ' . $this->bb_achievement_track_table . ' at
+				ON at.achievement_id = a.id AND at.guild_id = ' . (int) $guild_id . '
+			WHERE ac.parent_id = 0 AND ac.game_id = \'wow\'
+			GROUP BY ac.id, ac.name, ac.display_order
+			ORDER BY ac.display_order';
+		$result = $db->sql_query($sql);
+
+		$categories = array();
+		while ($row = $db->sql_fetchrow($result))
+		{
+			$categories[] = array(
+				'id'              => (int) $row['id'],
+				'name'            => $row['name'],
+				'display_order'   => (int) $row['display_order'],
+				'total_count'     => (int) $row['total_count'],
+				'completed_count' => (int) $row['completed_count'],
+				'total_points'    => (int) $row['total_points'],
+				'earned_points'   => (int) $row['earned_points'],
+			);
+		}
+		$db->sql_freeresult($result);
+
+		return $categories;
 	}
 
 	/**

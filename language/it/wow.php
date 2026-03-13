@@ -49,4 +49,12 @@ $lang = array_merge(
 	'ACHIEV_RECENTLY_EARNED'   => 'Ottenuti di recente',
 	'ACHIEV_POINTS_TOTAL'      => 'Punti impresa',
 	'ACHIEV_COMPLETED_LABEL'   => 'imprese completate',
+
+	// Achievement browser
+	'ACHIEV_BACK'              => 'Imprese',
+	'ACHIEV_NO_CATEGORIES'     => 'Nessuna categoria di imprese sincronizzata. Sincronizza le categorie tramite ACP.',
+	'ACHIEV_NOT_COMPLETED'     => 'Non completato',
+	'ACHIEV_CRITERIA'          => 'Criteri',
+	'ACHIEV_FEATS_OF_STRENGTH' => 'Imprese epiche',
+	'ACHIEV_SYNC_CATEGORIES'   => 'Sincronizza categorie',
 ));

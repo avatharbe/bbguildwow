@@ -120,9 +120,10 @@ class achievement_module
 				$this->guild = $this->GetGuild();
 
 				// add achievement button redirect
-				$achievaddmanual = $this->request->is_set_post('achievaddmanual');
-				$achievaddapi    = $this->request->is_set_post('achievaddapi');
-				$achievdelete    = $this->request->is_set_post('delete');
+				$achievaddmanual  = $this->request->is_set_post('achievaddmanual');
+				$achievaddapi     = $this->request->is_set_post('achievaddapi');
+				$achievsynccats   = $this->request->is_set_post('achievsynccats');
+				$achievdelete     = $this->request->is_set_post('delete');
 
 				if ($achievaddmanual)
 				{
@@ -133,7 +134,10 @@ class achievement_module
 				{
 					$a = $this->request->variable('achievement_guild_id', $this->request->variable('hidden_guildid', 0));
 					$this->LoadAPIGuildachievements($this->guild);
-
+				}
+				if ($achievsynccats)
+				{
+					$this->SyncCategories();
 				}
 				if ($achievdelete)
 				{
@@ -540,6 +544,24 @@ class achievement_module
 		$this->achievement->setGame($this->game, 0);
 		$this->achievement->setGuildId($this->guild->guildid);
 		$result = $this->achievement->setAchievements($Guild, $this->game);
+
+		if ($result['success'])
+		{
+			trigger_error($result['message'] . $this->link);
+		}
+		else
+		{
+			trigger_error($result['message'] . $this->link, E_USER_WARNING);
+		}
+	}
+
+	/**
+	 * Sync achievement categories from the Battle.net API.
+	 */
+	private function SyncCategories()
+	{
+		$this->achievement->setGame($this->game, 0);
+		$result = $this->achievement->syncCategories($this->game);
 
 		if ($result['success'])
 		{

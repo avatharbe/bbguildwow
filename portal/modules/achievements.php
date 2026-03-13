@@ -2,8 +2,8 @@
 /**
  * WoW Achievements portal module.
  *
- * Displays guild achievement progress overview and recently earned
- * achievements, queried from the local achievement tracking tables.
+ * Displays a 3-level achievement browser: category cards with progress rings,
+ * AJAX-loaded achievement list, and achievement detail modal.
  *
  * @package   avathar\bbguild_wow
  * @copyright 2018 avathar.be
@@ -13,6 +13,7 @@
 namespace avathar\bbguild_wow\portal\modules;
 
 use avathar\bbguild\portal\modules\module_base;
+use avathar\bbguild_wow\model\achievement;
 use phpbb\config\config;
 use phpbb\db\driver\driver_interface;
 use phpbb\template\template;
@@ -42,13 +43,17 @@ class achievements extends module_base
 	/** @var string */
 	protected string $guild_wow_table;
 
+	/** @var achievement */
+	protected achievement $achievement_model;
+
 	public function __construct(
 		config $config,
 		driver_interface $db,
 		template $template,
 		string $achievement_table,
 		string $achievement_track_table,
-		string $guild_wow_table
+		string $guild_wow_table,
+		achievement $achievement_model
 	)
 	{
 		$this->config = $config;
@@ -57,6 +62,7 @@ class achievements extends module_base
 		$this->achievement_table = $achievement_table;
 		$this->achievement_track_table = $achievement_track_table;
 		$this->guild_wow_table = $guild_wow_table;
+		$this->achievement_model = $achievement_model;
 	}
 
 	/**
@@ -84,8 +90,36 @@ class achievements extends module_base
 
 		$this->template->assign_var('ACHIEV_POINTS', (int) $row['achievementpoints']);
 
-		// Fetch category progress summary
-		$this->load_category_progress();
+		// Load overall progress
+		$this->load_overall_progress();
+
+		// Load category progress for the card grid
+		$categories = $this->achievement_model->getCategoryProgress((int) $this->guild_id);
+
+		if (!empty($categories))
+		{
+			foreach ($categories as $cat)
+			{
+				$percent = ($cat['total_points'] > 0) ? round($cat['earned_points'] / $cat['total_points'] * 100) : 0;
+				$this->template->assign_block_vars('achievement_categories', array(
+					'ID'              => $cat['id'],
+					'NAME'            => $cat['name'],
+					'TOTAL_POINTS'    => $cat['total_points'],
+					'EARNED_POINTS'   => $cat['earned_points'],
+					'PERCENT'         => $percent,
+					'COMPLETED_COUNT' => $cat['completed_count'],
+					'TOTAL_COUNT'     => $cat['total_count'],
+				));
+			}
+		}
+
+		// Assign AJAX route base URLs for JS
+		$this->template->assign_vars(array(
+			'ACHIEV_GUILD_ID'         => (int) $this->guild_id,
+			'U_ACHIEV_LIST_BASE'      => './app.php/bbguild_wow/achievements/list/' . (int) $this->guild_id . '/',
+			'U_ACHIEV_DETAIL_BASE'    => './app.php/bbguild_wow/achievements/detail/' . (int) $this->guild_id . '/',
+			'S_ACHIEV_HAS_CATEGORIES' => !empty($categories),
+		));
 
 		// Fetch recently earned achievements
 		$this->load_recent_achievements();
@@ -94,14 +128,10 @@ class achievements extends module_base
 	}
 
 	/**
-	 * Load achievement progress for this guild.
-	 *
-	 * Uses earned point sum vs Blizzard-reported total for the progress bar,
-	 * plus a simple completed count.
+	 * Load overall achievement progress for this guild.
 	 */
-	protected function load_category_progress(): void
+	protected function load_overall_progress(): void
 	{
-		// Sum earned achievement points and count completed for this guild
 		$sql = 'SELECT COUNT(at.achievement_id) AS completed_count,
 				SUM(a.points) AS earned_points
 			FROM ' . $this->achievement_track_table . ' at

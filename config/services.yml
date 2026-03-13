@@ -52,6 +52,22 @@ services:
             - '%avathar.bbguild_wow.tables.bb_achievement_criteria%'
             - '%avathar.bbguild_wow.tables.bb_relations_table%'
             - '%avathar.bbguild_wow.tables.bb_guild_wow%'
+            - '%avathar.bbguild_wow.tables.bb_achievement_category%'
+
+    # --- Controllers ---
+
+    avathar.bbguild_wow.achievement_controller:
+        class: avathar\bbguild_wow\controller\achievement_controller
+        arguments:
+            - '@avathar.bbguild_wow.achievement'
+            - '@dbal.conn'
+            - '@request'
+            - '%avathar.bbguild_wow.tables.bb_achievement%'
+            - '%avathar.bbguild_wow.tables.bb_achievement_track%'
+            - '%avathar.bbguild_wow.tables.bb_achievement_category%'
+            - '%avathar.bbguild_wow.tables.bb_relations_table%'
+            - '%avathar.bbguild_wow.tables.bb_achievement_criteria%'
+            - '%avathar.bbguild_wow.tables.bb_criteria_track%'
 
     # --- Portal modules ---
 
@@ -64,6 +80,7 @@ services:
             - '%avathar.bbguild_wow.tables.bb_achievement%'
             - '%avathar.bbguild_wow.tables.bb_achievement_track%'
             - '%avathar.bbguild_wow.tables.bb_guild_wow%'
+            - '@avathar.bbguild_wow.achievement'
         tags:
             - { name: bbguild.portal.module }
 

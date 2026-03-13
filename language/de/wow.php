@@ -49,4 +49,12 @@ $lang = array_merge(
 	'ACHIEV_RECENTLY_EARNED'   => 'Kürzlich verdient',
 	'ACHIEV_POINTS_TOTAL'      => 'Erfolgspunkte',
 	'ACHIEV_COMPLETED_LABEL'   => 'Erfolge abgeschlossen',
+
+	// Achievement browser
+	'ACHIEV_BACK'              => 'Erfolge',
+	'ACHIEV_NO_CATEGORIES'     => 'Noch keine Erfolgskategorien synchronisiert. Kategorien im ACP synchronisieren.',
+	'ACHIEV_NOT_COMPLETED'     => 'Nicht abgeschlossen',
+	'ACHIEV_CRITERIA'          => 'Kriterien',
+	'ACHIEV_FEATS_OF_STRENGTH' => 'Heldentaten',
+	'ACHIEV_SYNC_CATEGORIES'   => 'Kategorien synchronisieren',
 ));
