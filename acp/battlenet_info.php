@@ -22,7 +22,7 @@ class battlenet_info
 		return array(
 			'filename' => '\avathar\bbguild_wow\acp\battlenet_module',
 			'title'    => 'ACP_BBGUILD_MAINPAGE',
-			'version'  => '2.0.0',
+			'version'  => '2.0.0-b1',
 			'modes'    => array(
 				'battlenet' => array(
 					'title'   => 'ACP_WOW_BATTLENET',

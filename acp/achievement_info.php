@@ -22,7 +22,7 @@ class achievement_info
 		return array(
 			'filename'    => '\avathar\bbguild_wow\acp\achievement_module',
 			'title'        => 'ACP_BBGUILD_PLAYER',
-			'version'    => '2.0.0',
+			'version'    => '2.0.0-b1',
 			'modes'        => array(
 				'addachievement'        => array(
 					'title' => 'ACP_ADDACHIEV',

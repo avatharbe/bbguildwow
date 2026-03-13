@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.0.0-b1 14/03/2026
+  - [NEW] 3-level achievement browser: category cards with SVG progress rings, AJAX achievement list, detail modal (#13)
+  - [NEW] `bb_achievement_category` table — syncs Blizzard achievement categories (root + child)
+  - [NEW] `category_id` column on `bb_achievement` for category mapping
+  - [NEW] Battle.net Achievement Category API resource (`achievement-category` index + detail)
+  - [NEW] AJAX controller with 3 JSON endpoints: categories, achievement_list, achievement_detail
+  - [NEW] "Sync Categories" button in ACP achievement listing
+  - [NEW] Language keys for achievement browser (EN, DE, FR, IT)
+  - [CHG] Portal achievements module now shows category card grid instead of flat list
+
 ## 2.0.0-a1 02/03/2026
   - [NEW] Initial release as standalone phpBB extension
   - [NEW] Extracted from bbGuild core as part of the game plugin architecture

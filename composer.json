@@ -3,8 +3,8 @@
   "type": "phpbb-extension",
   "description": "World of Warcraft game plugin for bbGuild. Provides WoW classes, races, factions, and Battle.net API integration.",
   "homepage": "https://github.com/avandenberghe/bbguild",
-  "version": "2.0.0-a1",
-  "time": "2026-03-02",
+  "version": "2.0.0-b1",
+  "time": "2026-03-14",
   "license": "GPL-2.0-only",
   "authors": [{
     "name": "Andreas Vandenberghe (Sajaki)",
