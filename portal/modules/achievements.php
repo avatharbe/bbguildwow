@@ -114,10 +114,12 @@ class achievements extends module_base
 		}
 
 		// Assign AJAX route base URLs for JS
+		// Use generate_board_url() to build absolute paths that work regardless of current page URL
+		$board_url = generate_board_url();
 		$this->template->assign_vars(array(
 			'ACHIEV_GUILD_ID'         => (int) $this->guild_id,
-			'U_ACHIEV_LIST_BASE'      => './app.php/bbguild_wow/achievements/list/' . (int) $this->guild_id . '/',
-			'U_ACHIEV_DETAIL_BASE'    => './app.php/bbguild_wow/achievements/detail/' . (int) $this->guild_id . '/',
+			'U_ACHIEV_LIST_BASE'      => $board_url . '/app.php/bbguild_wow/achievements/list/' . (int) $this->guild_id . '/',
+			'U_ACHIEV_DETAIL_BASE'    => $board_url . '/app.php/bbguild_wow/achievements/detail/' . (int) $this->guild_id . '/',
 			'S_ACHIEV_HAS_CATEGORIES' => !empty($categories),
 		));
 

@@ -52,7 +52,7 @@
 
 	{# ===== Level 3: Detail modal (AJAX) ===== #}
 	<div id="achiev-modal-overlay" class="achiev-modal-overlay" style="display:none;">
-		<div class="achiev-modal">
+		<div class="achiev-modal panel">
 			<button class="achiev-modal-close" id="achiev-modal-close" type="button">&times;</button>
 			<div id="achiev-modal-content"></div>
 		</div>
@@ -85,9 +85,127 @@
 </div>
 
 <script>
-	var bbguild_achiev_list_url = '{{ U_ACHIEV_LIST_BASE }}';
-	var bbguild_achiev_detail_url = '{{ U_ACHIEV_DETAIL_BASE }}';
+(function() {
+	'use strict';
+	var listUrl = '{{ U_ACHIEV_LIST_BASE }}';
+	var detailUrl = '{{ U_ACHIEV_DETAIL_BASE }}';
+	var level1 = document.getElementById('achiev-level1');
+	var level2 = document.getElementById('achiev-level2');
+	var overlay = document.getElementById('achiev-modal-overlay');
+
+	function esc(s) {
+		var d = document.createElement('div');
+		d.appendChild(document.createTextNode(s || ''));
+		return d.innerHTML;
+	}
+
+	function loadCategory(id, name) {
+		document.getElementById('achiev-list-heading').textContent = name;
+		document.getElementById('achiev-list-content').innerHTML = '<p>Loading...</p>';
+		level1.style.display = 'none';
+		level2.style.display = '';
+		fetch(listUrl + id).then(function(r) { return r.json(); }).then(function(data) {
+			var html = '';
+			if (!data.achievements || data.achievements.length === 0) {
+				html = '<p>No achievements found.</p>';
+			} else {
+				for (var i = 0; i < data.achievements.length; i++) {
+					var a = data.achievements[i];
+					var cls = a.completed ? 'achiev-row' : 'achiev-row achiev-incomplete';
+					var icon = a.icon ? '<img src="https://render.worldofwarcraft.com/icons/36/' + esc(a.icon) + '.jpg" width="36" height="36" alt="" />' : '';
+					var date = a.completed ? esc(a.completed_date) : '';
+					html += '<div class="' + cls + '" data-achievement-id="' + a.id + '">' +
+						'<span class="achiev-row-icon">' + icon + '</span>' +
+						'<span class="achiev-row-info">' +
+							'<strong>' + esc(a.title) + '</strong>' +
+							'<span class="achiev-row-desc">' + esc(a.description) + '</span>' +
+						'</span>' +
+						'<span class="achiev-row-meta">' +
+							(a.points ? '<span class="achiev-points-badge">' + a.points + '</span>' : '') +
+							(date ? '<span class="achiev-row-date">' + date + '</span>' : '') +
+						'</span>' +
+					'</div>';
+				}
+			}
+			document.getElementById('achiev-list-content').innerHTML = html;
+		}).catch(function() {
+			document.getElementById('achiev-list-content').innerHTML = '<p>Error loading achievements.</p>';
+		});
+	}
+
+	function showDetail(id) {
+		document.getElementById('achiev-modal-content').innerHTML = '<p>Loading...</p>';
+		overlay.style.display = '';
+		fetch(detailUrl + id).then(function(r) { return r.json(); }).then(function(data) {
+			var icon = data.icon ? '<img src="https://render.worldofwarcraft.com/icons/56/' + esc(data.icon) + '.jpg" width="56" height="56" alt="" />' : '';
+			var date = data.completed ? esc(data.completed_date) : '';
+			var html = '<div class="achiev-detail-header">' +
+				'<span class="achiev-detail-icon">' + icon + '</span>' +
+				'<div class="achiev-detail-title">' +
+					'<h3>' + esc(data.title) + '</h3>' +
+					(data.points ? '<span class="achiev-points-badge achiev-points-lg">' + data.points + '</span>' : '') +
+				'</div>' +
+			'</div>' +
+			'<p class="achiev-detail-desc">' + esc(data.description) + '</p>';
+			if (data.reward) {
+				html += '<p class="achiev-detail-reward">' + esc(data.reward) + '</p>';
+			}
+			if (date) {
+				html += '<p class="achiev-detail-date">Completed: ' + date + '</p>';
+			}
+			if (data.criteria && data.criteria.length > 0) {
+				html += '<div class="achiev-criteria"><h4>Criteria</h4>';
+				for (var i = 0; i < data.criteria.length; i++) {
+					var c = data.criteria[i];
+					var pct = c.max > 0 ? Math.min(100, Math.round(c.quantity / c.max * 100)) : (c.quantity > 0 ? 100 : 0);
+					html += '<div class="achiev-criterion">' +
+						'<span class="achiev-criterion-desc">' + esc(c.description) + '</span>' +
+						'<div class="profile-progress border-4">' +
+							'<div class="bar border-4 hover" style="width:' + pct + '%"></div>' +
+							'<div class="bar-contents">' + c.quantity + ' / ' + c.max + '</div>' +
+						'</div>' +
+					'</div>';
+				}
+				html += '</div>';
+			}
+			document.getElementById('achiev-modal-content').innerHTML = html;
+		}).catch(function() {
+			document.getElementById('achiev-modal-content').innerHTML = '<p>Error loading achievement detail.</p>';
+		});
+	}
+
+	document.addEventListener('click', function(e) {
+		var card = e.target.closest('.achiev-cat-card');
+		if (card) {
+			loadCategory(card.dataset.categoryId, card.dataset.categoryName);
+			return;
+		}
+		if (e.target.closest('#achiev-back')) {
+			e.preventDefault();
+			level2.style.display = 'none';
+			level1.style.display = '';
+			return;
+		}
+		var row = e.target.closest('.achiev-row');
+		if (row && row.dataset.achievementId) {
+			showDetail(row.dataset.achievementId);
+			return;
+		}
+		if (e.target.closest('#achiev-modal-close')) {
+			overlay.style.display = 'none';
+			return;
+		}
+		if (e.target === overlay) {
+			overlay.style.display = 'none';
+		}
+	});
+	document.addEventListener('keydown', function(e) {
+		if (e.key === 'Escape') {
+			if (overlay.style.display !== 'none') overlay.style.display = 'none';
+			else if (level2.style.display !== 'none') { level2.style.display = 'none'; level1.style.display = ''; }
+		}
+	});
+})();
 </script>
-<script src="{{ T_EXT_PATH }}avathar/bbguild_wow/styles/all/template/portal/modules/achievements.js"></script>
 {{ definition.C_BLOCK_F_L }}
 {{ definition.C_BLOCK_F_R }}
