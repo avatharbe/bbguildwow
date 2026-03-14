@@ -70,12 +70,6 @@ class achievements extends module_base
 	 */
 	public function get_template_center(int $module_id)
 	{
-		// Respect ACP "Show Achievements" toggle
-		if (empty($this->config['bbguild_show_achiev']))
-		{
-			return null;
-		}
-
 		// Load guild achievement points from Blizzard API (authoritative)
 		$sql = 'SELECT achievementpoints FROM ' . $this->guild_wow_table .
 			' WHERE guild_id = ' . (int) $this->guild_id;
