@@ -69,13 +69,16 @@ $lang = array_merge(
 	'WOW_PHASE_PORTRAITS'      => 'Portraits',
 	'WOW_PHASE_CATEGORIES'     => 'Achievement Categories',
 	'WOW_PHASE_ACHIEVEMENTS'   => 'Achievements',
-	'WOW_GUILD_SYNC_EXPLAIN'   => 'Syncs data from the Battle.net API in 5 phases:<br />'
-		. '1. <strong>Roster</strong> — Guild roster endpoint (<code>/data/wow/guild/{realm}/{name}/roster</code>)<br />'
-		. '2. <strong>Specializations</strong> — Character Specializations API, per character (<code>/profile/wow/character/{realm}/{name}/specializations</code>)<br />'
-		. '3. <strong>Portraits</strong> — Character Media API, per character (<code>/profile/wow/character/{realm}/{name}/character-media</code>)<br />'
-		. '4. <strong>Achievement Categories</strong> — Achievement Category Index + per-category detail (<code>/data/wow/achievement-category/index</code>)<br />'
-		. '5. <strong>Achievements</strong> — Guild Achievements + per-achievement detail (<code>/data/wow/guild/{realm}/{name}/achievements</code>)<br />'
-		. 'Large guilds may take a few minutes. Achievement detail fetching is time-limited per batch.',
+	'WOW_GUILD_SYNC_EXPLAIN'   => 'Syncs guild data from the Battle.net API in 3 phases:<br />'
+		. '1. <strong>Roster</strong> — Guild roster (<code>/data/wow/guild/{realm}/{name}/roster</code>)<br />'
+		. '2. <strong>Specializations</strong> — per character (<code>/profile/wow/character/{realm}/{name}/specializations</code>)<br />'
+		. '3. <strong>Portraits</strong> — per character (<code>/profile/wow/character/{realm}/{name}/character-media</code>)<br />'
+		. 'Large guilds may take a few minutes.',
+	'WOW_SYNC_ACHIEVEMENTS_LABEL'   => 'Sync Achievements',
+	'WOW_SYNC_ACHIEVEMENTS_EXPLAIN' => 'Syncs achievement data from the Battle.net API in 2 phases:<br />'
+		. '1. <strong>Achievement Categories</strong> — Category index + per-category detail (<code>/data/wow/achievement-category/index</code>)<br />'
+		. '2. <strong>Achievements</strong> — Guild achievements + per-achievement detail (<code>/data/wow/guild/{realm}/{name}/achievements</code>)<br />'
+		. 'Detail fetching is time-limited per batch.',
 	'ACHIEV_SHOW_EMPTY'        => 'Alle categorieën tonen',
 	'ACHIEV_HIDE_EMPTY'        => 'Lege categorieën verbergen',
 ));

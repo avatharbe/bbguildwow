@@ -14,8 +14,6 @@ document.addEventListener('DOMContentLoaded', function() {
     var rosterUrl = '{{ U_ROSTER_SYNC }}';
     var specUrl = '{{ U_SPEC_SYNC }}';
     var portraitUrl = '{{ U_PORTRAIT_SYNC }}';
-    var categoryUrl = '{{ U_CATEGORY_SYNC }}';
-    var achievUrl = '{{ U_ACHIEV_SYNC }}';
     var logRow = document.getElementById('wow-sync-log');
     var phases = document.getElementById('wow-sync-phases');
     var armoryBtn = document.querySelector('input[name="armory"]');
@@ -78,11 +76,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             runBatchPhase('{{ lang('WOW_PHASE_SPECS') }}', specUrl, function() {
                 runBatchPhase('{{ lang('WOW_PHASE_PORTRAITS') }}', portraitUrl, function() {
-                    runBatchPhase('{{ lang('WOW_PHASE_CATEGORIES') }}', categoryUrl, function() {
-                        runBatchPhase('{{ lang('WOW_PHASE_ACHIEVEMENTS') }}', achievUrl, function() {
-                            if (armoryBtn) armoryBtn.disabled = false;
-                        });
-                    });
+                    if (armoryBtn) armoryBtn.disabled = false;
                 });
             });
         }).catch(function(err) {

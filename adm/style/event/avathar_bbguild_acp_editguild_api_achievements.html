@@ -1,0 +1,79 @@
+{% if GAME_ID == 'wow' %}
+<dl>
+    <dt style="width: 35%;"><label>{{ lang('WOW_SYNC_ACHIEVEMENTS_LABEL') }}</label>
+        <br /><span>{{ lang('WOW_SYNC_ACHIEVEMENTS_EXPLAIN') }}</span>
+    </dt>
+    <dd>
+        <input type="button" id="achiev_sync_btn" value="{{ lang('WOW_SYNC_ACHIEVEMENTS_LABEL') }}" class="button1" />
+    </dd>
+</dl>
+<dl id="wow-achiev-sync-log" style="display:none;">
+    <dt><label>{{ lang('WOW_SYNC_PROGRESS') }}:</label></dt>
+    <dd>
+        <ul id="wow-achiev-sync-phases" style="list-style:none;margin:0;padding:0;font-size:0.9em;"></ul>
+    </dd>
+</dl>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var categoryUrl = '{{ U_CATEGORY_SYNC }}';
+    var achievUrl = '{{ U_ACHIEV_SYNC }}';
+    var logRow = document.getElementById('wow-achiev-sync-log');
+    var phases = document.getElementById('wow-achiev-sync-phases');
+    var btn = document.getElementById('achiev_sync_btn');
+    var currentLi = null;
+
+    function startPhase(name) {
+        logRow.style.display = '';
+        var li = document.createElement('li');
+        li.style.padding = '2px 0';
+        li.innerHTML = '<strong>' + name + ':</strong> <span class="phase-status">...</span>';
+        phases.appendChild(li);
+        currentLi = li;
+    }
+
+    function updatePhase(text) {
+        if (currentLi) currentLi.querySelector('.phase-status').textContent = text;
+    }
+
+    function completePhase(text) {
+        if (currentLi) currentLi.querySelector('.phase-status').textContent = text;
+    }
+
+    function fetchBatch(url, next) {
+        fetch(url).then(function(r) { return r.json(); }).then(function(data) {
+            if (data.error) { completePhase(data.error); if (next) next(); return; }
+            var done = data.remaining === 0 || data.done;
+            var synced = data.total - (data.remaining || 0);
+            updatePhase(synced + ' / ' + data.total);
+            if (!done) {
+                fetchBatch(url, next);
+            } else {
+                completePhase(synced + ' / ' + data.total + ' \u2713');
+                if (next) next();
+            }
+        }).catch(function() {
+            completePhase('Error');
+            if (next) next();
+        });
+    }
+
+    function runBatchPhase(name, url, next) {
+        startPhase(name);
+        fetchBatch(url, next);
+    }
+
+    if (btn) {
+        btn.addEventListener('click', function() {
+            phases.innerHTML = '';
+            btn.disabled = true;
+
+            runBatchPhase('{{ lang('WOW_PHASE_CATEGORIES') }}', categoryUrl, function() {
+                runBatchPhase('{{ lang('WOW_PHASE_ACHIEVEMENTS') }}', achievUrl, function() {
+                    btn.disabled = false;
+                });
+            });
+        });
+    }
+});
+</script>
+{% endif %}
