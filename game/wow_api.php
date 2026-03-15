@@ -135,6 +135,7 @@ class wow_api implements game_api_interface
 		$result['_region'] = $region;
 		$result['_realm'] = $realm;
 		$result['_realm_slug'] = $realm_slug;
+		$result['_edition'] = $edition;
 
 		return $result;
 	}
@@ -167,9 +168,10 @@ class wow_api implements game_api_interface
 			}
 		}
 
-		// Guild armory URL
+		// Guild armory URL — only for retail (Classic has no official armory)
 		$result['guildarmoryurl'] = '';
-		if (isset($raw_data['name']))
+		$edition = $raw_data['_edition'] ?? 'retail';
+		if (isset($raw_data['name']) && $edition === 'retail')
 		{
 			$region = $raw_data['_region'] ?? '';
 			$realm_slug = $raw_data['_realm_slug'] ?? $this->to_slug($raw_data['_realm'] ?? '');
@@ -225,8 +227,13 @@ class wow_api implements game_api_interface
 	/**
 	 * @inheritdoc
 	 */
-	public function get_player_armory_url(string $name, string $realm, string $region): string
+	public function get_player_armory_url(string $name, string $realm, string $region, string $edition = 'retail'): string
 	{
+		// Classic has no official armory website
+		if ($edition !== 'retail')
+		{
+			return '';
+		}
 		$realm_slug = $this->to_slug($realm);
 		return sprintf('https://worldofwarcraft.blizzard.com/en-%s/character/%s/%s/%s', $region, $region, $realm_slug, mb_strtolower($name, 'UTF-8'));
 	}

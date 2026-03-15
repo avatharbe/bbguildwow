@@ -1,0 +1,3 @@
+{% if GAME_ID == 'wow' and GAME_EDITION != 'retail' %}
+<br /><span class="edition">{{ lang('WOW_EDITION_' ~ GAME_EDITION|upper) }}</span>
+{% endif %}

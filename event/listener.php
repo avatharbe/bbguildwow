@@ -197,6 +197,27 @@ class listener implements EventSubscriberInterface
 		}
 
 		$updateguild = $event['updateguild'];
+
+		// Assign edition dropdown template vars (needed for both add and edit)
+		$current_edition = $updateguild->getGameEdition();
+		$editions = array(
+			'retail'       => 'WOW_EDITION_RETAIL',
+			'classic_era'  => 'WOW_EDITION_CLASSIC_ERA',
+			'classic_prog' => 'WOW_EDITION_CLASSIC_PROG',
+			'classic_ann'  => 'WOW_EDITION_CLASSIC_ANN',
+		);
+		foreach ($editions as $value => $lang_key)
+		{
+			$this->template->assign_block_vars('wow_edition_row', array(
+				'VALUE'    => $value,
+				'SELECTED' => ($current_edition === $value) ? ' selected="selected"' : '',
+				'OPTION'   => $lang_key,
+			));
+		}
+		$this->template->assign_vars(array(
+			'GAME_EDITION' => $current_edition,
+		));
+
 		$guild_id = (int) $updateguild->getGuildid();
 
 		if ($guild_id <= 0)
@@ -223,26 +244,6 @@ class listener implements EventSubscriberInterface
 				'U_ACHIEV_SYNC'     => $board_url . '/app.php/bbguild_wow/sync-achievements/' . $guild_id,
 			));
 		}
-
-		// Assign edition dropdown template vars
-		$current_edition = $updateguild->getGameEdition();
-		$editions = array(
-			'retail'       => 'WOW_EDITION_RETAIL',
-			'classic_era'  => 'WOW_EDITION_CLASSIC_ERA',
-			'classic_prog' => 'WOW_EDITION_CLASSIC_PROG',
-			'classic_ann'  => 'WOW_EDITION_CLASSIC_ANN',
-		);
-		foreach ($editions as $value => $lang_key)
-		{
-			$this->template->assign_block_vars('wow_edition_row', array(
-				'VALUE'    => $value,
-				'SELECTED' => ($current_edition === $value) ? ' selected="selected"' : '',
-				'OPTION'   => $lang_key,
-			));
-		}
-		$this->template->assign_vars(array(
-			'GAME_EDITION' => $current_edition,
-		));
 	}
 
 	/**
