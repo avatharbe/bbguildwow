@@ -40,6 +40,14 @@ services:
         tags:
             - { name: event.listener }
 
+    avathar.bbguild_wow.asset_controller:
+        class: avathar\bbguild_wow\controller\asset_controller
+        arguments:
+            - '@dbal.conn'
+            - '%core.root_path%'
+            - '%avathar.bbguild.tables.bb_guild%'
+            - '%avathar.bbguild.tables.bb_players%'
+
     avathar.bbguild_wow.portrait_controller:
         class: avathar\bbguild_wow\controller\portrait_controller
         arguments:

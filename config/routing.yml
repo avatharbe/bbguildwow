@@ -1,3 +1,15 @@
+avathar_bbguild_wow_emblem:
+    path: /bbguild_wow/emblem/{guild_id}
+    defaults: { _controller: avathar.bbguild_wow.asset_controller:serve_emblem }
+    requirements:
+        guild_id: \d+
+
+avathar_bbguild_wow_portrait:
+    path: /bbguild_wow/portrait/{player_id}
+    defaults: { _controller: avathar.bbguild_wow.asset_controller:serve_portrait }
+    requirements:
+        player_id: \d+
+
 avathar_bbguild_wow_achiev_categories:
     path: /bbguild_wow/achievements/categories/{guild_id}
     defaults: { _controller: avathar.bbguild_wow.achievement_controller:categories }

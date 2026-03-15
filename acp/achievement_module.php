@@ -264,7 +264,7 @@ class achievement_module
 				'F_PLAYERS_LIST'        => append_sid("{$phpbb_admin_path}index.$phpEx", $this->moduleurl . 'mode=listachievements'),
 				'LISTACHI_FOOTCOUNT'    => $footcount_text,
 				'L_TITLE'               => $this->user->lang['ACP_LISTACHIEV'],
-				'GUILD_EMBLEM'          => (!empty($this->guild->getEmblempath()) && @file_exists($this->guild->getEmblempath())) ? $this->guild->getEmblempath() : '',
+				'GUILD_EMBLEM'          => $this->phpbb_container->get('avathar.bbguild.asset_url_resolver')->resolve_emblem_url((string) $this->guild->getEmblempath(), (int) $this->guild->getGuildid()),
 				'GUILD_NAME'            => $this->guild->getName(),
 				'U_VIEW_GUILD'          => append_sid("{$phpbb_admin_path}index.$phpEx", 'i=-avathar-bbguild-acp-guild_module&amp;mode=editguild&amp;action=editguild&amp;' . constants::URI_GUILD . '=' . $this->guild->getGuildid()),
 			)
