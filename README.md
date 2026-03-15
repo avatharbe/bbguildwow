@@ -1,14 +1,17 @@
 # bbGuild - World of Warcraft
 
-Game plugin that adds World of Warcraft support to [bbGuild](https://github.com/avandenberghe/bbguild).
+Game plugin that adds World of Warcraft support to [bbGuild](https://github.com/avatharbe/bbguild).
 
 ## Features
 
-- **WoW Classes** - All 13 playable classes (Warrior, Paladin, Hunter, Rogue, Priest, Death Knight, Shaman, Mage, Warlock, Monk, Druid, Demon Hunter) with color codes and level ranges
+- **WoW Classes** - All 14 playable classes (Warrior, Paladin, Hunter, Rogue, Priest, Death Knight, Shaman, Mage, Warlock, Monk, Druid, Demon Hunter, Evoker) with color codes and level ranges
 - **WoW Races** - 15 playable races across Alliance and Horde factions, including Pandaren
 - **WoW Factions** - Alliance and Horde with faction-based guild styling
-- **Battle.net API** - Guild roster sync, character profiles, armory links, and portrait images
-- **Localization** - Class and race names in English, French, German, and Italian
+- **WoW Classic Support** - Retail, Classic Era, Classic Progression, and Classic Anniversary editions with edition-aware API namespaces
+- **Battle.net API** - OAuth 2.0 guild roster sync, character profiles, specializations, armory links, and portrait images
+- **Achievement Browser** - 3-level drill-down: category cards with SVG progress rings, achievement lists, and detail modals via AJAX
+- **Guild News** - Activity feed portal module showing recent loots and achievement completions
+- **Localization** - Class and race names in English, French, German, Italian, Spanish, Dutch, and Polish
 
 ## Requirements
 
@@ -39,12 +42,14 @@ See [docs/INSTALL.md](docs/INSTALL.md) for detailed setup instructions including
 ## Battle.net API
 
 This extension integrates with the Blizzard Battle.net API for:
-- Automatic guild member synchronization
-- Character profile data (level, class, race, achievements)
-- Character portraits and armory links
-- Guild emblem generation
+- Automatic guild member synchronization with AJAX batch processing
+- Character profile data (level, class, race, specialization, achievements)
+- Character portraits via Character Media API (batch sync)
+- Guild emblem generation (stored in phpBB's `files/` directory)
+- Achievement category and progress synchronization
+- Edition-aware API namespaces for WoW Classic support
 
-The API client uses OAuth 2.0 Client Credentials Grant with the modern `api.blizzard.com` endpoints. See [docs/BATTLENET_API.md](docs/BATTLENET_API.md) for details.
+The API client uses OAuth 2.0 Client Credentials Grant with the modern `api.blizzard.com` endpoints and supports all five regions (US, EU, KR, TW, SEA). See [docs/BATTLENET_API.md](docs/BATTLENET_API.md) for details.
 
 ## Documentation
 
@@ -64,6 +69,6 @@ This extension serves as the reference implementation for bbGuild game plugins. 
 
 ## Links
 
-- [bbGuild Core](https://github.com/avandenberghe/bbguild)
+- [bbGuild Core](https://github.com/avatharbe/bbguild)
 - [Support Forum](https://www.avathar.be/forum)
-- [Issue Tracker](https://github.com/avandenberghe/bbguild/issues)
+- [Issue Tracker](https://github.com/avatharbe/bbguild_wow/issues)
