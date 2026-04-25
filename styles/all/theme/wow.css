@@ -396,3 +396,83 @@ h3.category {
     margin-bottom: 2px;
 }
 
+/* ===== Player detail: WoW-specific sections ===== */
+.wow-player-detail fieldset {
+    margin-top: 12px;
+}
+
+.wow-player-detail fieldset legend {
+    font-weight: bold;
+    font-size: 1em;
+}
+
+/* Equipment grid */
+.wow-equipment-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px 16px;
+}
+
+.wow-equipment-slot {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    padding: 3px 0;
+    font-size: 0.9em;
+    border-bottom: 1px solid rgba(128, 128, 128, 0.1);
+}
+
+.wow-slot-label {
+    min-width: 80px;
+    font-size: 0.8em;
+    opacity: 0.6;
+    text-transform: uppercase;
+}
+
+.wow-item-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.wow-item-ilvl {
+    font-size: 0.8em;
+    opacity: 0.7;
+    white-space: nowrap;
+}
+
+.wow-slot-empty-text {
+    opacity: 0.3;
+}
+
+/* Quality colors */
+.wow-quality-poor      { color: #9d9d9d; }
+.wow-quality-common    { color: #ffffff; }
+.wow-quality-uncommon  { color: #1eff00; }
+.wow-quality-rare      { color: #0070dd; }
+.wow-quality-epic      { color: #a335ee; }
+.wow-quality-legendary { color: #ff8000; }
+.wow-quality-artifact  { color: #e6cc80; }
+.wow-quality-heirloom  { color: #00ccff; }
+
+/* Stats grid */
+.wow-stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 16px;
+}
+
+.wow-stat-row {
+    margin: 0;
+    padding: 2px 0;
+}
+
+@media (max-width: 600px) {
+    .wow-equipment-grid,
+    .wow-stats-grid {
+        grid-template-columns: 1fr;
+    }
+}
+

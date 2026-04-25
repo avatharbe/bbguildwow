@@ -1,10 +1,70 @@
 {% if S_WOW_PLAYER %}
 <div class="wow-player-detail">
-	{% if WOW_PLAYER_SPEC %}
-	<dl>
-		<dt>{{ lang('WOW_SPECIALIZATION') }}:</dt>
-		<dd>{{ WOW_PLAYER_SPEC }}</dd>
-	</dl>
+
+	{% if WOW_PLAYER_SPEC or S_WOW_HAS_EQUIPMENT %}
+	<fieldset>
+		<legend>{{ lang('WOW_CHARACTER_INFO') }}</legend>
+
+		{% if WOW_PLAYER_SPEC %}
+		<dl>
+			<dt>{{ lang('WOW_SPECIALIZATION') }}:</dt>
+			<dd>{{ WOW_PLAYER_SPEC }}</dd>
+		</dl>
+		{% endif %}
+
+		{% if WOW_AVG_ILVL > 0 %}
+		<dl>
+			<dt>{{ lang('WOW_AVG_ILVL') }}:</dt>
+			<dd><strong>{{ WOW_AVG_ILVL }}</strong></dd>
+		</dl>
+		{% endif %}
+	</fieldset>
 	{% endif %}
+
+	{% if S_WOW_HAS_EQUIPMENT %}
+	<fieldset>
+		<legend>{{ lang('WOW_EQUIPMENT') }}</legend>
+		<div class="wow-equipment-grid">
+			{% for item in wow_equipment %}
+			<div class="wow-equipment-slot{% if not item.S_HAS_ITEM %} wow-slot-empty{% endif %}">
+				<span class="wow-slot-label">{{ item.SLOT_LABEL }}</span>
+				{% if item.S_HAS_ITEM %}
+				<span class="wow-item-name wow-quality-{{ item.QUALITY|lower }}" data-wowhead="item={{ item.ITEM_ID }}">{{ item.ITEM_NAME }}</span>
+				<span class="wow-item-ilvl">{{ item.ITEM_LEVEL }}</span>
+				{% else %}
+				<span class="wow-item-name wow-slot-empty-text">—</span>
+				{% endif %}
+			</div>
+			{% endfor %}
+		</div>
+	</fieldset>
+	{% endif %}
+
+	{% if S_WOW_HAS_STATS %}
+	<fieldset>
+		<legend>{{ lang('WOW_STATS') }}</legend>
+		<div class="wow-stats-grid">
+			{% for stat in wow_stats %}
+			<dl class="wow-stat-row">
+				<dt>{{ stat.NAME }}:</dt>
+				<dd>{% if stat.S_PCT %}{{ stat.VALUE }}%{% else %}{{ stat.VALUE }}{% endif %}</dd>
+			</dl>
+			{% endfor %}
+		</div>
+	</fieldset>
+	{% endif %}
+
+	{% if S_WOW_HAS_PROFESSIONS %}
+	<fieldset>
+		<legend>{{ lang('WOW_PROFESSIONS') }}</legend>
+		{% for prof in wow_professions %}
+		<dl>
+			<dt>{{ prof.NAME }}:</dt>
+			<dd>{{ prof.SKILL }}{% if prof.MAX > 0 %} / {{ prof.MAX }}{% endif %}</dd>
+		</dl>
+		{% endfor %}
+	</fieldset>
+	{% endif %}
+
 </div>
 {% endif %}

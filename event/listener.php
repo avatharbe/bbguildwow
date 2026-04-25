@@ -307,6 +307,8 @@ class listener implements EventSubscriberInterface
 	 */
 	public function on_player_detail_display($event)
 	{
+		global $phpbb_container;
+
 		$player_id = (int) $event['player_id'];
 
 		$sql = 'SELECT game_id, player_spec
@@ -327,9 +329,203 @@ class listener implements EventSubscriberInterface
 			$spec = '';
 		}
 
+		// Load equipment
+		$equipment_table = $phpbb_container->getParameter('avathar.bbguild_wow.tables.bb_player_equipment');
+		$sql = 'SELECT slot_type, item_id, item_name, item_level, quality, icon_url
+			FROM ' . $equipment_table . '
+			WHERE player_id = ' . $player_id . '
+			ORDER BY slot_type';
+		$result = $this->db->sql_query($sql);
+
+		$equipment = array();
+		$total_ilvl = 0;
+		$item_count = 0;
+		while ($eq_row = $this->db->sql_fetchrow($result))
+		{
+			$equipment[$eq_row['slot_type']] = $eq_row;
+			if ((int) $eq_row['item_level'] > 0)
+			{
+				$total_ilvl += (int) $eq_row['item_level'];
+				$item_count++;
+			}
+		}
+		$this->db->sql_freeresult($result);
+
+		$avg_ilvl = ($item_count > 0) ? round($total_ilvl / $item_count) : 0;
+
+		// Assign equipment block vars in slot order
+		$slot_order = array(
+			'HEAD', 'NECK', 'SHOULDER', 'BACK', 'CHEST', 'WRIST',
+			'HANDS', 'WAIST', 'LEGS', 'FEET',
+			'FINGER_1', 'FINGER_2', 'TRINKET_1', 'TRINKET_2',
+			'MAIN_HAND', 'OFF_HAND',
+		);
+
+		foreach ($slot_order as $slot)
+		{
+			if (isset($equipment[$slot]))
+			{
+				$eq = $equipment[$slot];
+				$this->template->assign_block_vars('wow_equipment', array(
+					'SLOT'       => $slot,
+					'SLOT_LABEL' => str_replace('_', ' ', ucwords(strtolower($slot), '_')),
+					'ITEM_ID'    => (int) $eq['item_id'],
+					'ITEM_NAME'  => $eq['item_name'],
+					'ITEM_LEVEL' => (int) $eq['item_level'],
+					'QUALITY'    => $eq['quality'],
+					'ICON_URL'   => $eq['icon_url'],
+					'S_HAS_ITEM' => true,
+				));
+			}
+			else
+			{
+				$this->template->assign_block_vars('wow_equipment', array(
+					'SLOT'       => $slot,
+					'SLOT_LABEL' => str_replace('_', ' ', ucwords(strtolower($slot), '_')),
+					'ITEM_ID'    => 0,
+					'ITEM_NAME'  => '',
+					'ITEM_LEVEL' => 0,
+					'QUALITY'    => '',
+					'ICON_URL'   => '',
+					'S_HAS_ITEM' => false,
+				));
+			}
+		}
+
+		// Fetch stats and professions on demand via API (cached 1h by API layer)
+		$wow_api = $phpbb_container->get('avathar.bbguild_wow.api');
+
+		$sql = 'SELECT player_name, player_realm, player_region, g.game_edition
+			FROM ' . $this->bb_players_table . ' p
+			INNER JOIN ' . $this->guild_wow_table . ' gw ON 1=0
+			LEFT JOIN %s g ON g.id = p.player_guild_id
+			WHERE p.player_id = ' . $player_id;
+		// Simpler: just get player + guild edition
+		$sql = 'SELECT p.player_name, p.player_realm, p.player_region, g.game_edition
+			FROM ' . $this->bb_players_table . ' p
+			LEFT JOIN ' . $phpbb_container->getParameter('avathar.bbguild.tables.bb_guild') . ' g ON g.id = p.player_guild_id
+			WHERE p.player_id = ' . $player_id;
+		$result = $this->db->sql_query($sql);
+		$player_row = $this->db->sql_fetchrow($result);
+		$this->db->sql_freeresult($result);
+
+		$stats_data = array();
+		$professions_data = array();
+
+		if ($player_row)
+		{
+			$p_name = $player_row['player_name'];
+			$p_realm = $player_row['player_realm'];
+			$p_region = $player_row['player_region'];
+			$p_edition = !empty($player_row['game_edition']) ? $player_row['game_edition'] : 'retail';
+
+			// Character stats
+			$raw_stats = $wow_api->fetch_character_stats($p_name, $p_realm, $p_region, $p_edition);
+			if ($raw_stats)
+			{
+				$stat_keys = array(
+					'strength', 'agility', 'intellect', 'stamina',
+					'armor', 'versatility',
+				);
+				foreach ($stat_keys as $key)
+				{
+					if (isset($raw_stats[$key]))
+					{
+						$value = is_array($raw_stats[$key]) ? ($raw_stats[$key]['effective'] ?? $raw_stats[$key]['value'] ?? 0) : $raw_stats[$key];
+						$stats_data[$key] = (int) $value;
+					}
+				}
+				// Rating stats (percentage display)
+				$rating_keys = array(
+					'melee_crit' => 'crit',
+					'melee_haste' => 'haste',
+					'mastery' => 'mastery',
+					'versatility_damage_done_bonus' => 'versatility',
+				);
+				foreach ($rating_keys as $api_key => $display_key)
+				{
+					if (isset($raw_stats[$api_key]))
+					{
+						$val = is_array($raw_stats[$api_key]) ? ($raw_stats[$api_key]['value'] ?? 0) : $raw_stats[$api_key];
+						$stats_data[$display_key . '_pct'] = round((float) $val, 2);
+					}
+				}
+			}
+
+			// Professions
+			$raw_prof = $wow_api->fetch_character_professions($p_name, $p_realm, $p_region, $p_edition);
+			if ($raw_prof && isset($raw_prof['primaries']))
+			{
+				foreach ($raw_prof['primaries'] as $prof)
+				{
+					$skill_points = 0;
+					$max_points = 0;
+					if (isset($prof['tiers']) && !empty($prof['tiers']))
+					{
+						// Use the last (current expansion) tier
+						$last_tier = end($prof['tiers']);
+						$skill_points = $last_tier['skill_points'] ?? 0;
+						$max_points = $last_tier['max_skill_points'] ?? 0;
+					}
+					$professions_data[] = array(
+						'name'   => $prof['profession']['name'] ?? '',
+						'skill'  => $skill_points,
+						'max'    => $max_points,
+					);
+				}
+			}
+			if ($raw_prof && isset($raw_prof['secondaries']))
+			{
+				foreach ($raw_prof['secondaries'] as $prof)
+				{
+					$skill_points = 0;
+					$max_points = 0;
+					if (isset($prof['tiers']) && !empty($prof['tiers']))
+					{
+						$last_tier = end($prof['tiers']);
+						$skill_points = $last_tier['skill_points'] ?? 0;
+						$max_points = $last_tier['max_skill_points'] ?? 0;
+					}
+					if ($skill_points > 0)
+					{
+						$professions_data[] = array(
+							'name'   => $prof['profession']['name'] ?? '',
+							'skill'  => $skill_points,
+							'max'    => $max_points,
+						);
+					}
+				}
+			}
+		}
+
+		// Assign stats block vars
+		foreach ($stats_data as $stat_name => $stat_value)
+		{
+			$this->template->assign_block_vars('wow_stats', array(
+				'NAME'  => str_replace('_', ' ', ucfirst($stat_name)),
+				'KEY'   => $stat_name,
+				'VALUE' => $stat_value,
+				'S_PCT' => (strpos($stat_name, '_pct') !== false),
+			));
+		}
+
+		// Assign professions block vars
+		foreach ($professions_data as $prof)
+		{
+			$this->template->assign_block_vars('wow_professions', array(
+				'NAME'  => $prof['name'],
+				'SKILL' => $prof['skill'],
+				'MAX'   => $prof['max'],
+			));
+		}
+
 		$this->template->assign_vars(array(
-			'WOW_PLAYER_SPEC'   => $spec,
-			'S_WOW_PLAYER'      => true,
+			'WOW_PLAYER_SPEC'      => $spec,
+			'WOW_AVG_ILVL'         => $avg_ilvl,
+			'S_WOW_PLAYER'         => true,
+			'S_WOW_HAS_EQUIPMENT'  => !empty($equipment),
+			'S_WOW_HAS_STATS'      => !empty($stats_data),
+			'S_WOW_HAS_PROFESSIONS' => !empty($professions_data),
 		));
 	}
 

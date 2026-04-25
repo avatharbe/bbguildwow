@@ -94,5 +94,10 @@ $lang = array_merge(
 	'WOW_PHASE_EQUIPMENT'      => 'Equipment',
 
 	// Player detail page
+	'WOW_CHARACTER_INFO'       => 'Character Info',
 	'WOW_SPECIALIZATION'       => 'Specialization',
+	'WOW_EQUIPMENT'            => 'Equipment',
+	'WOW_AVG_ILVL'             => 'Average Item Level',
+	'WOW_STATS'                => 'Character Stats',
+	'WOW_PROFESSIONS'          => 'Professions',
 ));
