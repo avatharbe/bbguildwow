@@ -2,7 +2,7 @@
   "name": "avathar/bbguild-wow",
   "type": "phpbb-extension",
   "description": "World of Warcraft game plugin for bbGuild. Provides WoW classes, races, factions, and Battle.net API integration.",
-  "homepage": "https://github.com/avatharbe/bbguild_wow",
+  "homepage": "https://github.com/avatharbe/bbguild-wow",
   "version": "2.0.0-b2",
   "time": "2026-03-15",
   "license": "GPL-2.0-only",
@@ -27,7 +27,7 @@
     "version-check": {
       "host": "www.avathar.be",
       "directory": "/versioncheck",
-      "filename": "bbguild_wow.json",
+      "filename": "bbguild-wow.json",
       "ssl": true
     }
   }
