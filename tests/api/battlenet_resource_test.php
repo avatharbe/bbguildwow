@@ -118,7 +118,7 @@ class battlenet_resource_test extends TestCase
 	public function test_oauth_token_returns_cached_token(): void
 	{
 		$this->cache->method('get')
-			->with('bbguildwow_oauth_token_eu')
+			->with('bbguild_wow_oauth_token_eu')
 			->willReturn('cached_token_abc');
 
 		$resource = new battlenet_resource_test_wrapper($this->cache, 'eu');

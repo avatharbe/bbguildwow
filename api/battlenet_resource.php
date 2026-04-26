@@ -121,14 +121,14 @@ abstract class battlenet_resource
 	/**
 	 * Fetch an OAuth 2.0 access token using Client Credentials Grant.
 	 *
-	 * Caches the token using phpBB cache with key bbguildwow_oauth_token_{region}.
+	 * Caches the token using phpBB cache with key bbguild_wow_oauth_token_{region}.
 	 *
 	 * @param bool $force_refresh Force a new token even if cached
 	 * @return string|false Access token or false on failure
 	 */
 	protected function fetch_oauth_token($force_refresh = false)
 	{
-		$cache_key = 'bbguildwow_oauth_token_' . $this->region;
+		$cache_key = 'bbguild_wow_oauth_token_' . $this->region;
 
 		if (!$force_refresh)
 		{

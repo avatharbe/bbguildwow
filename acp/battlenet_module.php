@@ -85,7 +85,7 @@ class battlenet_module
 				$regions = array('us', 'eu', 'kr', 'tw');
 				foreach ($regions as $region)
 				{
-					$cache->destroy('bbguildwow_oauth_token_' . $region);
+					$cache->destroy('bbguild_wow_oauth_token_' . $region);
 				}
 				trigger_error($user->lang['WOW_BNET_CACHE_CLEARED'] . adm_back_link($this->u_action));
 			}
@@ -121,7 +121,7 @@ class battlenet_module
 		$regions = array('us', 'eu', 'kr', 'tw');
 		foreach ($regions as $region)
 		{
-			$cached_token = $cache->get('bbguildwow_oauth_token_' . $region);
+			$cached_token = $cache->get('bbguild_wow_oauth_token_' . $region);
 			$template->assign_block_vars('region_row', array(
 				'REGION'     => strtoupper($region),
 				'REGION_KEY' => $region,
@@ -247,7 +247,7 @@ class battlenet_module
 		// Cache the token so it appears in the Token Cache table
 		global $phpbb_container;
 		$cache = $phpbb_container->get('cache');
-		$cache->put('bbguildwow_oauth_token_' . $region, $data['access_token'], $expires_in);
+		$cache->put('bbguild_wow_oauth_token_' . $region, $data['access_token'], $expires_in);
 
 		return array(
 			'success' => true,

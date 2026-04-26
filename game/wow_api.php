@@ -25,10 +25,10 @@ use avathar\bbguildwow\api\battlenet;
 class wow_api implements game_api_interface
 {
 	/** Cache key for class ID→name map */
-	const CACHE_KEY_CLASSES = 'bbguildwow_playable_classes';
+	const CACHE_KEY_CLASSES = 'bbguild_wow_playable_classes';
 
 	/** Cache key for race ID→name map */
-	const CACHE_KEY_RACES = 'bbguildwow_playable_races';
+	const CACHE_KEY_RACES = 'bbguild_wow_playable_races';
 
 	/** Cache TTL for static data: 7 days */
 	const STATIC_CACHE_TTL = 604800;
