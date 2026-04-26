@@ -73,6 +73,8 @@ class listener implements EventSubscriberInterface
 			'core.page_header_after'                    => 'add_wow_guild_vars',
 			'avathar.bbguild.acp_editgames_display'     => 'on_editgames_display',
 			'avathar.bbguild.acp_editgames_submit'      => 'on_editgames_submit',
+			'avathar.bbguild.acp_addguild_display'      => 'on_editguild_display',
+			'avathar.bbguild.acp_addguild_submit'       => 'on_editguild_submit',
 			'avathar.bbguild.acp_editguild_display'     => 'on_editguild_display',
 			'avathar.bbguild.acp_editguild_submit'      => 'on_editguild_submit',
 			'avathar.bbguild.acp_listplayers_display'   => 'on_listplayers_display',
