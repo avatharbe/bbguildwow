@@ -92,4 +92,51 @@ class wow_provider_spec_catalog_test extends TestCase
 		$dk_by_name = array_column($catalog[6], null, 'spec_name');
 		$this->assertSame(2, $dk_by_name['Blood']['role_id']);
 	}
+
+	public function test_translations_cover_supported_locales(): void
+	{
+		$translations = wow_provider::spec_translations();
+		$this->assertEqualsCanonicalizing(['de', 'fr', 'it', 'es_x_tu'], array_keys($translations));
+	}
+
+	public function test_each_locale_has_entries_for_every_unique_canonical_name(): void
+	{
+		$catalog = wow_provider::spec_catalog();
+		$canonical = [];
+		foreach ($catalog as $specs)
+		{
+			foreach ($specs as $spec)
+			{
+				$canonical[$spec['spec_name']] = true;
+			}
+		}
+		$canonical_names = array_keys($canonical);
+
+		foreach (wow_provider::spec_translations() as $locale => $map)
+		{
+			foreach ($canonical_names as $name)
+			{
+				$this->assertArrayHasKey(
+					$name,
+					$map,
+					"Locale '$locale' missing translation for canonical name '$name'"
+				);
+				$this->assertNotEmpty($map[$name], "Locale '$locale' / '$name' is empty");
+			}
+		}
+	}
+
+	public function test_known_translations(): void
+	{
+		$translations = wow_provider::spec_translations();
+		// Spot-check a few well-known mappings.
+		$this->assertSame('Frost',     $translations['de']['Frost']);
+		$this->assertSame('Givre',     $translations['fr']['Frost']);
+		$this->assertSame('Gelo',      $translations['it']['Frost']);
+		$this->assertSame('Escarcha',  $translations['es_x_tu']['Frost']);
+		$this->assertSame('Heilig',    $translations['de']['Holy']);
+		$this->assertSame('Sacré',     $translations['fr']['Holy']);
+		$this->assertSame('Sacro',     $translations['it']['Holy']);
+		$this->assertSame('Sagrado',   $translations['es_x_tu']['Holy']);
+	}
 }

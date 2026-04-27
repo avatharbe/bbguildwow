@@ -341,9 +341,77 @@ class wow_installer extends abstract_game_install
 				];
 			}
 		}
-		if ($rows)
+		if (!$rows)
 		{
-			$this->db->sql_multi_insert($this->table('bb_specializations_table'), $rows);
+			return;
+		}
+		$this->db->sql_multi_insert($this->table('bb_specializations_table'), $rows);
+
+		// Seed translations into bb_language. Match by canonical (game_id,
+		// class_id, spec_name) since sql_multi_insert doesn't return IDs.
+		$this->install_spec_translations();
+	}
+
+	/**
+	 * Insert bb_language rows for each spec_id × locale where Blizzard
+	 * provides an official translation. Locales without a translation
+	 * fall back to the canonical spec_name on the bb_specializations row.
+	 */
+	private function install_spec_translations(): void
+	{
+		if (!isset($this->table_names['bb_language_table']))
+		{
+			return;
+		}
+
+		$specs_table = $this->table('bb_specializations_table');
+		$lang_table  = $this->table('bb_language_table');
+
+		// Map (class_id|spec_name) → spec_id by reading back the rows we
+		// just inserted. spec_name uniquely identifies a spec within a class.
+		$sql = 'SELECT spec_id, class_id, spec_name FROM ' . $specs_table
+			. " WHERE game_id = '" . $this->db->sql_escape($this->game_id) . "'";
+		$result = $this->db->sql_query($sql);
+		$by_key = [];
+		while ($row = $this->db->sql_fetchrow($result))
+		{
+			$by_key[(int) $row['class_id'] . '|' . $row['spec_name']] = (int) $row['spec_id'];
+		}
+		$this->db->sql_freeresult($result);
+
+		$translations = wow_provider::spec_translations();
+		$lang_rows = [];
+		foreach (wow_provider::spec_catalog() as $class_id => $specs)
+		{
+			foreach ($specs as $spec)
+			{
+				$key = (int) $class_id . '|' . $spec['spec_name'];
+				if (!isset($by_key[$key]))
+				{
+					continue;
+				}
+				$spec_id = $by_key[$key];
+
+				foreach ($translations as $locale => $map)
+				{
+					if (!isset($map[$spec['spec_name']]))
+					{
+						continue;
+					}
+					$lang_rows[] = [
+						'game_id'      => $this->game_id,
+						'attribute_id' => $spec_id,
+						'language'     => $locale,
+						'attribute'    => 'spec',
+						'name'         => (string) $map[$spec['spec_name']],
+						'name_short'   => (string) $map[$spec['spec_name']],
+					];
+				}
+			}
+		}
+		if ($lang_rows)
+		{
+			$this->db->sql_multi_insert($lang_table, $lang_rows);
 		}
 	}
 }
