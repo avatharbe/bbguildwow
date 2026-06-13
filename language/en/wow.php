@@ -107,4 +107,9 @@ $lang = array_merge(
 	'WOW_TIME'                 => 'Time',
 	'WOW_PVP'                  => 'PvP',
 	'WOW_HONOR_LEVEL'          => 'Honor Level',
+
+	// is_enableable() error messages
+	'BBGUILDWOW_PHP_VERSION_FAIL'		=> 'This extension requires PHP %1$s or higher. You are running PHP %2$s.',
+	'BBGUILDWOW_PHPBB_VERSION_FAIL'		=> 'This extension requires phpBB %1$s or higher. You are running phpBB %2$s.',
+	'BBGUILDWOW_REQUIRES_BBGUILD'		=> 'This extension requires the bbGuild core extension (avathar/bbguild) to be enabled first.',
 ));

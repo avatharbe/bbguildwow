@@ -13,6 +13,9 @@ env:
     DEPENDENT_EXTNAME: avathar/bbguild
     DEPENDENT_REPO: avatharbe/bbguild
     PHPBB_BRANCH: '3.3.x'
+    SNIFF: 1
+    IMAGE_ICC: 1
+    EPV: 1
 
 jobs:
   # Reusable framework runs the basic checks (EPV, sniff, exec files, image ICC).

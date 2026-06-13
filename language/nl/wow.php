@@ -81,4 +81,9 @@ $lang = array_merge(
 		. 'Detail fetching is time-limited per batch.',
 	'ACHIEV_SHOW_EMPTY'        => 'Alle categorieën tonen',
 	'ACHIEV_HIDE_EMPTY'        => 'Lege categorieën verbergen',
+
+	// is_enableable() error messages
+	'BBGUILDWOW_PHP_VERSION_FAIL'		=> 'Deze extensie vereist PHP %1$s of hoger. Je gebruikt PHP %2$s.',
+	'BBGUILDWOW_PHPBB_VERSION_FAIL'		=> 'Deze extensie vereist phpBB %1$s of hoger. Je gebruikt phpBB %2$s.',
+	'BBGUILDWOW_REQUIRES_BBGUILD'		=> 'Deze extensie vereist dat de bbGuild-kernextensie (avathar/bbguild) eerst is ingeschakeld.',
 ));

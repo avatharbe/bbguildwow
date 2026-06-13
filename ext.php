@@ -31,20 +31,23 @@ class ext extends base
 	{
 		$errors = [];
 
+		$user = $this->container->get('user');
+		$user->add_lang_ext('avathar/bbguildwow', 'wow');
+
 		if (version_compare(PHP_VERSION, self::MIN_PHP_VERSION, '<'))
 		{
-			$errors[] = 'This extension requires PHP ' . self::MIN_PHP_VERSION . ' or higher. You are running PHP ' . PHP_VERSION . '.';
+			$errors[] = $user->lang('BBGUILDWOW_PHP_VERSION_FAIL', self::MIN_PHP_VERSION, PHP_VERSION);
 		}
 
 		if (phpbb_version_compare(PHPBB_VERSION, self::MIN_PHPBB_VERSION, '<'))
 		{
-			$errors[] = 'This extension requires phpBB ' . self::MIN_PHPBB_VERSION . ' or higher. You are running phpBB ' . PHPBB_VERSION . '.';
+			$errors[] = $user->lang('BBGUILDWOW_PHPBB_VERSION_FAIL', self::MIN_PHPBB_VERSION, PHPBB_VERSION);
 		}
 
 		$ext_manager = $this->container->get('ext.manager');
 		if (!$ext_manager->is_enabled('avathar/bbguild'))
 		{
-			$errors[] = 'This extension requires the bbGuild core extension (avathar/bbguild) to be enabled first.';
+			$errors[] = $user->lang('BBGUILDWOW_REQUIRES_BBGUILD');
 		}
 
 		return empty($errors) ? true : $errors;

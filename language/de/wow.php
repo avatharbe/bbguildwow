@@ -87,4 +87,9 @@ $lang = array_merge(
 	'WOW_EDITION_CLASSIC_ERA'  => 'Classic Era',
 	'WOW_EDITION_CLASSIC_PROG' => 'Classic (Progression)',
 	'WOW_EDITION_CLASSIC_ANN'  => 'Classic (Jubiläum)',
+
+	// is_enableable() error messages
+	'BBGUILDWOW_PHP_VERSION_FAIL'		=> 'Diese Erweiterung benötigt PHP %1$s oder höher. Du verwendest PHP %2$s.',
+	'BBGUILDWOW_PHPBB_VERSION_FAIL'		=> 'Diese Erweiterung benötigt phpBB %1$s oder höher. Du verwendest phpBB %2$s.',
+	'BBGUILDWOW_REQUIRES_BBGUILD'		=> 'Diese Erweiterung benötigt die bbGuild-Kernerweiterung (avathar/bbguild), die zuerst aktiviert sein muss.',
 ));

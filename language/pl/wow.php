@@ -81,4 +81,9 @@ $lang = array_merge(
 		. 'Detail fetching is time-limited per batch.',
 	'ACHIEV_SHOW_EMPTY'        => 'Pokaż wszystkie kategorie',
 	'ACHIEV_HIDE_EMPTY'        => 'Ukryj puste kategorie',
+
+	// is_enableable() error messages
+	'BBGUILDWOW_PHP_VERSION_FAIL'		=> 'To rozszerzenie wymaga PHP %1$s lub wyższego. Używasz PHP %2$s.',
+	'BBGUILDWOW_PHPBB_VERSION_FAIL'		=> 'To rozszerzenie wymaga phpBB %1$s lub wyższego. Używasz phpBB %2$s.',
+	'BBGUILDWOW_REQUIRES_BBGUILD'		=> 'To rozszerzenie wymaga, aby najpierw było włączone rozszerzenie podstawowe bbGuild (avathar/bbguild).',
 ));
