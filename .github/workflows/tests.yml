@@ -20,7 +20,9 @@ env:
 jobs:
   # Reusable framework runs the basic checks (EPV, sniff, exec files, image ICC).
   # DB matrix jobs are disabled here because they don't check out the bbguild
-  # core dependency; the unit-tests job below covers that.
+  # core dependency; the unit-tests job below covers that, including
+  # functional tests (it stands up the same nginx+php-fpm webserver the
+  # reusable workflow's own functional-test-capable job uses).
   basic-checks:
     uses: phpbb-extensions/test-framework/.github/workflows/tests.yml@3.3.x
     with:
@@ -33,7 +35,7 @@ jobs:
       RUN_WINDOWS_JOBS: 0
 
   unit-tests:
-    name: PHP ${{ matrix.php }} - postgres
+    name: PHP ${{ matrix.php }} - postgres (unit + functional)
     runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
@@ -105,10 +107,9 @@ jobs:
         run: mkdir -p "phpBB/ext/$EXTNAME/.github" && cp .github/phpunit* "$_"
         working-directory: ./phpBB3
 
-      - name: Run unit tests
+      - name: Run unit and functional tests
         run: |
           phpBB/vendor/bin/phpunit \
               --configuration "phpBB/ext/$EXTNAME/.github/phpunit-postgres-github.xml" \
-              --bootstrap ./tests/bootstrap.php \
-              --exclude-group functional
+              --bootstrap ./tests/bootstrap.php
         working-directory: ./phpBB3
