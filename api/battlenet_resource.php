@@ -246,7 +246,13 @@ abstract class battlenet_resource
 		}
 
 		$requestUri = $this->api_url[$this->region];
-		$requestUri .= $this->endpoint . '/' . $method;
+		// Percent-encode each path segment so accented multibyte characters in
+		// guild/character names (e.g. "bête-noire" → "b%C3%AAte-noire") produce a
+		// valid URL. Raw multibyte bytes in the path make Blizzard 404; the
+		// encoded form returns 200 (verified against the live API). Blizzard keeps
+		// the accent (lowercased), it is not stripped. '/' separators stay literal.
+		$encoded_method = implode('/', array_map('rawurlencode', explode('/', (string) $method)));
+		$requestUri .= $this->endpoint . '/' . $encoded_method;
 		$requestUri .= '?namespace=' . $this->get_namespace();
 		$requestUri .= '&locale=' . $this->locale;
 
