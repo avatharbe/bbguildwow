@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.0.0-rc1 24/07/2026
+  - [FIX] Security/standards audit: all six sync AJAX routes (roster, specs, portraits, equipment, achievement categories, achievements) had no permission check at all — anyone with the URL could trigger a sync. Both controllers now require `a_bbguild`.
+  - [FIX] `acp/achievement_module.php`'s `listachievements` POST handler was missing CSRF form-key validation on its three state-changing actions
+  - [FIX] Replaced `trigger_error()` in the Battle.net SDK layer (`api/*.php`) with a proper `battlenet_api_exception` — `trigger_error()` isn't catchable, so a mid-request API failure rendered phpBB's HTML error page instead of the JSON payload the sync UI's polling JS expects
+  - [FIX] One unescaped SQL interpolation in `model/achievement.php`'s `get_achievement()`, inconsistent with the rest of the file
+  - [FIX] `game/wow_api.php`'s raw `@mkdir`/`@file_put_contents`/`file_exists` calls (10 sites, several silently swallowing failures) now go through phpBB's filesystem service
+  - [FIX] 3 undeclared dynamic properties in `acp/achievement_module.php` (PHP 8.2+ deprecation)
+  - [FIX] Fresh-install failure: `bbguild_wow_version` was never created via `config.add`, only ever updated — same bug class already fixed in bbguild core (#353)
+  - [CHG] Version tracking moved out of `phpbb_config` entirely into `ext::BBGUILDWOW_VERSION`, matching bbguild core's pattern
+  - [CHG] Soft-requires `avathar/bbguild >= 2.0.0-rc1`
+  - [NEW] First functional test suite: sync route authorization (`tests/functional/sync_routes_authz_test.php`), 5 smoke tests (extension lifecycle, services.yml class resolution, ACP modules load, routes don't 500, migration idempotency), and an OAuth token lifecycle integration test against a local mock Battle.net server (the SDK uses raw curl, not an injectable HTTP client, so this was the only way to cover it for real)
+  - [CHG] CI now runs functional and smoke tests, not just unit tests — the webserver infrastructure was already there, just unused
+  - [DOCS] README: fixed stale PHP >= 7.4.0 requirement (actual requirement has been 8.1.0 since the PHP 8.x compatibility pass)
+
 ## 2.0.0-b3 28/04/2026
   - [NEW] Specialization catalog (#26 / bbguild#331) — 39 specs across 13 Battle.net classes
     - `wow_provider` implements `specialization_provider_interface`; static `spec_catalog()` is the single source of truth
