@@ -22,7 +22,7 @@
     "display-name": "bbGuild - World of Warcraft",
     "soft-require": {
       "phpbb/phpbb": ">=3.3.0,<3.4.0@dev",
-      "avathar/bbguild": ">=2.0.0-b4"
+      "avathar/bbguild": ">=2.0.0-rc1"
     },
     "version-check": {
       "host": "www.avathar.be",
