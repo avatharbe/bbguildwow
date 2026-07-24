@@ -96,14 +96,15 @@ class battlenet_character_test extends TestCase
 
 	public function test_empty_name_triggers_error(): void
 	{
-		// getCharacter calls trigger_error via global $user when name is empty.
-		// We need $user->lang to be set for the trigger_error call.
+		// getCharacter throws battlenet_api_exception via global $user when
+		// name is empty. We need $user->lang to be set for the message.
 		$GLOBALS['user'] = new \stdClass();
 		$GLOBALS['user']->lang = array(
 			'WOWAPI_NO_CHARACTER' => 'No character specified',
 		);
 
-		$this->expectError();
+		$this->expectException(\avathar\bbguildwow\api\battlenet_api_exception::class);
+		$this->expectExceptionMessage('No character specified');
 		$this->character->getCharacter('argent-dawn', '');
 	}
 
@@ -114,7 +115,8 @@ class battlenet_character_test extends TestCase
 			'WOWAPI_NO_REALMS' => 'No realm specified',
 		);
 
-		$this->expectError();
+		$this->expectException(\avathar\bbguildwow\api\battlenet_api_exception::class);
+		$this->expectExceptionMessage('No realm specified');
 		$this->character->getCharacter('', 'Sajaki');
 	}
 

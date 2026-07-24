@@ -20,7 +20,7 @@ class battlenet_resource_test_wrapper extends \avathar\bbguildwow\api\battlenet_
 	protected $cacheTtl = 3600;
 
 	/**
-	 * Override constructor to skip the trigger_error on empty methods_allowed.
+	 * Override constructor to skip the battlenet_api_exception on empty methods_allowed.
 	 */
 	public function __construct(\phpbb\cache\service $cache, $region = 'us', $cacheTtl = 3600)
 	{
