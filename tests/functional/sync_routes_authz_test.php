@@ -24,24 +24,19 @@
  */
 class avathar_bbguildwow_sync_routes_authz_test extends phpbb_functional_test_case
 {
-	/** @var bool */
-	private static $extensions_enabled = false;
-
-	protected function setUp(): void
+	/**
+	 * Enabled once per class (setUp() only re-enables if the phpbb_ext
+	 * row isn't already active) via the real ACP HTTP flow, so ext.php's
+	 * is_enableable() gets the full service container it needs — the
+	 * lighter-weight get_extension_manager() mock container doesn't
+	 * provide a 'user' service, which bbguild core's is_enableable()
+	 * requires.
+	 *
+	 * @return array
+	 */
+	static protected function setup_extensions()
 	{
-		parent::setUp();
-
-		// Enabling bbguild core + bbguildwow runs their full migration
-		// chains; do it once for the whole class rather than per test.
-		if (!self::$extensions_enabled)
-		{
-			$extension_manager = $this->get_extension_manager();
-			$extension_manager->enable('avathar/bbguild');
-			$extension_manager->enable('avathar/bbguildwow');
-			self::$extensions_enabled = true;
-		}
-
-		$this->purge_cache();
+		return array('avathar/bbguild', 'avathar/bbguildwow');
 	}
 
 	/**
