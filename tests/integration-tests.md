@@ -70,28 +70,24 @@ Assert:
 Catches: sync ordering bugs (criteria inserted before parent
 achievement → FK violation), missing transactional wrap.
 
-### 5. `player_detail_data_aggregation_test.php`
+### 5. `player_detail_data_aggregation_test.php` — DROPPED
 
-The player detail page combines data from several sources: equipment,
-spec, achievements, M+ score, PvP rating. Test the aggregator service
-directly (no HTTP):
-- All sub-services available → full data structure returned
-- One sub-service times out → return partial data, no exception
-- DB rows missing for the player → return empty arrays, not nulls
-- Cache layer in front: second call within TTL returns cached
-  aggregate, doesn't re-query sub-services
+Premise doesn't match the code: there is no aggregator service.
+`event\listener::on_player_detail_display()` is a plain procedural
+event listener — direct SQL queries against `bb_players` and
+`bb_player_equipment`, then template var assignment. Nothing to unit-
+test in isolation without either extracting a real aggregator service
+(a production refactor, not a test-writing task) or duplicating the
+listener's SQL in the test itself, which wouldn't test anything real.
 
-Catches: cascading failures when one Battle.net endpoint is down.
+### 6. `cache_invalidation_test.php` — DROPPED
 
-### 6. `cache_invalidation_test.php`
-
-When admin changes a player's character name in ACP:
-- Old `bbguild_wow_player_<id>` cache entry destroyed
-- New cache entry written on next read
-- `bb_player_equipment` cleared for that player (item IDs may change
-  with realm/character migration)
-
-Catches: stale cache after admin edits, the kind of bug only users see.
+Premise doesn't match the code: the only `cache->destroy()` call
+anywhere in this extension is for the OAuth token
+(`bbguild_wow_oauth_token_{region}`, in `acp/battlenet_module.php`).
+There is no `bbguild_wow_player_<id>` cache entry — that key doesn't
+exist. Renaming a character in ACP doesn't cache-invalidate anything
+today because nothing per-player is cached.
 
 ## Why integration tests are valuable here
 
