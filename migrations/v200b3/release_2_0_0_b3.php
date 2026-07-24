@@ -4,8 +4,9 @@
  *
  * Pulls in all v200b3 sibling migrations (player equipment table,
  * player render URL column, specialization seed, spec translation
- * seed) and bumps `bbguild_wow_version` so future b3+ migrations
- * see it as installed.
+ * seed).
+ *
+ * Canonical version lives in ext::BBGUILDWOW_VERSION; not in phpbb_config.
  *
  * @package   avathar\bbguildwow
  * @copyright 2026 avathar.be
@@ -28,21 +29,9 @@ class release_2_0_0_b3 extends \phpbb\db\migration\migration
 
 	public function effectively_installed()
 	{
-		return isset($this->config['bbguild_wow_version'])
-			&& version_compare($this->config['bbguild_wow_version'], '2.0.0-b3', '>=');
-	}
-
-	public function update_data()
-	{
-		return [
-			['config.update', ['bbguild_wow_version', '2.0.0-b3']],
-		];
-	}
-
-	public function revert_data()
-	{
-		return [
-			['config.update', ['bbguild_wow_version', '2.0.0-b2']],
-		];
+		// Version lives in ext::BBGUILDWOW_VERSION, not phpbb_config; check
+		// a concrete artifact created by this migration's own dependency
+		// chain instead.
+		return $this->db_tools->sql_table_exists($this->table_prefix . 'bb_player_equipment');
 	}
 }

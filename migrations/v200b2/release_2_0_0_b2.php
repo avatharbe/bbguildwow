@@ -28,8 +28,9 @@ class release_2_0_0_b2 extends \phpbb\db\migration\container_aware_migration
 
 	public function effectively_installed()
 	{
-		return isset($this->config['bbguild_wow_version'])
-			&& version_compare($this->config['bbguild_wow_version'], '2.0.0-b2', '>=');
+		// Version lives in ext::BBGUILDWOW_VERSION, not phpbb_config; check
+		// a concrete artifact this migration creates instead.
+		return $this->db_tools->sql_table_exists($this->table_prefix . 'bb_guild_wow');
 	}
 
 	/* ------------------------------------------------------------------ */
@@ -153,7 +154,7 @@ class release_2_0_0_b2 extends \phpbb\db\migration\container_aware_migration
 	}
 
 	/* ------------------------------------------------------------------ */
-	/*  DATA — config, game seeding, ACP modules, version stamp            */
+	/*  DATA — config, game seeding, ACP modules                          */
 	/* ------------------------------------------------------------------ */
 
 	public function update_data()
@@ -170,14 +171,12 @@ class release_2_0_0_b2 extends \phpbb\db\migration\container_aware_migration
 				'module_basename' => '\avathar\bbguildwow\acp\battlenet_module',
 				'modes'           => ['battlenet'],
 			]]],
-			['custom', [[$this, 'set_version']]],
 		];
 	}
 
 	public function revert_data()
 	{
 		return [
-			['config.remove', ['bbguild_wow_version']],
 			['module.remove', ['acp', 'ACP_BBGUILD_MAINPAGE', [
 				'module_basename' => '\avathar\bbguildwow\acp\battlenet_module',
 			]]],
@@ -194,11 +193,6 @@ class release_2_0_0_b2 extends \phpbb\db\migration\container_aware_migration
 	/* ------------------------------------------------------------------ */
 	/*  Helpers                                                            */
 	/* ------------------------------------------------------------------ */
-
-	public function set_version()
-	{
-		$this->config->set('bbguild_wow_version', '2.0.0-b2');
-	}
 
 	public function seed_game_data()
 	{
