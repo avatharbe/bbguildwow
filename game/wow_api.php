@@ -206,15 +206,24 @@ class wow_api implements game_api_interface
 		// Battlegroup removed in modern API
 		$result['battlegroup'] = '';
 
-		// Faction: new API uses faction.type = 'ALLIANCE' or 'HORDE'
-		$result['faction'] = 2; // default Horde
-		$result['faction_name'] = 'Horde';
+		// Faction: new API uses faction.type = 'ALLIANCE' or 'HORDE'. Only report
+		// a faction when the API actually provides one; otherwise leave it out of
+		// $result so update_guild_battleNet() preserves the guild's stored faction
+		// instead of defaulting everyone to Horde on an incomplete response (#29).
+		$faction = 2; // fallback used only for emblem ring rendering below
 		if (isset($raw_data['faction']['type']))
 		{
 			if ($raw_data['faction']['type'] === 'ALLIANCE')
 			{
+				$faction = 1;
 				$result['faction'] = 1;
 				$result['faction_name'] = 'Alliance';
+			}
+			else if ($raw_data['faction']['type'] === 'HORDE')
+			{
+				$faction = 2;
+				$result['faction'] = 2;
+				$result['faction_name'] = 'Horde';
 			}
 		}
 
@@ -236,7 +245,7 @@ class wow_api implements game_api_interface
 			$region = $raw_data['_region'] ?? '';
 			$guild_name = $raw_data['name'] ?? '';
 			$realm = $raw_data['_realm'] ?? '';
-			$result['emblempath'] = $this->create_emblem($raw_data['crest'], $result['faction'], $guild_name, $realm, $region);
+			$result['emblempath'] = $this->create_emblem($raw_data['crest'], $faction, $guild_name, $realm, $region);
 		}
 
 		// Member data
