@@ -6,9 +6,8 @@ they just verify that nothing throws or 5xx's. Cheap to write, fast to
 run, catch the worst class of regressions (PHP fatals, missing
 services, broken autoload).
 
-CI status: not yet implemented. Will run alongside functional tests
-once enabled (no `@group functional` exclusion needed; smoke tests
-are typically tagged `@group smoke`).
+CI status: implemented, running in CI alongside functional tests
+(tagged `@group smoke`, no group filter excludes them).
 
 ## Conventions
 
@@ -32,20 +31,21 @@ flips correctly. This single test catches 90% of "I broke something"
 regressions: missing migrations, broken services.yml, autoload misses,
 listener subscription errors.
 
-### 2. `smoke_services_resolve_test.php`
+### 2. `services_resolve_test.php`
 
-For every service ID in `config/services.yml`, fetch it from the
-container:
-
-```php
-foreach ($yaml['services'] as $id => $_) {
-    $this->get_extension_manager()->get_finder()
-        ->get_container()->get($id);
-}
-```
-
-Assert: each `get()` call succeeds without throwing. Catches typos in
-service definitions, missing class files, circular dependency loops.
+Implemented at `tests/config/services_resolve_test.php`, not under
+`tests/functional/` — the container is only ever assembled inside a
+real phpBB request, not inside a PHPUnit process, and
+`get_extension_manager()`'s helper builds against a mock container
+with no real services registered (confirmed the hard way: it doesn't
+even have a `user` service, see the sync_routes_authz_test.php fix).
+So instead of resolving through DI, this parses `config/services.yml`
+and asserts every declared `class:` exists and autoloads. Doesn't
+catch circular dependencies or wrong constructor args, but it's a
+real, cheap guard against class-path typos — the deeper "does the
+whole graph actually build" question is exercised for free by every
+other functional/smoke test, since none of them could pass at all if
+the container failed to compile.
 
 ### 3. `smoke_acp_modules_load_test.php`
 
