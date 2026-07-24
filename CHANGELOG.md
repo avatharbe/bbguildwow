@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.0.0-rc2 24/07/2026
+  - [FIX] Guild faction reset to Horde on every Battle.net armory sync whose response lacked `faction.type` (#29, core) — `process_guild_data()` defaulted the faction to Horde and only flipped to Alliance on an explicit `faction.type === 'ALLIANCE'`, so any incomplete guild response silently overwrote the faction chosen in the ACP. Faction is now only reported when the API actually provides it (both ALLIANCE and HORDE handled explicitly), letting `update_guild_battleNet()` preserve the guild's stored value otherwise; a local fallback is retained solely for emblem ring rendering.
+
 ## 2.0.0-rc1 24/07/2026
   - [FIX] Security/standards audit: all six sync AJAX routes (roster, specs, portraits, equipment, achievement categories, achievements) had no permission check at all — anyone with the URL could trigger a sync. Both controllers now require `a_bbguild`.
   - [FIX] `acp/achievement_module.php`'s `listachievements` POST handler was missing CSRF form-key validation on its three state-changing actions
