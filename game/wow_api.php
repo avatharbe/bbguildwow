@@ -48,20 +48,70 @@ class wow_api implements game_api_interface
 	/** @var string */
 	private $bb_ranks_table;
 
+	/** @var \phpbb\filesystem\filesystem */
+	private $filesystem;
+
 	/**
 	 * @param \phpbb\cache\service              $cache
 	 * @param \phpbb\db\driver\driver_interface $db
 	 * @param string                            $guild_wow_table
 	 * @param string                            $bb_players_table
 	 * @param string                            $bb_ranks_table
+	 * @param \phpbb\filesystem\filesystem       $filesystem
 	 */
-	public function __construct(\phpbb\cache\service $cache, \phpbb\db\driver\driver_interface $db, $guild_wow_table, $bb_players_table, $bb_ranks_table)
+	public function __construct(\phpbb\cache\service $cache, \phpbb\db\driver\driver_interface $db, $guild_wow_table, $bb_players_table, $bb_ranks_table, \phpbb\filesystem\filesystem $filesystem)
 	{
 		$this->cache = $cache;
 		$this->db = $db;
 		$this->guild_wow_table = $guild_wow_table;
 		$this->bb_players_table = $bb_players_table;
 		$this->bb_ranks_table = $bb_ranks_table;
+		$this->filesystem = $filesystem;
+	}
+
+	/**
+	 * Ensure a directory exists, best-effort (matches the tolerant
+	 * semantics of the @mkdir() calls this replaces — sync continues
+	 * even if the directory can't be created, individual file writes
+	 * will just fail and get skipped).
+	 *
+	 * @param string $dir
+	 */
+	private function ensure_dir(string $dir): void
+	{
+		if ($this->filesystem->exists($dir))
+		{
+			return;
+		}
+
+		try
+		{
+			$this->filesystem->mkdir($dir, 0755);
+		}
+		catch (\phpbb\filesystem\exception\filesystem_exception $e)
+		{
+			// best-effort; see docblock
+		}
+	}
+
+	/**
+	 * Write a local file, best-effort.
+	 *
+	 * @param string $path
+	 * @param string $content
+	 * @return bool True on success, false on failure.
+	 */
+	private function write_file(string $path, string $content): bool
+	{
+		try
+		{
+			$this->filesystem->dump_file($path, $content);
+			return true;
+		}
+		catch (\phpbb\filesystem\exception\filesystem_exception $e)
+		{
+			return false;
+		}
 	}
 
 	/**
@@ -276,10 +326,7 @@ class wow_api implements game_api_interface
 		$upload_path = $phpbb_container->get('config')['upload_path'];
 		$portrait_rel = $upload_path . '/bbguildwow/portraits/';
 		$portrait_dir = $phpbb_root_path . $portrait_rel;
-		if (!is_dir($portrait_dir))
-		{
-			@mkdir($portrait_dir, 0755, true);
-		}
+		$this->ensure_dir($portrait_dir);
 
 		// Get players without local portraits (empty, NULL, or still pointing to external URLs)
 		$sql = 'SELECT player_id, player_name, player_realm, player_region
@@ -383,10 +430,7 @@ class wow_api implements game_api_interface
 				// Download and cache full-body render
 				$render_rel = $upload_path . '/bbguildwow/renders/';
 				$render_dir = $phpbb_root_path . $render_rel;
-				if (!is_dir($render_dir))
-				{
-					@mkdir($render_dir, 0755, true);
-				}
+				$this->ensure_dir($render_dir);
 				$stored_render = '';
 				if (!empty($render_url))
 				{
@@ -880,7 +924,7 @@ class wow_api implements game_api_interface
 		$filename = $player_id . '.jpg';
 		$local_file = $portrait_dir . $filename;
 
-		if (@file_put_contents($local_file, $image_data) === false)
+		if (!$this->write_file($local_file, $image_data))
 		{
 			return '';
 		}
@@ -1257,17 +1301,14 @@ class wow_api implements game_api_interface
 		$upload_path = $phpbb_container->get('config')['upload_path'];
 		$emblem_rel = $upload_path . '/bbguildwow/emblems/';
 		$emblem_dir = $phpbb_root_path . $emblem_rel;
-		if (!is_dir($emblem_dir))
-		{
-			@mkdir($emblem_dir, 0755, true);
-		}
+		$this->ensure_dir($emblem_dir);
 
 		$safe_name = str_replace(' ', '_', $guild_name);
 		$filename = $region . '_' . $realm . '_' . $safe_name . '.png';
 		$imgfile = $emblem_dir . $filename;
 
 		// Return cached image if fresh (< 24h)
-		if (file_exists($imgfile) && (filemtime($imgfile) + 86400) > time())
+		if ($this->filesystem->exists($imgfile) && (filemtime($imgfile) + 86400) > time())
 		{
 			$existing = @imagecreatefrompng($imgfile);
 			if ($existing !== false && imagesx($existing) == $width)
@@ -1324,7 +1365,7 @@ class wow_api implements game_api_interface
 		$overlayURL = $wow_ext_path . 'images/wowapi/static/overlay_00.png';
 		$hooksURL = $wow_ext_path . 'images/wowapi/static/hooks.png';
 
-		if (!file_exists($ringURL) || !file_exists($shadowURL) || !file_exists($bgURL))
+		if (!$this->filesystem->exists($ringURL) || !$this->filesystem->exists($shadowURL) || !$this->filesystem->exists($bgURL))
 		{
 			imagedestroy($emblem);
 			imagedestroy($border);
@@ -1359,7 +1400,7 @@ class wow_api implements game_api_interface
 		imagecopy($imgOut, $emblem, $x + 17, $y + 30, 0, 0, $emblem_size[0], $emblem_size[1]);
 		imagecopy($imgOut, $border, $x + 13, $y + 15, 0, 0, $border_size[0], $border_size[1]);
 
-		if (file_exists($overlayURL))
+		if ($this->filesystem->exists($overlayURL))
 		{
 			$overlay = imagecreatefrompng($overlayURL);
 			$overlay_size = getimagesize($overlayURL);
@@ -1367,7 +1408,7 @@ class wow_api implements game_api_interface
 			imagedestroy($overlay);
 		}
 
-		if (file_exists($hooksURL))
+		if ($this->filesystem->exists($hooksURL))
 		{
 			$hooks = imagecreatefrompng($hooksURL);
 			$hooks_size = getimagesize($hooksURL);
@@ -1422,7 +1463,7 @@ class wow_api implements game_api_interface
 	{
 		// Try local file first
 		$local_path = $wow_ext_path . 'images/wowapi/' . $dir . '/' . $type . '_' . sprintf('%02d', $id) . '.png';
-		if (file_exists($local_path))
+		if ($this->filesystem->exists($local_path))
 		{
 			return imagecreatefrompng($local_path);
 		}
@@ -1473,8 +1514,8 @@ class wow_api implements game_api_interface
 			return false;
 		}
 
-		// Save locally for future use
-		@file_put_contents($local_path, $image_data);
+		// Save locally for future use (best-effort)
+		$this->write_file($local_path, $image_data);
 
 		$img = @imagecreatefromstring($image_data);
 		return ($img !== false) ? $img : false;

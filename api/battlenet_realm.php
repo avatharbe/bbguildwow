@@ -49,7 +49,7 @@ class battlenet_realm extends battlenet_resource
 
 		if (count($realms) == 0)
 		{
-			trigger_error($user->lang['WOWAPI_NO_REALMS']);
+			throw new battlenet_api_exception($user->lang['WOWAPI_NO_REALMS']);
 		}
 		else
 		{

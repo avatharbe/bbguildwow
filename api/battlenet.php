@@ -88,12 +88,12 @@ class battlenet
 
 		if (!in_array($API, $this->api))
 		{
-			trigger_error($user->lang['WOWAPI_API_NOTIMPLEMENTED']);
+			throw new battlenet_api_exception($user->lang['WOWAPI_API_NOTIMPLEMENTED']);
 		}
 
 		if (!in_array($region, $this->region))
 		{
-			trigger_error($user->lang['WOWAPI_REGION_NOTALLOWED']);
+			throw new battlenet_api_exception($user->lang['WOWAPI_REGION_NOTALLOWED']);
 		}
 
 		$this->api      = $API;

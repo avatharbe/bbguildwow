@@ -21,8 +21,9 @@ class wow_api_test extends TestCase
 
 		$cache = $this->createMock(\phpbb\cache\service::class);
 		$db = $this->createMock(\phpbb\db\driver\driver_interface::class);
+		$filesystem = new \phpbb\filesystem\filesystem();
 
-		$this->api = new wow_api($cache, $db, 'phpbb_guild_wow', 'phpbb_players', 'phpbb_ranks');
+		$this->api = new wow_api($cache, $db, 'phpbb_guild_wow', 'phpbb_players', 'phpbb_ranks', $filesystem);
 	}
 
 	// ── to_slug() ──────────────────────────────────────────

@@ -18,6 +18,7 @@ services:
             - '%avathar.bbguildwow.tables.bb_guild_wow%'
             - '%avathar.bbguild.tables.bb_players%'
             - '%avathar.bbguild.tables.bb_ranks%'
+            - '@filesystem'
 
     avathar.bbguildwow.provider:
         class: avathar\bbguildwow\game\wow_provider
@@ -55,6 +56,7 @@ services:
             - '@avathar.bbguildwow.api'
             - '@dbal.conn'
             - '@avathar.bbguild.log'
+            - '@auth'
             - '%avathar.bbguild.tables.bb_players%'
             - '%avathar.bbguild.tables.bb_guild%'
             - '%avathar.bbguild.tables.bb_games%'
@@ -82,6 +84,7 @@ services:
             - '@avathar.bbguildwow.achievement'
             - '@dbal.conn'
             - '@avathar.bbguild.log'
+            - '@auth'
             - '%avathar.bbguild.tables.bb_guild%'
             - '%avathar.bbguild.tables.bb_games%'
             - '%avathar.bbguildwow.tables.bb_achievement%'

@@ -29,6 +29,10 @@ class achievement_module
 	 */
 	public $link = '';
 
+	public $tpl_name;
+	public $page_title;
+	public $u_action;
+
 	protected $phpbb_container;
 	/**
 	 * @var \phpbb\request\request
@@ -122,6 +126,11 @@ class achievement_module
 				$achievaddapi     = $this->request->is_set_post('achievaddapi');
 				$achievsynccats   = $this->request->is_set_post('achievsynccats');
 				$achievdelete     = $this->request->is_set_post('delete');
+
+				if (($achievaddapi || $achievsynccats || $achievdelete) && !check_form_key('avathar/bbguildwow'))
+				{
+					trigger_error($this->user->lang['FORM_INVALID'] . adm_back_link($this->u_action));
+				}
 
 				if ($achievaddmanual)
 				{
@@ -541,7 +550,15 @@ class achievement_module
 	{
 		$this->achievement->setGame($this->game, 0);
 		$this->achievement->setGuildId($this->guild->guildid);
-		$result = $this->achievement->setAchievements($Guild, $this->game);
+
+		try
+		{
+			$result = $this->achievement->setAchievements($Guild, $this->game);
+		}
+		catch (\Exception $e)
+		{
+			trigger_error($e->getMessage() . $this->link, E_USER_WARNING);
+		}
 
 		if ($result['success'])
 		{
@@ -559,7 +576,15 @@ class achievement_module
 	private function SyncCategories()
 	{
 		$this->achievement->setGame($this->game, 0);
-		$result = $this->achievement->syncCategories($this->game);
+
+		try
+		{
+			$result = $this->achievement->syncCategories($this->game);
+		}
+		catch (\Exception $e)
+		{
+			trigger_error($e->getMessage() . $this->link, E_USER_WARNING);
+		}
 
 		if ($result['success'])
 		{

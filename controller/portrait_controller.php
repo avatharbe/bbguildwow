@@ -14,6 +14,7 @@ namespace avathar\bbguildwow\controller;
 
 use avathar\bbguildwow\game\wow_api;
 use avathar\bbguild\model\admin\log;
+use phpbb\auth\auth;
 use phpbb\db\driver\driver_interface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
@@ -28,6 +29,9 @@ class portrait_controller
 	/** @var log */
 	protected $bbguildlog;
 
+	/** @var auth */
+	protected $auth;
+
 	/** @var string */
 	protected $players_table;
 
@@ -41,6 +45,7 @@ class portrait_controller
 		wow_api $wow_api,
 		driver_interface $db,
 		log $bbguildlog,
+		auth $auth,
 		string $players_table,
 		string $guild_table,
 		string $games_table
@@ -49,9 +54,28 @@ class portrait_controller
 		$this->wow_api = $wow_api;
 		$this->db = $db;
 		$this->bbguildlog = $bbguildlog;
+		$this->auth = $auth;
 		$this->players_table = $players_table;
 		$this->guild_table = $guild_table;
 		$this->games_table = $games_table;
+	}
+
+	/**
+	 * Reject the request unless the current user holds the bbGuild ACP
+	 * permission. These endpoints only ever get *linked* from the ACP
+	 * Edit Guild page, but the route itself has no auth of its own, so
+	 * every action must check explicitly instead of relying on the link
+	 * being hidden.
+	 *
+	 * @return JsonResponse|null Null if authorized, an error response otherwise.
+	 */
+	private function check_auth(): ?JsonResponse
+	{
+		if (!$this->auth->acl_get('a_bbguild'))
+		{
+			return new JsonResponse(array('error' => 'Insufficient permissions.', 'done' => true), 403);
+		}
+		return null;
 	}
 
 	/**
@@ -62,8 +86,27 @@ class portrait_controller
 	 */
 	public function sync_roster($guild_id)
 	{
-		$guild_id = (int) $guild_id;
+		if ($auth_error = $this->check_auth())
+		{
+			return $auth_error;
+		}
 
+		try
+		{
+			return $this->do_sync_roster((int) $guild_id);
+		}
+		catch (\Exception $e)
+		{
+			return new JsonResponse(array('success' => false, 'message' => $e->getMessage()), 500);
+		}
+	}
+
+	/**
+	 * @param int $guild_id
+	 * @return JsonResponse
+	 */
+	private function do_sync_roster(int $guild_id): JsonResponse
+	{
 		// Get guild data
 		$sql = 'SELECT name, realm, region, min_armory, game_id, game_edition FROM ' . $this->guild_table .
 			' WHERE id = ' . $guild_id;
@@ -172,8 +215,27 @@ class portrait_controller
 	 */
 	public function sync_specs($guild_id)
 	{
-		$guild_id = (int) $guild_id;
+		if ($auth_error = $this->check_auth())
+		{
+			return $auth_error;
+		}
 
+		try
+		{
+			return $this->do_sync_specs((int) $guild_id);
+		}
+		catch (\Exception $e)
+		{
+			return new JsonResponse(array('error' => $e->getMessage(), 'done' => true), 500);
+		}
+	}
+
+	/**
+	 * @param int $guild_id
+	 * @return JsonResponse
+	 */
+	private function do_sync_specs(int $guild_id): JsonResponse
+	{
 		$sql = 'SELECT apikey, privkey, apilocale, region FROM ' . $this->games_table .
 			" WHERE game_id = 'wow'";
 		$result = $this->db->sql_query($sql);
@@ -275,8 +337,27 @@ class portrait_controller
 	 */
 	public function sync($guild_id)
 	{
-		$guild_id = (int) $guild_id;
+		if ($auth_error = $this->check_auth())
+		{
+			return $auth_error;
+		}
 
+		try
+		{
+			return $this->do_sync_portraits((int) $guild_id);
+		}
+		catch (\Exception $e)
+		{
+			return new JsonResponse(array('error' => $e->getMessage(), 'done' => true), 500);
+		}
+	}
+
+	/**
+	 * @param int $guild_id
+	 * @return JsonResponse
+	 */
+	private function do_sync_portraits(int $guild_id): JsonResponse
+	{
 		// Get game API credentials
 		$sql = 'SELECT apikey, privkey, apilocale, region FROM ' . $this->games_table .
 			" WHERE game_id = 'wow'";
@@ -394,8 +475,28 @@ class portrait_controller
 	 */
 	public function sync_equipment($guild_id)
 	{
+		if ($auth_error = $this->check_auth())
+		{
+			return $auth_error;
+		}
+
+		try
+		{
+			return $this->do_sync_equipment((int) $guild_id);
+		}
+		catch (\Exception $e)
+		{
+			return new JsonResponse(array('error' => $e->getMessage(), 'done' => true), 500);
+		}
+	}
+
+	/**
+	 * @param int $guild_id
+	 * @return JsonResponse
+	 */
+	private function do_sync_equipment(int $guild_id): JsonResponse
+	{
 		global $phpbb_container;
-		$guild_id = (int) $guild_id;
 
 		$sql = 'SELECT apikey, privkey, apilocale, region FROM ' . $this->games_table .
 			" WHERE game_id = 'wow'";

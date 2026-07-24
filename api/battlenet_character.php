@@ -42,12 +42,12 @@ class battlenet_character extends battlenet_resource
 
 		if ($character_name === '')
 		{
-			trigger_error($user->lang['WOWAPI_NO_CHARACTER']);
+			throw new battlenet_api_exception($user->lang['WOWAPI_NO_CHARACTER']);
 		}
 
 		if ($realm_slug === '')
 		{
-			trigger_error($user->lang['WOWAPI_NO_REALMS']);
+			throw new battlenet_api_exception($user->lang['WOWAPI_NO_REALMS']);
 		}
 
 		return $this->consume($realm_slug . '/' . $this->normalize_name($character_name), array());

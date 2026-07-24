@@ -17,6 +17,7 @@ use avathar\bbguildwow\model\achievement;
 use avathar\bbguild\model\admin\log;
 use avathar\bbguild\model\games\game;
 use avathar\bbguild\model\player\guilds;
+use phpbb\auth\auth;
 use phpbb\db\driver\driver_interface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
@@ -31,6 +32,9 @@ class achievement_sync_controller
 	/** @var log */
 	protected $bbguildlog;
 
+	/** @var auth */
+	protected $auth;
+
 	/** @var string */
 	protected $guild_table;
 
@@ -44,6 +48,7 @@ class achievement_sync_controller
 		achievement $achievement,
 		driver_interface $db,
 		log $bbguildlog,
+		auth $auth,
 		string $guild_table,
 		string $games_table,
 		string $achievement_table
@@ -52,9 +57,28 @@ class achievement_sync_controller
 		$this->achievement = $achievement;
 		$this->db = $db;
 		$this->bbguildlog = $bbguildlog;
+		$this->auth = $auth;
 		$this->guild_table = $guild_table;
 		$this->games_table = $games_table;
 		$this->achievement_table = $achievement_table;
+	}
+
+	/**
+	 * Reject the request unless the current user holds the bbGuild ACP
+	 * permission. These endpoints only ever get *linked* from the ACP
+	 * Edit Guild page, but the route itself has no auth of its own, so
+	 * every action must check explicitly instead of relying on the link
+	 * being hidden.
+	 *
+	 * @return JsonResponse|null Null if authorized, an error response otherwise.
+	 */
+	private function check_auth(): ?JsonResponse
+	{
+		if (!$this->auth->acl_get('a_bbguild'))
+		{
+			return new JsonResponse(array('error' => 'Insufficient permissions.', 'done' => true), 403);
+		}
+		return null;
 	}
 
 	/**
@@ -65,6 +89,11 @@ class achievement_sync_controller
 	 */
 	public function sync_categories($guild_id)
 	{
+		if ($auth_error = $this->check_auth())
+		{
+			return $auth_error;
+		}
+
 		$guild_id = (int) $guild_id;
 
 		$game = $this->load_game($guild_id);
@@ -83,7 +112,14 @@ class achievement_sync_controller
 		$this->achievement->setGuildId($guild_id);
 		$this->achievement->setEdition($guild->getGameEdition());
 
-		$sync_result = $this->achievement->syncCategories($game);
+		try
+		{
+			$sync_result = $this->achievement->syncCategories($game);
+		}
+		catch (\Exception $e)
+		{
+			return new JsonResponse(array('error' => $e->getMessage(), 'done' => true), 500);
+		}
 
 		// Count achievements still without a category
 		$sql = 'SELECT COUNT(*) AS remaining FROM ' . $this->achievement_table .
@@ -127,6 +163,11 @@ class achievement_sync_controller
 	 */
 	public function sync_achievements($guild_id)
 	{
+		if ($auth_error = $this->check_auth())
+		{
+			return $auth_error;
+		}
+
 		$guild_id = (int) $guild_id;
 
 		$game = $this->load_game($guild_id);
@@ -145,7 +186,14 @@ class achievement_sync_controller
 		$this->achievement->setGuildId($guild_id);
 		$this->achievement->setEdition($guild->getGameEdition());
 
-		$sync_result = $this->achievement->setAchievements($guild, $game);
+		try
+		{
+			$sync_result = $this->achievement->setAchievements($guild, $game);
+		}
+		catch (\Exception $e)
+		{
+			return new JsonResponse(array('error' => $e->getMessage(), 'done' => true), 500);
+		}
 
 		// Count achievements still needing details
 		$sql = 'SELECT COUNT(*) AS remaining FROM ' . $this->achievement_table .

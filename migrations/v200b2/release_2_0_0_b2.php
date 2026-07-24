@@ -247,17 +247,28 @@ class release_2_0_0_b2 extends \phpbb\db\migration\container_aware_migration
 		}
 
 		// Clean up downloaded portraits
+		$filesystem = $this->container->get('filesystem');
 		$upload_path = $this->config['upload_path'];
 		$portrait_dir = $this->phpbb_root_path . $upload_path . '/bbguildwow/';
-		if (is_dir($portrait_dir))
+		if ($filesystem->exists($portrait_dir))
 		{
 			$files = glob($portrait_dir . 'portraits/*.jpg');
 			if ($files)
 			{
-				array_map('unlink', $files);
+				$filesystem->remove($files);
 			}
-			@rmdir($portrait_dir . 'portraits');
-			@rmdir($portrait_dir);
+
+			// Only remove the directories if they're now empty — renders/
+			// and emblems/ live alongside portraits/ under the same
+			// bbguildwow/ parent, so this must never recurse.
+			if ($filesystem->exists($portrait_dir . 'portraits') && !glob($portrait_dir . 'portraits/*'))
+			{
+				$filesystem->remove($portrait_dir . 'portraits');
+			}
+			if (!glob($portrait_dir . '*'))
+			{
+				$filesystem->remove($portrait_dir);
+			}
 		}
 	}
 

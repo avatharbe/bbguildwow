@@ -472,7 +472,7 @@ class achievement
 					'FROM'  => array($this->bb_criteria_track_table => 'ct'),
 					'ON'    => " ct.criteria_id = c.criteria_id AND ct.guild_id = ac.guild_id " ,
 				)),
-			'WHERE' =>  'a.id = ac.achievement_id AND a.id = ' . (int) $this->id . " AND a.game_id = '". $this->game_id . "'" ,
+			'WHERE' =>  'a.id = ac.achievement_id AND a.id = ' . (int) $this->id . " AND a.game_id = '". $db->sql_escape($this->game_id) . "'" ,
 		);
 
 		$sql = $db->sql_build_query('SELECT', $sql_array);

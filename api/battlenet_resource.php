@@ -111,7 +111,7 @@ abstract class battlenet_resource
 
 		if (empty($this->methods_allowed))
 		{
-			trigger_error($user->lang['NO_METHODS']);
+			throw new battlenet_api_exception($user->lang['NO_METHODS']);
 		}
 		$this->region = $region;
 		$this->cache = $cache;
@@ -220,7 +220,7 @@ abstract class battlenet_resource
 
 		if ($this->apikey == '' || $this->privkey == '')
 		{
-			trigger_error($user->lang['WOWAPI_KEY_MISSING']);
+			throw new battlenet_api_exception($user->lang['WOWAPI_KEY_MISSING']);
 		}
 
 		if (!isset($this->locales_allowed[$this->region]) || !in_array($this->locale, $this->locales_allowed[$this->region]))
@@ -231,18 +231,18 @@ abstract class battlenet_resource
 			}
 			else
 			{
-				trigger_error(sprintf($user->lang['WOWAPI_LOCALE_NOTALLOWED'], (string) $this->locale));
+				throw new battlenet_api_exception(sprintf($user->lang['WOWAPI_LOCALE_NOTALLOWED'], (string) $this->locale));
 			}
 		}
 
 		if (!in_array($method, $this->methods_allowed) && !in_array('*', $this->methods_allowed))
 		{
-			trigger_error($user->lang['WOWAPI_METH_NOTALLOWED']);
+			throw new battlenet_api_exception($user->lang['WOWAPI_METH_NOTALLOWED']);
 		}
 
 		if (!isset($this->api_url[$this->region]))
 		{
-			trigger_error(sprintf($user->lang['WOWAPI_LOCALE_NOTALLOWED'], (string) $this->region));
+			throw new battlenet_api_exception(sprintf($user->lang['WOWAPI_LOCALE_NOTALLOWED'], (string) $this->region));
 		}
 
 		$requestUri = $this->api_url[$this->region];
@@ -304,7 +304,7 @@ abstract class battlenet_resource
 		if ($token === false)
 		{
 			global $user;
-			trigger_error($user->lang['WOWAPI_TOKEN_FAILED']);
+			throw new battlenet_api_exception($user->lang['WOWAPI_TOKEN_FAILED']);
 		}
 
 		$curl = curl_init($url);

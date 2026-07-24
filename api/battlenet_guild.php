@@ -43,12 +43,12 @@ class battlenet_guild extends battlenet_resource
 
 		if ($name_slug === '')
 		{
-			trigger_error($user->lang['WOWAPI_NO_GUILD']);
+			throw new battlenet_api_exception($user->lang['WOWAPI_NO_GUILD']);
 		}
 
 		if ($realm_slug === '')
 		{
-			trigger_error($user->lang['WOWAPI_NO_REALMS']);
+			throw new battlenet_api_exception($user->lang['WOWAPI_NO_REALMS']);
 		}
 
 		return $this->consume($realm_slug . '/' . $name_slug, array());
@@ -67,12 +67,12 @@ class battlenet_guild extends battlenet_resource
 
 		if ($name_slug === '')
 		{
-			trigger_error($user->lang['WOWAPI_NO_GUILD']);
+			throw new battlenet_api_exception($user->lang['WOWAPI_NO_GUILD']);
 		}
 
 		if ($realm_slug === '')
 		{
-			trigger_error($user->lang['WOWAPI_NO_REALMS']);
+			throw new battlenet_api_exception($user->lang['WOWAPI_NO_REALMS']);
 		}
 
 		return $this->consume($realm_slug . '/' . $name_slug . '/achievements', array());
@@ -91,12 +91,12 @@ class battlenet_guild extends battlenet_resource
 
 		if ($name_slug === '')
 		{
-			trigger_error($user->lang['WOWAPI_NO_GUILD']);
+			throw new battlenet_api_exception($user->lang['WOWAPI_NO_GUILD']);
 		}
 
 		if ($realm_slug === '')
 		{
-			trigger_error($user->lang['WOWAPI_NO_REALMS']);
+			throw new battlenet_api_exception($user->lang['WOWAPI_NO_REALMS']);
 		}
 
 		return $this->consume($realm_slug . '/' . $name_slug . '/roster', array());
