@@ -168,6 +168,14 @@ class wow_api implements game_api_interface
 			$result = $guild_data['response'];
 		}
 
+		// Carry the exact request URL up for logging/diagnostics. consume() always
+		// records it on the raw response (even on a 404), but it is otherwise
+		// dropped here since only ['response'] is kept.
+		if (isset($guild_data['request_url']))
+		{
+			$result['_request_url'] = $guild_data['request_url'];
+		}
+
 		// Fetch roster if requested
 		if (in_array('members', $params))
 		{

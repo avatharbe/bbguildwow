@@ -157,12 +157,20 @@ class portrait_controller
 		if (!is_array($data) || isset($data['code']))
 		{
 			$detail = isset($data['code']) ? sprintf('API error %d', $data['code']) : 'Empty response';
+			// Capture the exact Battle.net request URL (region host, namespace and
+			// guild slug) so a 404/region/slug mismatch is self-diagnosing.
+			$request_url = (is_array($data) && isset($data['_request_url'])) ? (string) $data['_request_url'] : '';
+			$log_detail = $guild_row['name'] . '-' . $guild_row['realm'] . ': ' . $detail;
+			if ($request_url !== '')
+			{
+				$log_detail .= ' — ' . $request_url;
+			}
 			$this->bbguildlog->log_insert(array(
 				'log_type'   => 'L_ERROR_ARMORY_DOWN',
 				'log_result' => 'L_ERROR',
-				'log_action' => [$guild_row['name'] . '-' . $guild_row['realm'] . ': ' . $detail],
+				'log_action' => [$log_detail],
 			));
-			return new JsonResponse(array('success' => false, 'message' => $detail));
+			return new JsonResponse(array('success' => false, 'message' => $request_url !== '' ? $detail . ' (URL: ' . $request_url . ')' : $detail));
 		}
 
 		// Process and save guild data
