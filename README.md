@@ -19,7 +19,7 @@ Game plugin that adds World of Warcraft support to [bbGuild](https://github.com/
 ## Requirements
 
 - phpBB >= 3.3.0
-- PHP >= 7.4.0
+- PHP >= 8.1.0
 - PHP cURL extension
 - **bbGuild core** (`avathar/bbguild`) must be installed and enabled
 
