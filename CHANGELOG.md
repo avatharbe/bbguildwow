@@ -1,6 +1,7 @@
 # Changelog
 
-## 2.0.0-rc2 24/07/2026
+## 2.0.0-rc2 25/07/2026
+  - [CHG] Soft-requires `avathar/bbguild >= 2.0.0-rc4` (was rc3) — pair this release with bbguild core rc4, which carries the matching ACP guild-edit fixes.
   - [FIX] Guilds and characters whose name contains an accented/multibyte character (e.g. "Bête Noire") failed every Battle.net sync with a 404 (#32) — the name slug was concatenated into the request URL with the raw multibyte byte (`…/guild/silvermoon/bête-noire`), which is not a valid URL. `consume()` now percent-encodes each path segment (`…/silvermoon/b%C3%AAte-noire`); Blizzard keeps the accent (lowercased), it is not stripped (verified 200 against the live API).
   - [DIAG] Roster-sync API failures now record the full Battle.net request URL (region host, namespace, realm + guild slug) in the bbGuild ACP log and the on-screen error, instead of a bare "API error 404" — `consume()` already computed the URL but it was discarded. Makes region/slug mismatches self-diagnosing (#32).
   - [FIX] Guild faction reset to Horde on every Battle.net armory sync whose response lacked `faction.type` (#29, core) — `process_guild_data()` defaulted the faction to Horde and only flipped to Alliance on an explicit `faction.type === 'ALLIANCE'`, so any incomplete guild response silently overwrote the faction chosen in the ACP. Faction is now only reported when the API actually provides it (both ALLIANCE and HORDE handled explicitly), letting `update_guild_battleNet()` preserve the guild's stored value otherwise; a local fallback is retained solely for emblem ring rendering.
