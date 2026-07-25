@@ -57,16 +57,9 @@ class release_2_0_0_rc2 extends \phpbb\db\migration\migration
 		];
 	}
 
-	public function revert_data()
-	{
-		return [
-			['module.remove', ['acp', 'ACP_BBGUILD_GAMESETTINGS', [
-				'module_basename' => '\avathar\bbguildwow\acp\battlenet_module',
-			]]],
-			['module.add', ['acp', 'ACP_BBGUILD_MAINPAGE', [
-				'module_basename' => '\avathar\bbguildwow\acp\battlenet_module',
-				'modes'           => ['battlenet'],
-			]]],
-		];
-	}
+	// No revert_data(): phpBB's migrator auto-reverses update_data() on uninstall
+	// (battlenet_module removed from Game settings and re-added to General
+	// Settings). An explicit revert that repeated those steps ran them twice —
+	// "A module already exists: ACP_WOW_BATTLENET" — because migrator::revert()
+	// merges reverse_update_data(update_data) WITH revert_data().
 }
