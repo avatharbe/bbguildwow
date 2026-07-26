@@ -86,4 +86,5 @@ $lang = array_merge(
 	'BBGUILDWOW_PHP_VERSION_FAIL'		=> 'To rozszerzenie wymaga PHP %1$s lub wyższego. Używasz PHP %2$s.',
 	'BBGUILDWOW_PHPBB_VERSION_FAIL'		=> 'To rozszerzenie wymaga phpBB %1$s lub wyższego. Używasz phpBB %2$s.',
 	'BBGUILDWOW_REQUIRES_BBGUILD'		=> 'To rozszerzenie wymaga, aby najpierw było włączone rozszerzenie podstawowe bbGuild (avathar/bbguild).',
+	'BBGUILDWOW_REQUIRES_BBGUILD_VERSION'	=> 'To rozszerzenie wymaga rozszerzenia podstawowego bbGuild (avathar/bbguild) w wersji %1$s lub nowszej. Zainstalowana wersja: %2$s.',
 ));

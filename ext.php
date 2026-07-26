@@ -21,6 +21,7 @@ class ext extends base
 	const BBGUILDWOW_VERSION = '2.0.0-rc2';
 	const MIN_PHP_VERSION = '8.1.0';
 	const MIN_PHPBB_VERSION = '3.3.0';
+	const MIN_BBGUILD_VERSION = '2.0.0-rc5';
 
 	/**
 	 * Check whether or not the extension can be enabled.
@@ -49,6 +50,14 @@ class ext extends base
 		if (!$ext_manager->is_enabled('avathar/bbguild'))
 		{
 			$errors[] = $user->lang('BBGUILDWOW_REQUIRES_BBGUILD');
+		}
+		else
+		{
+			$core_version = class_exists('\avathar\bbguild\ext') ? \avathar\bbguild\ext::BBGUILD_VERSION : '0';
+			if (phpbb_version_compare($core_version, self::MIN_BBGUILD_VERSION, '<'))
+			{
+				$errors[] = $user->lang('BBGUILDWOW_REQUIRES_BBGUILD_VERSION', self::MIN_BBGUILD_VERSION, $core_version);
+			}
 		}
 
 		return empty($errors) ? true : $errors;

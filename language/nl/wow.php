@@ -86,4 +86,5 @@ $lang = array_merge(
 	'BBGUILDWOW_PHP_VERSION_FAIL'		=> 'Deze extensie vereist PHP %1$s of hoger. Je gebruikt PHP %2$s.',
 	'BBGUILDWOW_PHPBB_VERSION_FAIL'		=> 'Deze extensie vereist phpBB %1$s of hoger. Je gebruikt phpBB %2$s.',
 	'BBGUILDWOW_REQUIRES_BBGUILD'		=> 'Deze extensie vereist dat de bbGuild-kernextensie (avathar/bbguild) eerst is ingeschakeld.',
+	'BBGUILDWOW_REQUIRES_BBGUILD_VERSION'	=> 'Deze extensie vereist de bbGuild-kernextensie (avathar/bbguild) versie %1$s of nieuwer. Geïnstalleerde versie: %2$s.',
 ));

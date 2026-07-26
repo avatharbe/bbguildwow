@@ -92,4 +92,5 @@ $lang = array_merge(
 	'BBGUILDWOW_PHP_VERSION_FAIL'		=> 'Questa estensione richiede PHP %1$s o superiore. Stai eseguendo PHP %2$s.',
 	'BBGUILDWOW_PHPBB_VERSION_FAIL'		=> 'Questa estensione richiede phpBB %1$s o superiore. Stai eseguendo phpBB %2$s.',
 	'BBGUILDWOW_REQUIRES_BBGUILD'		=> 'Questa estensione richiede l\'estensione principale bbGuild (avathar/bbguild) attivata in precedenza.',
+	'BBGUILDWOW_REQUIRES_BBGUILD_VERSION'	=> 'Questa estensione richiede l\'estensione principale bbGuild (avathar/bbguild) versione %1$s o successiva. Versione installata: %2$s.',
 ));
