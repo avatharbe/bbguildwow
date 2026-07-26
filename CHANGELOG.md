@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.0.0-rc3 26/07/2026
+  - [CHG] Now requires bbGuild core >= 2.0.0-rc5, enforced in `ext.php::is_enableable()` (new `BBGUILDWOW_REQUIRES_BBGUILD_VERSION` message in all languages); composer soft-require bumped to `>= 2.0.0-rc5`. Pair this release with core rc5.
+
 ## 2.0.0-rc2 25/07/2026
   - [CHG] The **BattleNet API** ACP module moved into the new **Game settings** category (`ACP_BBGUILD_GAMESETTINGS`) introduced by bbguild core rc4, out of General Settings. Migration `v200rc2` re-parents it and `depends_on` the core rc4 migration so the category exists first.
   - [CHG] Soft-requires `avathar/bbguild >= 2.0.0-rc4` (was rc3) — pair this release with bbguild core rc4, which carries the matching ACP guild-edit fixes and the new Game settings category.
