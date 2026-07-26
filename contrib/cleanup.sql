@@ -1,7 +1,6 @@
 -- ============================================================================
 -- bbGuild WoW Plugin - Database Cleanup Script
--- ============================================================================
---
+-- ============================================================================--
 -- WARNING: This script DROPS ALL WoW plugin tables and removes all
 --          World of Warcraft game data from the database.
 --          It is intended for development/testing purposes only.

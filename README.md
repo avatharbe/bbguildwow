@@ -3,7 +3,6 @@
 **Current version:** 2.0.0-rc2 (release candidate)
 
 World of Warcraft is where this project's own history starts — bbGuild began life over a decade ago as a WoW guild tool, and bbguildwow is still the one plugin that goes beyond static game data. It talks to Blizzard's Battle.net API directly: a raid officer clicks "sync" and the roster, character profiles, portraits, and armory links update themselves, instead of someone manually re-typing the roster after every Mythic+ night. All 14 classes and 15 races are covered across Retail and every Classic edition (Era, Progression, Anniversary), so guilds running classic servers get the same tooling as retail. This release adds a full specialization layer — a Frost Mage shows up as a Frost Mage, not just "Mage" — plus a 3-level achievement browser your members can drill into without leaving the forum.
-
 [![Tests](https://github.com/avatharbe/bbguildwow/actions/workflows/tests.yml/badge.svg)](https://github.com/avatharbe/bbguildwow/actions/workflows/tests.yml)
 
 ## Features
