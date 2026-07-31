@@ -35,7 +35,11 @@
 			<div class="wow-equipment-slot{% if not item.S_HAS_ITEM %} wow-slot-empty{% endif %}">
 				<span class="wow-slot-label">{{ item.SLOT_LABEL }}</span>
 				{% if item.S_HAS_ITEM %}
+				{% if item.ITEM_LINK %}
+				<span class="wow-item-name wow-quality-{{ item.QUALITY|lower }}">{{ item.ITEM_LINK|raw }}</span>
+				{% else %}
 				<span class="wow-item-name wow-quality-{{ item.QUALITY|lower }}" data-wowhead="item={{ item.ITEM_ID }}">{{ item.ITEM_NAME }}</span>
+				{% endif %}
 				<span class="wow-item-ilvl">{{ item.ITEM_LEVEL }}</span>
 				{% else %}
 				<span class="wow-item-name wow-slot-empty-text">—</span>

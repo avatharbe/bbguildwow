@@ -333,7 +333,8 @@ class listener implements EventSubscriberInterface
 
 		// Load equipment
 		$equipment_table = $phpbb_container->getParameter('avathar.bbguildwow.tables.bb_player_equipment');
-		$sql = 'SELECT slot_type, item_id, item_name, item_level, quality, icon_url
+		$sql = 'SELECT slot_type, item_id, item_name, item_level, quality, icon_url,
+				enchant_id, gem_ids, bonus_ids, set_item_ids
 			FROM ' . $equipment_table . '
 			WHERE player_id = ' . $player_id . '
 			ORDER BY slot_type';
@@ -363,11 +364,29 @@ class listener implements EventSubscriberInterface
 			'MAIN_HAND', 'OFF_HAND',
 		);
 
+		$bbtips_wow = null;
+		if ($phpbb_container->has('avathar.bbtips.linker'))
+		{
+			$bbtips_wow = $phpbb_container->get('avathar.bbtips.linker')->wow();
+		}
+
 		foreach ($slot_order as $slot)
 		{
 			if (isset($equipment[$slot]))
 			{
 				$eq = $equipment[$slot];
+
+				$item_link = '';
+				if ($bbtips_wow !== null && (int) $eq['item_id'] > 0)
+				{
+					$item_link = $bbtips_wow->build_link('item', (int) $eq['item_id'], array(
+						'ench'  => (int) $eq['enchant_id'] ?: '',
+						'gems'  => $eq['gem_ids'],
+						'pcs'   => $eq['set_item_ids'],
+						'bonus' => $eq['bonus_ids'],
+					));
+				}
+
 				$this->template->assign_block_vars('wow_equipment', array(
 					'SLOT'       => $slot,
 					'SLOT_LABEL' => str_replace('_', ' ', ucwords(strtolower($slot), '_')),
@@ -376,6 +395,7 @@ class listener implements EventSubscriberInterface
 					'ITEM_LEVEL' => (int) $eq['item_level'],
 					'QUALITY'    => $eq['quality'],
 					'ICON_URL'   => $eq['icon_url'],
+					'ITEM_LINK'  => $item_link,
 					'S_HAS_ITEM' => true,
 				));
 			}
@@ -389,6 +409,7 @@ class listener implements EventSubscriberInterface
 					'ITEM_LEVEL' => 0,
 					'QUALITY'    => '',
 					'ICON_URL'   => '',
+					'ITEM_LINK'  => '',
 					'S_HAS_ITEM' => false,
 				));
 			}
