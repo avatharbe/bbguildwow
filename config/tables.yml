@@ -8,3 +8,4 @@ parameters:
     avathar.bbguildwow.tables.bb_relations_table: '%core.table_prefix%bb_relations_table'
     avathar.bbguildwow.tables.bb_achievement_category: '%core.table_prefix%bb_achievement_category'
     avathar.bbguildwow.tables.bb_player_equipment: '%core.table_prefix%bb_player_equipment'
+    avathar.bbguildwow.tables.bb_player_item_stat: '%core.table_prefix%bb_player_item_stat'
