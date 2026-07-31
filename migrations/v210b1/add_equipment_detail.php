@@ -23,7 +23,7 @@ class add_equipment_detail extends \phpbb\db\migration\migration
 				$this->table_prefix . 'bb_player_equipment' => [
 					'enchant_id'   => ['UINT', 0],
 					'gem_ids'      => ['VCHAR:255', ''],
-					'bonus_ids'    => ['VCHAR:255', ''],
+					'bonus_ids'    => ['VCHAR:512', ''],
 					'set_item_ids' => ['VCHAR:255', ''],
 				],
 			],

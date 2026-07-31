@@ -146,8 +146,8 @@ class wow_api_test extends TestCase
 			'quality' => array('type' => 'EPIC'),
 			'media'   => array('id' => 12345),
 			'enchantments' => array(
-				array('enchantment_id' => 4800, 'enchantment_slot' => array('type' => 'PERMANENT')),
 				array('enchantment_id' => 9999, 'enchantment_slot' => array('type' => 'TEMPORARY')),
+				array('enchantment_id' => 4800, 'enchantment_slot' => array('type' => 'PERMANENT')),
 			),
 			'sockets' => array(
 				array('item' => array('id' => 40133)),
@@ -188,6 +188,43 @@ class wow_api_test extends TestCase
 			array(
 				array('stat_type' => 'STRENGTH', 'stat_value' => 120),
 				array('stat_type' => 'CRIT_RATING', 'stat_value' => 45),
+			),
+			$out['stats']
+		);
+	}
+
+	public function test_parse_equipped_item_stats_skip_empty_stat_type(): void
+	{
+		$item = $this->sample_head_item();
+		$item['stats'] = array(
+			array('type' => array('type' => ''), 'value' => 99),
+			array('type' => array(), 'value' => 98),
+			array('type' => array('type' => 'STRENGTH'), 'value' => 120),
+		);
+
+		$out = $this->api->parse_equipped_item($item);
+
+		$this->assertSame(
+			array(
+				array('stat_type' => 'STRENGTH', 'stat_value' => 120),
+			),
+			$out['stats']
+		);
+	}
+
+	public function test_parse_equipped_item_stats_dedupe_same_stat_type(): void
+	{
+		$item = $this->sample_head_item();
+		$item['stats'] = array(
+			array('type' => array('type' => 'CRIT_RATING'), 'value' => 10),
+			array('type' => array('type' => 'CRIT_RATING'), 'value' => 25),
+		);
+
+		$out = $this->api->parse_equipped_item($item);
+
+		$this->assertSame(
+			array(
+				array('stat_type' => 'CRIT_RATING', 'stat_value' => 25),
 			),
 			$out['stats']
 		);

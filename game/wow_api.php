@@ -952,7 +952,13 @@ class wow_api implements game_api_interface
 		$icon_url = isset($item['media']['id'])
 			? 'https://render.worldofwarcraft.com/icons/56/' . (int) $item['media']['id'] . '.jpg' : '';
 
-		$stats = array();
+		// Dedupe by stat_type: bb_player_item_stat has PRIMARY KEY
+		// (player_id, slot_type, stat_type), so two rows with the same
+		// stat_type would fatally abort the sync INSERT. Keyed by
+		// stat_type while building (last non-negated occurrence wins),
+		// then re-indexed to a plain 0-indexed list, which also keeps a
+		// stable order (first-seen stat_type position, last value).
+		$stats_by_type = array();
 		if (!empty($item['stats']) && is_array($item['stats']))
 		{
 			foreach ($item['stats'] as $stat)
@@ -966,9 +972,10 @@ class wow_api implements game_api_interface
 				{
 					continue;
 				}
-				$stats[] = array('stat_type' => $stat_type, 'stat_value' => isset($stat['value']) ? (int) $stat['value'] : 0);
+				$stats_by_type[$stat_type] = array('stat_type' => $stat_type, 'stat_value' => isset($stat['value']) ? (int) $stat['value'] : 0);
 			}
 		}
+		$stats = array_values($stats_by_type);
 
 		return array(
 			'slot_type' => $slot_type,
