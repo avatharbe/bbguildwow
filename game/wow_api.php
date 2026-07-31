@@ -922,6 +922,94 @@ class wow_api implements game_api_interface
 	}
 
 	/**
+	 * Map one Battle.net equipped_items[] entry to storable rows.
+	 *
+	 * @param array $item One element of getCharacterEquipment()['equipped_items']
+	 * @return array ['slot_type'=>string, 'equipment'=>array, 'stats'=>array]
+	 */
+	public function parse_equipped_item(array $item): array
+	{
+		$slot_type = isset($item['slot']['type']) ? (string) $item['slot']['type'] : '';
+
+		// Permanent enchant only (WowHead ench= takes a single id).
+		$enchant_id = 0;
+		if (!empty($item['enchantments']) && is_array($item['enchantments']))
+		{
+			foreach ($item['enchantments'] as $ench)
+			{
+				if (isset($ench['enchantment_slot']['type']) && $ench['enchantment_slot']['type'] === 'PERMANENT')
+				{
+					$enchant_id = isset($ench['enchantment_id']) ? (int) $ench['enchantment_id'] : 0;
+					break;
+				}
+			}
+		}
+
+		$gem_ids = $this->join_item_ids($item['sockets'] ?? array(), 'item');
+		$bonus_ids = (!empty($item['bonus_list']) && is_array($item['bonus_list']))
+			? implode(':', array_map('intval', $item['bonus_list'])) : '';
+		$set_item_ids = isset($item['set']['items']) && is_array($item['set']['items'])
+			? $this->join_item_ids($item['set']['items'], 'item') : '';
+
+		$icon_url = isset($item['media']['id'])
+			? 'https://render.worldofwarcraft.com/icons/56/' . (int) $item['media']['id'] . '.jpg' : '';
+
+		$stats = array();
+		if (!empty($item['stats']) && is_array($item['stats']))
+		{
+			foreach ($item['stats'] as $stat)
+			{
+				if (!empty($stat['is_negated']))
+				{
+					continue;
+				}
+				$stat_type = isset($stat['type']['type']) ? (string) $stat['type']['type'] : '';
+				if ($stat_type === '')
+				{
+					continue;
+				}
+				$stats[] = array('stat_type' => $stat_type, 'stat_value' => isset($stat['value']) ? (int) $stat['value'] : 0);
+			}
+		}
+
+		return array(
+			'slot_type' => $slot_type,
+			'equipment' => array(
+				'item_id'      => isset($item['item']['id']) ? (int) $item['item']['id'] : 0,
+				'item_name'    => isset($item['name']) ? (string) $item['name'] : '',
+				'item_level'   => isset($item['level']['value']) ? (int) $item['level']['value'] : 0,
+				'quality'      => isset($item['quality']['type']) ? (string) $item['quality']['type'] : '',
+				'icon_url'     => $icon_url,
+				'enchant_id'   => $enchant_id,
+				'gem_ids'      => $gem_ids,
+				'bonus_ids'    => $bonus_ids,
+				'set_item_ids' => $set_item_ids,
+			),
+			'stats' => $stats,
+		);
+	}
+
+	/**
+	 * Colon-join the nested item ids of a list (sockets / set items).
+	 *
+	 * @param array  $list
+	 * @param string $key  Nested key holding ['id'] (e.g. 'item')
+	 * @return string
+	 */
+	private function join_item_ids(array $list, string $key): string
+	{
+		$ids = array();
+		foreach ($list as $entry)
+		{
+			if (isset($entry[$key]['id']))
+			{
+				$ids[] = (int) $entry[$key]['id'];
+			}
+		}
+		return implode(':', $ids);
+	}
+
+	/**
 	 * Download a portrait image and store it locally.
 	 *
 	 * @param string $url          Remote image URL
