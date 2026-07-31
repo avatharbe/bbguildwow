@@ -773,6 +773,7 @@ class wow_api implements game_api_interface
 		$db = $this->db;
 
 		$equipment_table = $phpbb_container->getParameter('avathar.bbguildwow.tables.bb_player_equipment');
+		$stat_table = $phpbb_container->getParameter('avathar.bbguildwow.tables.bb_player_item_stat');
 		$stale_threshold = time() - 86400; // 24 hours
 
 		// Get active WoW players whose equipment is stale or missing
@@ -841,37 +842,34 @@ class wow_api implements game_api_interface
 			$now = time();
 			$player_id = (int) $player['player_id'];
 
-			// Delete existing equipment for this player
+			// Replace this player's cached gear + stats atomically-ish.
 			$db->sql_query('DELETE FROM ' . $equipment_table . ' WHERE player_id = ' . $player_id);
+			$db->sql_query('DELETE FROM ' . $stat_table . ' WHERE player_id = ' . $player_id);
 
-			// Insert each equipped item
 			foreach ($data['equipped_items'] as $item)
 			{
-				$slot_type = isset($item['slot']['type']) ? $item['slot']['type'] : '';
-				if (empty($slot_type))
+				$parsed = $this->parse_equipped_item($item);
+				if ($parsed['slot_type'] === '')
 				{
 					continue;
 				}
 
-				$icon_url = '';
-				if (isset($item['media']['id']))
-				{
-					// Item media ID can be used to construct icon URL later
-					$icon_url = 'https://render.worldofwarcraft.com/icons/56/' . ($item['media']['id'] ?? '') . '.jpg';
-				}
-
-				$sql_ary = array(
-					'player_id'   => $player_id,
-					'slot_type'   => $slot_type,
-					'item_id'     => isset($item['item']['id']) ? (int) $item['item']['id'] : 0,
-					'item_name'   => isset($item['name']) ? $item['name'] : '',
-					'item_level'  => isset($item['level']['value']) ? (int) $item['level']['value'] : 0,
-					'quality'     => isset($item['quality']['type']) ? $item['quality']['type'] : '',
-					'icon_url'    => $icon_url,
-					'last_update' => $now,
+				$sql_ary = array_merge(
+					array('player_id' => $player_id, 'slot_type' => $parsed['slot_type'], 'last_update' => $now),
+					$parsed['equipment']
 				);
-
 				$db->sql_query('INSERT INTO ' . $equipment_table . ' ' . $db->sql_build_array('INSERT', $sql_ary));
+
+				foreach ($parsed['stats'] as $stat)
+				{
+					$stat_ary = array(
+						'player_id'  => $player_id,
+						'slot_type'  => $parsed['slot_type'],
+						'stat_type'  => $stat['stat_type'],
+						'stat_value' => (int) $stat['stat_value'],
+					);
+					$db->sql_query('INSERT INTO ' . $stat_table . ' ' . $db->sql_build_array('INSERT', $stat_ary));
+				}
 			}
 
 			$fetched++;
