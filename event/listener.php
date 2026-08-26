@@ -397,12 +397,6 @@ class listener implements EventSubscriberInterface
 		// Fetch stats and professions on demand via API (cached 1h by API layer)
 		$wow_api = $phpbb_container->get('avathar.bbguildwow.api');
 
-		$sql = 'SELECT player_name, player_realm, player_region, g.game_edition
-			FROM ' . $this->bb_players_table . ' p
-			INNER JOIN ' . $this->guild_wow_table . ' gw ON 1=0
-			LEFT JOIN %s g ON g.id = p.player_guild_id
-			WHERE p.player_id = ' . $player_id;
-		// Simpler: just get player + guild edition
 		$sql = 'SELECT p.player_name, p.player_realm, p.player_region, g.game_edition
 			FROM ' . $this->bb_players_table . ' p
 			LEFT JOIN ' . $phpbb_container->getParameter('avathar.bbguild.tables.bb_guild') . ' g ON g.id = p.player_guild_id
