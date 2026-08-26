@@ -1,5 +1,12 @@
 {% if S_BBGUILD_ENABLED %}
 	{% INCLUDECSS '@avathar_bbguildwow/wow.css' %}
-	<script type="text/javascript" src="//wow.zamimg.com/widgets/power.js"></script>
-	<script>var wowhead_tooltips = { "colorlinks": true, "iconizelinks": true, "renamelinks": true }</script>
+	{# bbTips loads the identical WowHead library (wow.zamimg.com/js/tooltips.js).
+	   Loading it twice leaves a second set of tooltip elements with no mouseout
+	   handler bound, so tooltips show but never hide. S_BBTIPS_RUNTIME is set only
+	   when bbTips actually injects the script (it honours the GDPR toggle and the
+	   page-scope setting), so we still load our own copy whenever it does not. #}
+	{% if not S_BBTIPS_RUNTIME %}
+		<script type="text/javascript" src="//wow.zamimg.com/widgets/power.js"></script>
+		<script>var wowhead_tooltips = { "colorlinks": true, "iconizelinks": true, "renamelinks": true }</script>
+	{% endif %}
 {% endif %}
