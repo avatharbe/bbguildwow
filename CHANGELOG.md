@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.0-rc4 26/08/2026
+## Unreleased (2.0.0-rc4)
   - [FIX] WowHead tooltips stayed on screen and never disappeared on mouseout when bbTips was also enabled (#33). Both extensions injected the same WowHead library into `overall_header_head_append` — bbGuildWoW as `//wow.zamimg.com/widgets/power.js`, bbTips as `https://wow.zamimg.com/js/tooltips.js` (byte-identical files, md5 `86996e76b3f38091320b9b448d629c59`). Two instances initialise, but the library only binds its hide handler when the link has no `onmouseout` yet, so the first instance bound it and the second showed a second set of tooltip elements that nothing could hide. bbGuildWoW now skips its own copy when `S_BBTIPS_RUNTIME` is set — that flag is assigned only when bbTips actually injects the script, so it honours bbTips' third-party/GDPR toggle and page-scope setting, and bbGuildWoW still loads its own copy whenever bbTips does not.
 
 ## 2.0.0-rc3 26/07/2026
