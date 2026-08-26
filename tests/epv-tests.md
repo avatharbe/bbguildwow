@@ -87,7 +87,7 @@ contains one of its whitelisted keywords: `sql_in_set`, `sql_escape`,
 `get_forums_visibility_sql`, `ORDER BY`, `ORDER_BY`.
 
 **`(int)` is not on that whitelist.** Every correctly-cast integer query in
-this extension therefore warns. Triaged 26/08/2026 — all 33 sites are false
+this extension therefore warns. Triaged 26/08/2026 — all 34 sites are false
 positives; each interpolated value is an explicit `(int)` cast or an
 `int`-typed parameter:
 
@@ -97,7 +97,7 @@ positives; each interpolated value is an explicit `(int)` cast or an
 | `controller/asset_controller.php` | 2 | `(int)` cast at entry (`:56`, `:79`) |
 | `controller/portrait_controller.php` | 14 | all inside `do_sync_*(int $guild_id)` private methods |
 | `event/listener.php` | 5 | `(int)` casts at `:114`, `:235`, `:314` |
-| `game/wow_api.php` | 5 | `int $guild_id` params, `(int)` at `:842`, `:1125` |
+| `game/wow_api.php` | 6 | `int $guild_id` params, `(int)` at `:843`, `:1125` (both equipment and stat DELETEs share the `:843` cast) |
 | `model/achievement.php` | 3 | `(int)` at `:1001`, `:1103`; `int $achievement_id` param |
 
 Defence in depth: every route in `config/routing.yml` constrains its id

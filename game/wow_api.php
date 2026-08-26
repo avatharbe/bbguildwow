@@ -1228,6 +1228,9 @@ class wow_api implements game_api_interface
 					'player_class_id'     => $class_id,
 					'player_rank_id'      => (int) $mb['rank'],
 					'player_guild_id'     => (int) $guild_id,
+					// A character deactivated by an earlier sync (or by hand) that is
+					// back in the roster response is active again. Sync mirrors the API.
+					'player_status'       => 1,
 					'player_armory_url'   => $this->get_player_armory_url($char['name'], $realm_slug, $region),
 					'last_update'         => time(),
 				);
@@ -1235,6 +1238,38 @@ class wow_api implements game_api_interface
 				$sql = 'UPDATE ' . $this->bb_players_table . '
 						SET ' . $this->db->sql_build_array('UPDATE', $sql_ary) . '
 						WHERE player_id = ' . $player_id;
+				$this->db->sql_query($sql);
+			}
+		}
+
+		// Characters in the DB but absent from the roster response have left the
+		// guild. Soft-delete them: bb_players rows are referenced by DKP and raid
+		// history in bbguild core, so the row must survive. player_outdate is
+		// deliberately untouched - it is a date the user sets in the UCP character
+		// form, not something a sync should overwrite.
+		//
+		// Note this is not affected by $min_level: $newplayers is built from every
+		// member in the response regardless of level, so a character below the
+		// min_armory threshold is simply never inserted - it is not treated as
+		// departed.
+		$to_deactivate = array_diff($oldplayers, $newplayers);
+		if (!empty($to_deactivate))
+		{
+			$departed_ids = array();
+			foreach ($to_deactivate as $player_key)
+			{
+				$hex = bin2hex($player_key);
+				if (isset($player_ids[$hex]))
+				{
+					$departed_ids[] = (int) $player_ids[$hex];
+				}
+			}
+
+			if (!empty($departed_ids))
+			{
+				$sql = 'UPDATE ' . $this->bb_players_table . '
+						SET player_status = 0, last_update = ' . time() . '
+						WHERE ' . $this->db->sql_in_set('player_id', $departed_ids);
 				$this->db->sql_query($sql);
 			}
 		}
