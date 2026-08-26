@@ -2,6 +2,7 @@
 
 ## Unreleased (2.0.0-rc4)
   - [FIX] WowHead tooltips stayed on screen and never disappeared on mouseout when bbTips was also enabled (#33). Both extensions injected the same WowHead library into `overall_header_head_append` — bbGuildWoW as `//wow.zamimg.com/widgets/power.js`, bbTips as `https://wow.zamimg.com/js/tooltips.js` (byte-identical files, md5 `86996e76b3f38091320b9b448d629c59`). Two instances initialise, but the library only binds its hide handler when the link has no `onmouseout` yet, so the first instance bound it and the second showed a second set of tooltip elements that nothing could hide. bbGuildWoW now skips its own copy when `S_BBTIPS_RUNTIME` is set — that flag is assigned only when bbTips actually injects the script, so it honours bbTips' third-party/GDPR toggle and page-scope setting, and bbGuildWoW still loads its own copy whenever bbTips does not.
+  - [CHG] Removed a dead `$sql` assignment in the player-detail event handler — an abandoned draft (`INNER JOIN … ON 1=0`, an unformatted `%s`) that was overwritten four lines later before execution. No behaviour change; it also cleared one of EPV's SQL-injection warnings. The remaining 33 are documented as false positives in `tests/epv-tests.md`.
 
 ## 2.0.0-rc3 26/07/2026
   - [CHG] Now requires bbGuild core >= 2.0.0-rc5, enforced in `ext.php::is_enableable()` (new `BBGUILDWOW_REQUIRES_BBGUILD_VERSION` message in all languages); composer soft-require bumped to `>= 2.0.0-rc5`. Pair this release with core rc5.
