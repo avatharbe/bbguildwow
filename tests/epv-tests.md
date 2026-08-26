@@ -78,6 +78,45 @@ EPV flags these in extension code:
 | `var_dump`, `print_r`, `printf` | Error | template system |
 | `include_once`, `require_once` | Warning | autoload instead |
 
+### SQL queries — known false positives
+
+`epv_test_validate_sql_queries.php` matches the regex
+`/WHERE[^;\$]+[=<>]+[^;]+("|') \. \$/mU` and warns unless the same line
+contains one of its whitelisted keywords: `sql_in_set`, `sql_escape`,
+`sql_bit_and`, `get_visibility_sql`, `get_sql_where`,
+`get_forums_visibility_sql`, `ORDER BY`, `ORDER_BY`.
+
+**`(int)` is not on that whitelist.** Every correctly-cast integer query in
+this extension therefore warns. Triaged 26/08/2026 — all 33 sites are false
+positives; each interpolated value is an explicit `(int)` cast or an
+`int`-typed parameter:
+
+| File | Sites | Guard |
+|---|---|---|
+| `controller/achievement_controller.php` | 4 | `(int)` cast at method entry (`:82`, `:97-98`, `:183-184`) |
+| `controller/asset_controller.php` | 2 | `(int)` cast at entry (`:56`, `:79`) |
+| `controller/portrait_controller.php` | 14 | all inside `do_sync_*(int $guild_id)` private methods |
+| `event/listener.php` | 5 | `(int)` casts at `:114`, `:235`, `:314` |
+| `game/wow_api.php` | 5 | `int $guild_id` params, `(int)` at `:842`, `:1125` |
+| `model/achievement.php` | 3 | `(int)` at `:1001`, `:1103`; `int $achievement_id` param |
+
+Defence in depth: every route in `config/routing.yml` constrains its id
+parameter to `\d+`, so a non-numeric value never reaches a controller.
+
+**Do not rewrite these to silence EPV.** Wrapping already-safe integers in
+`sql_escape()` would add a pointless string cast and make the intent less
+clear, not more. The warnings are expected output; re-triage only if the
+count changes.
+
+One cosmetic wart worth knowing about: `model/achievement.php:1117` quotes
+an int into a string comparison (`att_value = '" . $achievement_id . "'`).
+Not injectable, but it forces a string comparison against a numeric column.
+
+A 34th warning existed until 26/08/2026 in `event/listener.php`, from a dead
+`$sql` assignment that was overwritten four lines later (an abandoned draft
+with `INNER JOIN ... ON 1=0` and an unformatted `%s`). It was deleted rather
+than suppressed.
+
 ### Languages
 
 - Each language file must be valid PHP returning an array.
