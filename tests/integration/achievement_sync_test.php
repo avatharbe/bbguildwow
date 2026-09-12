@@ -119,8 +119,8 @@ class achievement_sync_test extends mock_battlenet_test_case
 		)) . " WHERE game_id = 'wow'");
 
 		// bb_guild.id is NOT an autoincrement column (unlike bb_games/bb_players)
-		// — guilds::create_guild() itself allocates ids via MAX(id)+1 (see
-		// model/player/guilds.php), so mirror that here rather than relying
+		// — guilds::make_guild() itself allocates ids via MAX(id)+1 (see
+		// model/player/guilds.php:785), so mirror that here rather than relying
 		// on sql_nextid(), which would return the DEFAULT '0' every time and
 		// collide across this file's two test methods.
 		$max_id_result = $db->sql_query('SELECT MAX(id) AS id FROM ' . $this->get_table_prefix() . 'bb_guild');
@@ -165,9 +165,9 @@ class achievement_sync_test extends mock_battlenet_test_case
 			'REGIONSEA' => 'SEA',
 			'REGIONTW' => 'Taiwan',
 			'REGIONUS' => 'United States',
-			// Read unconditionally by guilds::get_guild() (called from its
-			// constructor whenever $guild_id > 0, which load_guild() always
-			// passes).
+			// Read unconditionally by guilds::__construct() itself, right
+			// after it calls get_guild() when $guild_id > 0 (which
+			// load_guild() always passes).
 			'CLOSED' => 'Closed',
 			'OPEN'   => 'Open',
 		);
@@ -363,15 +363,39 @@ class achievement_sync_test extends mock_battlenet_test_case
 		$this->assertSame(5, (int) $db->sql_fetchfield('category_id'));
 		$db->sql_freeresult($sql_result);
 
-		// Re-run setAchievements(): tracking rows must not duplicate.
+		// Re-run setAchievements(): tracking rows must not duplicate. Re-declare
+		// the guild routes rather than relying on consume()'s response cache
+		// surviving from the first run — that's an accident of implementation,
+		// not something this test should depend on to stay meaningful. Without
+		// it, a change to the cache TTL/key scheme would make this re-run hit
+		// unmocked routes (404) instead of actually re-running the sync logic,
+		// silently turning this into a no-op that still happens to pass.
+		$this->configure_mock_routes(array(
+			'/token' => array(array('status' => 200, 'body' => array('access_token' => 'tok', 'expires_in' => 3600))),
+			'/data/wow/guild/area-52/my-guild' => array(array('status' => 200, 'body' => array('name' => 'My Guild'))),
+			'/data/wow/guild/area-52/my-guild/achievements' => array(
+				array('status' => 200, 'body' => array(
+					'total_points' => 500,
+					'achievements' => array(
+						array('achievement' => array('id' => 42, 'name' => 'Level 10'), 'completed_timestamp' => 1700000000),
+					),
+				)),
+			),
+		));
+
 		$model2 = $this->load_achievement();
 		$model2->mock_guild = new mock_battlenet_guild_for_achievements($cache, self::base_url(), 'us');
 		$model2->mock_achievement = new mock_battlenet_achievement_for_achievements($cache, self::base_url(), 'us');
 		$model2->setGame($this->load_game());
 		$model2->setEdition('retail');
-		$model2->setAchievements($guild, $this->load_game());
+		$rerun_result = $model2->setAchievements($guild, $this->load_game());
+		$this->assertTrue($rerun_result['success']);
 
-		$sql_result = $db->sql_query("SELECT COUNT(*) AS cnt FROM $track_table WHERE achievement_id = 42");
+		// Scoped by guild_id, not just achievement_id: setAchievements()'s own
+		// DELETE is guild-scoped, so an unscoped count here would be a latent
+		// trap for any future test method in this file that syncs the same
+		// achievement id under a different guild.
+		$sql_result = $db->sql_query("SELECT COUNT(*) AS cnt FROM $track_table WHERE achievement_id = 42 AND guild_id = " . $this->guild_row_id);
 		$this->assertSame(1, (int) $db->sql_fetchfield('cnt'), 're-running must not duplicate the tracking row');
 		$db->sql_freeresult($sql_result);
 	}
