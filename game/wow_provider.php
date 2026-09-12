@@ -13,6 +13,7 @@ namespace avathar\bbguildwow\game;
 
 use avathar\bbguild\model\games\game_provider_interface;
 use avathar\bbguild\model\games\specialization_provider_interface;
+use phpbb\language\language;
 
 /**
  * Class wow_provider
@@ -43,6 +44,55 @@ class wow_provider implements game_provider_interface, specialization_provider_i
 	}
 
 	/**
+	 * @var language|null Set via set_language() — optional so the unit test
+	 *                    that constructs wow_provider directly (no DI
+	 *                    container) keeps working against the fallback
+	 *                    strings in lang().
+	 */
+	private $language;
+
+	/**
+	 * Setter-injected (not a constructor arg) so the existing test call
+	 * site doesn't need updating. See lang().
+	 *
+	 * @param language $language
+	 */
+	public function set_language(language $language): void
+	{
+		$this->language = $language;
+	}
+
+	/**
+	 * Resolve a user-facing label through phpBB's language framework when
+	 * available, falling back to the English text below otherwise (e.g. in
+	 * the unit test that constructs this class without a DI container and
+	 * never calls set_language()). Keep LANG_FALLBACK in sync with the
+	 * matching keys in language/en/wow.php.
+	 *
+	 * @param string $key
+	 * @return string
+	 */
+	private function lang(string $key): string
+	{
+		if ($this->language !== null)
+		{
+			$this->language->add_lang('wow', 'avathar/bbguildwow');
+			return $this->language->lang($key);
+		}
+
+		return self::LANG_FALLBACK[$key] ?? $key;
+	}
+
+	private const LANG_FALLBACK = array(
+		'WOW_PROVIDER_GAME_NAME'   => 'World of Warcraft',
+		'WOW_PROVIDER_SPEC_LABEL'  => 'Specialization',
+		'WOW_PROVIDER_ARMOR_CLOTH'   => 'Cloth',
+		'WOW_PROVIDER_ARMOR_LEATHER' => 'Leather',
+		'WOW_PROVIDER_ARMOR_MAIL'    => 'Mail',
+		'WOW_PROVIDER_ARMOR_PLATE'   => 'Plate',
+	);
+
+	/**
 	 * @inheritdoc
 	 */
 	public function get_game_id(): string
@@ -55,7 +105,7 @@ class wow_provider implements game_provider_interface, specialization_provider_i
 	 */
 	public function get_game_name(): string
 	{
-		return 'World of Warcraft';
+		return $this->lang('WOW_PROVIDER_GAME_NAME');
 	}
 
 	/**
@@ -140,10 +190,10 @@ class wow_provider implements game_provider_interface, specialization_provider_i
 	public function get_armor_types(): array
 	{
 		return array(
-			'CLOTH'   => 'Cloth',
-			'LEATHER' => 'Leather',
-			'MAIL'    => 'Mail',
-			'PLATE'   => 'Plate',
+			'CLOTH'   => $this->lang('WOW_PROVIDER_ARMOR_CLOTH'),
+			'LEATHER' => $this->lang('WOW_PROVIDER_ARMOR_LEATHER'),
+			'MAIL'    => $this->lang('WOW_PROVIDER_ARMOR_MAIL'),
+			'PLATE'   => $this->lang('WOW_PROVIDER_ARMOR_PLATE'),
 		);
 	}
 
@@ -250,7 +300,7 @@ class wow_provider implements game_provider_interface, specialization_provider_i
 
 	public function get_spec_label(): string
 	{
-		return 'Specialization';
+		return $this->lang('WOW_PROVIDER_SPEC_LABEL');
 	}
 
 	/**

@@ -28,6 +28,8 @@ services:
             - '@avathar.bbguildwow.installer'
             - '@avathar.bbguildwow.api'
             - '@ext.manager'
+        calls:
+            - [set_language, ['@language']]
         tags:
             - { name: bbguild.game_provider }
 

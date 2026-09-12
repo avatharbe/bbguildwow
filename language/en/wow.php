@@ -182,4 +182,12 @@ $lang = array_merge(
 
 	// api/battlenet_resource.php — referenced but previously undefined (#37 follow-up audit)
 	'NO_METHODS' => 'No HTTP methods configured for this API resource.',
+
+	// game/wow_provider.php (keep in sync with wow_provider::LANG_FALLBACK)
+	'WOW_PROVIDER_GAME_NAME'     => 'World of Warcraft',
+	'WOW_PROVIDER_SPEC_LABEL'    => 'Specialization',
+	'WOW_PROVIDER_ARMOR_CLOTH'   => 'Cloth',
+	'WOW_PROVIDER_ARMOR_LEATHER' => 'Leather',
+	'WOW_PROVIDER_ARMOR_MAIL'    => 'Mail',
+	'WOW_PROVIDER_ARMOR_PLATE'   => 'Plate',
 ));
