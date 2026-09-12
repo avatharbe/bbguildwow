@@ -37,8 +37,27 @@ services:
         class: avathar\bbguildwow\sync\character_sync_handler
         arguments:
             - '@avathar.bbguildwow.api'
+            - '@dbal.conn'
+            - '@upload_imagesize'
+            - '%avathar.bbguild.tables.bb_players%'
         tags:
             - { name: bbguild.character_sync }
+
+    # --- Avatar ---
+
+    avathar.bbguildwow.avatar.driver.character:
+        class: avathar\bbguildwow\avatar\character_avatar_driver
+        arguments:
+            - '@config'
+            - '@upload_imagesize'
+            - '%core.root_path%'
+            - '%core.php_ext%'
+            - '@path_helper'
+            - '@cache.driver'
+        calls:
+            - [set_name, [avatar.driver.bbguildwow_character]]
+        tags:
+            - { name: avatar.driver }
 
     avathar.bbguildwow.listener:
         class: avathar\bbguildwow\event\listener
