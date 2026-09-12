@@ -113,4 +113,23 @@ $lang = array_merge(
 	'BBGUILDWOW_PHPBB_VERSION_FAIL'		=> 'This extension requires phpBB %1$s or higher. You are running phpBB %2$s.',
 	'BBGUILDWOW_REQUIRES_BBGUILD'		=> 'This extension requires the bbGuild core extension (avathar/bbguild) to be enabled first.',
 	'BBGUILDWOW_REQUIRES_BBGUILD_VERSION'	=> 'This extension requires bbGuild core (avathar/bbguild) version %1$s or newer. Installed version: %2$s.',
+
+	// Sync AJAX controller messages (portrait_controller, achievement_controller, achievement_sync_controller)
+	'WOW_SYNC_INSUFFICIENT_PERMISSIONS' => 'Insufficient permissions.',
+	'WOW_SYNC_GUILD_NOT_WOW'            => 'Guild not found or not a WoW guild.',
+	'WOW_SYNC_CREDENTIALS_MISSING'      => 'API credentials not configured.',
+	'WOW_SYNC_API_ERROR'                => 'API error %d',
+	'WOW_SYNC_EMPTY_RESPONSE'           => 'Empty response',
+	'WOW_SYNC_DETAIL_WITH_URL'          => '%1$s (URL: %2$s)',
+	'WOW_SYNC_ROSTER_RESULT'            => 'Roster synced: %d members.',
+	'WOW_SYNC_SPECS_UP_TO_DATE'         => 'All specs are up to date.',
+	'WOW_SYNC_PORTRAITS_UP_TO_DATE'     => 'All portraits are up to date.',
+	'WOW_SYNC_EQUIPMENT_UP_TO_DATE'     => 'All equipment is up to date.',
+	'WOW_SYNC_GAME_LOAD_FAILED'         => 'Could not load game: %s',
+	'WOW_SYNC_GUILD_LOAD_FAILED'        => 'Could not load guild: %s',
+	'WOW_ACHIEV_CATEGORY_NOT_FOUND'     => 'Category not found',
+	'WOW_ACHIEV_NOT_FOUND'              => 'Achievement not found',
+	'WOW_SYNC_LOG_CATEGORIES'           => 'Categories: %s',
+	'WOW_SYNC_LOG_ACHIEVEMENTS'         => 'Achievements: %s',
+	'WOW_SYNC_LOG_MEMBERS_COUNT'        => '%d members',
 ));

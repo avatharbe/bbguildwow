@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased (2.1.0-b1)
+  - [CHG] Replaced hardcoded English strings in the sync/achievement AJAX controllers with phpBB language keys (#37) — `portrait_controller`, `achievement_controller`, and `achievement_sync_controller` returned raw English literals (e.g. `'API credentials not configured.'`) straight in `JsonResponse` payloads and admin-log details. All three now take an injected `\phpbb\language\language` (wired via `@language` in `services.yml`), load `wow`/`avathar/bbguildwow` on each entry point, and resolve messages through `$this->language->lang(...)` against new keys in `language/en/wow.php` (`WOW_SYNC_*`, `WOW_ACHIEV_*`). Dynamic `$e->getMessage()` passthroughs are left as-is.
   - [FIX] Roster sync never deactivated characters who left the guild (#35). `update_wow_roster()` computed only the add and update sets, never `array_diff($oldplayers, $newplayers)`, and `player_status` was written in exactly one place in the extension (`=> 1` on insert) — so ex-members stayed on the roster indefinitely, inflated the guild's player count, and kept consuming Battle.net calls in the portrait/spec/equipment syncs, all of which select `WHERE player_status = 1`. Departed characters are now soft-deleted (`player_status = 0`) inside the existing transaction, and a character back in the roster response is reactivated. Rows are never deleted — bbguild core references them from DKP and raid history — and `player_outdate` is left alone, since that is a date the user sets in the UCP character form.
 
 ## Unreleased (2.0.0-rc4)

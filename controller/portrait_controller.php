@@ -16,6 +16,7 @@ use avathar\bbguildwow\game\wow_api;
 use avathar\bbguild\model\admin\log;
 use phpbb\auth\auth;
 use phpbb\db\driver\driver_interface;
+use phpbb\language\language;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
 class portrait_controller
@@ -32,6 +33,9 @@ class portrait_controller
 	/** @var auth */
 	protected $auth;
 
+	/** @var language */
+	protected $language;
+
 	/** @var string */
 	protected $players_table;
 
@@ -46,6 +50,7 @@ class portrait_controller
 		driver_interface $db,
 		log $bbguildlog,
 		auth $auth,
+		language $language,
 		string $players_table,
 		string $guild_table,
 		string $games_table
@@ -55,6 +60,7 @@ class portrait_controller
 		$this->db = $db;
 		$this->bbguildlog = $bbguildlog;
 		$this->auth = $auth;
+		$this->language = $language;
 		$this->players_table = $players_table;
 		$this->guild_table = $guild_table;
 		$this->games_table = $games_table;
@@ -71,9 +77,11 @@ class portrait_controller
 	 */
 	private function check_auth(): ?JsonResponse
 	{
+		$this->language->add_lang('wow', 'avathar/bbguildwow');
+
 		if (!$this->auth->acl_get('a_bbguild'))
 		{
-			return new JsonResponse(array('error' => 'Insufficient permissions.', 'done' => true), 403);
+			return new JsonResponse(array('error' => $this->language->lang('WOW_SYNC_INSUFFICIENT_PERMISSIONS'), 'done' => true), 403);
 		}
 		return null;
 	}
@@ -119,9 +127,9 @@ class portrait_controller
 			$this->bbguildlog->log_insert(array(
 				'log_type'   => 'L_ERROR_ROSTER_SYNCED',
 				'log_result' => 'L_ERROR',
-				'log_action' => ['(unknown)', 'Guild not found or not a WoW guild'],
+				'log_action' => ['(unknown)', $this->language->lang('WOW_SYNC_GUILD_NOT_WOW')],
 			));
-			return new JsonResponse(array('success' => false, 'message' => 'Guild not found or not a WoW guild.'));
+			return new JsonResponse(array('success' => false, 'message' => $this->language->lang('WOW_SYNC_GUILD_NOT_WOW')));
 		}
 
 		// Get game API credentials
@@ -136,9 +144,9 @@ class portrait_controller
 			$this->bbguildlog->log_insert(array(
 				'log_type'   => 'L_ERROR_ROSTER_SYNCED',
 				'log_result' => 'L_ERROR',
-				'log_action' => [$guild_row['name'], 'API credentials not configured'],
+				'log_action' => [$guild_row['name'], $this->language->lang('WOW_SYNC_CREDENTIALS_MISSING')],
 			));
-			return new JsonResponse(array('success' => false, 'message' => 'API credentials not configured.'));
+			return new JsonResponse(array('success' => false, 'message' => $this->language->lang('WOW_SYNC_CREDENTIALS_MISSING')));
 		}
 
 		$region = !empty($guild_row['region']) ? $guild_row['region'] : $game_row['region'];
@@ -156,7 +164,7 @@ class portrait_controller
 
 		if (!is_array($data) || isset($data['code']))
 		{
-			$detail = isset($data['code']) ? sprintf('API error %d', $data['code']) : 'Empty response';
+			$detail = isset($data['code']) ? $this->language->lang('WOW_SYNC_API_ERROR', $data['code']) : $this->language->lang('WOW_SYNC_EMPTY_RESPONSE');
 			// Capture the exact Battle.net request URL (region host, namespace and
 			// guild slug) so a 404/region/slug mismatch is self-diagnosing.
 			$request_url = (is_array($data) && isset($data['_request_url'])) ? (string) $data['_request_url'] : '';
@@ -170,7 +178,7 @@ class portrait_controller
 				'log_result' => 'L_ERROR',
 				'log_action' => [$log_detail],
 			));
-			return new JsonResponse(array('success' => false, 'message' => $request_url !== '' ? $detail . ' (URL: ' . $request_url . ')' : $detail));
+			return new JsonResponse(array('success' => false, 'message' => $request_url !== '' ? $this->language->lang('WOW_SYNC_DETAIL_WITH_URL', $detail, $request_url) : $detail));
 		}
 
 		// Process and save guild data
@@ -205,12 +213,12 @@ class portrait_controller
 
 		$this->bbguildlog->log_insert(array(
 			'log_type'   => 'L_ACTION_ROSTER_SYNCED',
-			'log_action' => [$guild_row['name'], sprintf('%d members', $member_count)],
+			'log_action' => [$guild_row['name'], $this->language->lang('WOW_SYNC_LOG_MEMBERS_COUNT', $member_count)],
 		));
 
 		return new JsonResponse(array(
 			'success'      => true,
-			'message'      => sprintf('Roster synced: %d members.', $member_count),
+			'message'      => $this->language->lang('WOW_SYNC_ROSTER_RESULT', $member_count),
 			'member_count' => $member_count,
 		));
 	}
@@ -255,9 +263,9 @@ class portrait_controller
 			$this->bbguildlog->log_insert(array(
 				'log_type'   => 'L_ERROR_SPECS_SYNCED',
 				'log_result' => 'L_ERROR',
-				'log_action' => ['(unknown)', 'API credentials not configured'],
+				'log_action' => ['(unknown)', $this->language->lang('WOW_SYNC_CREDENTIALS_MISSING')],
 			));
-			return new JsonResponse(array('error' => 'API credentials not configured', 'done' => true), 400);
+			return new JsonResponse(array('error' => $this->language->lang('WOW_SYNC_CREDENTIALS_MISSING'), 'done' => true), 400);
 		}
 
 		$sql = 'SELECT name, region, game_edition FROM ' . $this->guild_table . ' WHERE id = ' . $guild_id;
@@ -289,7 +297,7 @@ class portrait_controller
 		{
 			return new JsonResponse(array(
 				'done' => true, 'fetched' => 0, 'total' => $total, 'remaining' => 0,
-				'message' => 'All specs are up to date.',
+				'message' => $this->language->lang('WOW_SYNC_SPECS_UP_TO_DATE'),
 			));
 		}
 
@@ -378,10 +386,10 @@ class portrait_controller
 			$this->bbguildlog->log_insert(array(
 				'log_type'   => 'L_ERROR_PORTRAITS_SYNCED',
 				'log_result' => 'L_ERROR',
-				'log_action' => ['(unknown)', 'API credentials not configured'],
+				'log_action' => ['(unknown)', $this->language->lang('WOW_SYNC_CREDENTIALS_MISSING')],
 			));
 			return new JsonResponse(array(
-				'error' => 'API credentials not configured',
+				'error' => $this->language->lang('WOW_SYNC_CREDENTIALS_MISSING'),
 				'done' => true,
 			), 400);
 		}
@@ -421,7 +429,7 @@ class portrait_controller
 				'failed'    => 0,
 				'total'     => $total,
 				'remaining' => 0,
-				'message'   => 'All portraits are up to date.',
+				'message'   => $this->language->lang('WOW_SYNC_PORTRAITS_UP_TO_DATE'),
 			));
 		}
 
@@ -514,7 +522,7 @@ class portrait_controller
 
 		if (!$game_row || empty($game_row['apikey']))
 		{
-			return new JsonResponse(array('error' => 'API credentials not configured', 'done' => true), 400);
+			return new JsonResponse(array('error' => $this->language->lang('WOW_SYNC_CREDENTIALS_MISSING'), 'done' => true), 400);
 		}
 
 		$sql = 'SELECT name, region, game_edition FROM ' . $this->guild_table . ' WHERE id = ' . $guild_id;
@@ -551,7 +559,7 @@ class portrait_controller
 		{
 			return new JsonResponse(array(
 				'done' => true, 'fetched' => 0, 'total' => $total, 'remaining' => 0,
-				'message' => 'All equipment is up to date.',
+				'message' => $this->language->lang('WOW_SYNC_EQUIPMENT_UP_TO_DATE'),
 			));
 		}
 
