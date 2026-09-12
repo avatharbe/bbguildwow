@@ -99,7 +99,7 @@ class avathar_bbguildwow_roster_sync_test extends phpbb_functional_test_case
 
 	/**
 	 * Scoped by guild_id, not just name+realm: bb_players has no cross-guild
-	 * uniqueness guarantee, and this file's own 'Sajaki'-under-424242 row
+	 * uniqueness guarantee, and this file's own 'Sajaki'-under-30001 row
 	 * sits alongside other integration test files that also seed a
 	 * 'Sajaki'/'area-52' row, each under their own distinct guild_id.
 	 * Without this filter, whichever row sql_fetchrow() happens to return
@@ -121,7 +121,7 @@ class avathar_bbguildwow_roster_sync_test extends phpbb_functional_test_case
 
 	public function test_new_member_is_inserted_with_mapped_class_race_faction(): void
 	{
-		$guild_id = 424242;
+		$guild_id = 30001;
 		$api = $this->make_api();
 
 		$api->sync_guild_members(
@@ -140,7 +140,7 @@ class avathar_bbguildwow_roster_sync_test extends phpbb_functional_test_case
 
 	public function test_reappearing_same_name_and_realm_updates_in_place(): void
 	{
-		$guild_id = 424243;
+		$guild_id = 30002;
 		$api = $this->make_api();
 
 		$api->sync_guild_members(array($this->member('Thrall', 'area-52', 70, 1, 2, 3)), $guild_id, 'us', 10);
@@ -167,7 +167,7 @@ class avathar_bbguildwow_roster_sync_test extends phpbb_functional_test_case
 		// the DB (inserted as a new row). This test locks down that actual
 		// behavior, not the "renamed → updated in place" premise originally
 		// suggested in tests/integration-tests.md, which doesn't match the code.
-		$guild_id = 424244;
+		$guild_id = 30003;
 		$api = $this->make_api();
 
 		$api->sync_guild_members(array($this->member('Oldname', 'area-52', 80, 1, 2, 0)), $guild_id, 'us', 10);
@@ -185,7 +185,7 @@ class avathar_bbguildwow_roster_sync_test extends phpbb_functional_test_case
 
 	public function test_departed_character_is_soft_deleted_not_removed(): void
 	{
-		$guild_id = 424245;
+		$guild_id = 30004;
 		$api = $this->make_api();
 
 		$api->sync_guild_members(array(

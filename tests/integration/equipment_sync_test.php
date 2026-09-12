@@ -54,7 +54,7 @@ class equipment_sync_test extends mock_battlenet_test_case
 	// make this file's players visible to (and vice versa) sync_portraits_test.php's
 	// and sync_specs_test.php's sync calls, turning "exactly 1 succeeded"
 	// assertions into accidentally-true rather than deliberately-true checks.
-	private const GUILD_ID = 900003;
+	private const GUILD_ID = 30013;
 
 	static protected function setup_extensions()
 	{
