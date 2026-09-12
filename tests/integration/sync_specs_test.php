@@ -47,6 +47,15 @@ class wow_api_with_mock_character_specs extends wow_api
  */
 class sync_specs_test extends mock_battlenet_test_case
 {
+	// Distinct per test FILE, not just per test method: phpbb_functional_test_case
+	// never resets DB state between classes in the same suite run, and
+	// sync_specs() selects every player in the guild with no per-player
+	// scoping — sharing guild_id=1 with sibling integration test files would
+	// make this file's players visible to (and vice versa) sync_portraits_test.php's
+	// and equipment_sync_test.php's sync calls, turning "exactly 1 succeeded"
+	// assertions into accidentally-true rather than deliberately-true checks.
+	private const GUILD_ID = 900002;
+
 	static protected function setup_extensions()
 	{
 		return array('avathar/bbguild', 'avathar/bbguildwow');
@@ -65,7 +74,7 @@ class sync_specs_test extends mock_battlenet_test_case
 			'player_name'     => $name,
 			'player_realm'    => $realm,
 			'player_region'   => 'us',
-			'player_guild_id' => 1,
+			'player_guild_id' => self::GUILD_ID,
 			'player_status'   => 1,
 			'player_spec'     => '',
 		)));
@@ -105,7 +114,7 @@ class sync_specs_test extends mock_battlenet_test_case
 		$api = $this->make_api();
 		$api->mock_resource = new mock_battlenet_character_for_specs($this->make_stateful_cache(), self::base_url(), 'us');
 
-		$result = $api->sync_specs(1, 'us', 'test_client_id', 'en_US', 'test_client_secret');
+		$result = $api->sync_specs(self::GUILD_ID, 'us', 'test_client_id', 'en_US', 'test_client_secret');
 
 		$this->assertSame(1, $result['count']);
 
@@ -132,7 +141,7 @@ class sync_specs_test extends mock_battlenet_test_case
 		$api = $this->make_api();
 		$api->mock_resource = new mock_battlenet_character_for_specs($this->make_stateful_cache(), self::base_url(), 'us');
 
-		$api->sync_specs(1, 'us', 'test_client_id', 'en_US', 'test_client_secret');
+		$api->sync_specs(self::GUILD_ID, 'us', 'test_client_id', 'en_US', 'test_client_secret');
 
 		$db = $this->get_db();
 		$sql_result = $db->sql_query('SELECT player_spec FROM ' . $this->get_table_prefix() . 'bb_players WHERE player_id = ' . $player_id);
@@ -155,7 +164,7 @@ class sync_specs_test extends mock_battlenet_test_case
 		$api = $this->make_api();
 		$api->mock_resource = new mock_battlenet_character_for_specs($this->make_stateful_cache(), self::base_url(), 'us');
 
-		$result = $api->sync_specs(1, 'us', 'test_client_id', 'en_US', 'test_client_secret');
+		$result = $api->sync_specs(self::GUILD_ID, 'us', 'test_client_id', 'en_US', 'test_client_secret');
 
 		$this->assertArrayHasKey('no_spec', $result['errors']);
 

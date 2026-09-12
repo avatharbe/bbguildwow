@@ -47,6 +47,15 @@ class wow_api_with_mock_character_equipment extends wow_api
  */
 class equipment_sync_test extends mock_battlenet_test_case
 {
+	// Distinct per test FILE, not just per test method: phpbb_functional_test_case
+	// never resets DB state between classes in the same suite run, and
+	// sync_equipment() selects every player in the guild with no per-player
+	// scoping — sharing guild_id=1 with sibling integration test files would
+	// make this file's players visible to (and vice versa) sync_portraits_test.php's
+	// and sync_specs_test.php's sync calls, turning "exactly 1 succeeded"
+	// assertions into accidentally-true rather than deliberately-true checks.
+	private const GUILD_ID = 900003;
+
 	static protected function setup_extensions()
 	{
 		return array('avathar/bbguild', 'avathar/bbguildwow');
@@ -86,7 +95,7 @@ class equipment_sync_test extends mock_battlenet_test_case
 			'player_name'     => $name,
 			'player_realm'    => $realm,
 			'player_region'   => 'us',
-			'player_guild_id' => 1,
+			'player_guild_id' => self::GUILD_ID,
 			'player_status'   => 1,
 		)));
 
@@ -143,7 +152,7 @@ class equipment_sync_test extends mock_battlenet_test_case
 		$api = $this->make_api();
 		$api->mock_resource = new mock_battlenet_character_for_equipment($this->make_stateful_cache(), self::base_url(), 'us');
 
-		$result = $api->sync_equipment(1, 'us', 'test_client_id', 'en_US', 'test_client_secret');
+		$result = $api->sync_equipment(self::GUILD_ID, 'us', 'test_client_id', 'en_US', 'test_client_secret');
 
 		$this->assertSame(1, $result['count']);
 
@@ -177,7 +186,7 @@ class equipment_sync_test extends mock_battlenet_test_case
 		));
 		$api = $this->make_api();
 		$api->mock_resource = new mock_battlenet_character_for_equipment($this->make_stateful_cache(), self::base_url(), 'us');
-		$api->sync_equipment(1, 'us', 'test_client_id', 'en_US', 'test_client_secret');
+		$api->sync_equipment(self::GUILD_ID, 'us', 'test_client_id', 'en_US', 'test_client_secret');
 
 		// The staleness query only inspects the HEAD row's last_update, so
 		// back-date it to force this player to be picked up again — there is
@@ -194,7 +203,7 @@ class equipment_sync_test extends mock_battlenet_test_case
 		));
 		$api2 = $this->make_api();
 		$api2->mock_resource = new mock_battlenet_character_for_equipment($this->make_stateful_cache(), self::base_url(), 'us');
-		$result = $api2->sync_equipment(1, 'us', 'test_client_id', 'en_US', 'test_client_secret');
+		$result = $api2->sync_equipment(self::GUILD_ID, 'us', 'test_client_id', 'en_US', 'test_client_secret');
 
 		$this->assertSame(1, $result['count']);
 

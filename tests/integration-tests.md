@@ -1,10 +1,20 @@
 # Integration tests — bbguildwow
 
 Integration tests sit between unit and functional: they exercise
-multiple components together (DB, cache, HTTP client) but DO NOT boot
-the full phpBB request stack. Faster than functional tests, broader
-than unit tests. Best fit for verifying API integration paths without
-the overhead of full HTTP routing.
+multiple components together (DB, cache, and sometimes HTTP) but skip
+functional tests' Goutte-driven HTTP routing — they call model/API
+code directly. Broader than unit tests (real DB, real extension
+install), narrower than functional tests (no page rendering, no route
+dispatch).
+
+**Correction to the description above (2026-09):** `\phpbb_database_test_case`
+turned out not to fit — all implemented tests actually extend
+`\phpbb_functional_test_case` (directly, or via `mock_battlenet_test_case`
+below), because that's what gives a real DB connection, a real installed
+extension, and working `get_db()`/`get_cache_driver()`/`get_extension_manager()`
+helpers in this test framework. "Skips HTTP routing" still holds — no
+test here drives a route through Goutte — but the full phpBB
+application bootstrap (board install, extension enable) does run.
 
 CI status: implemented (not yet wired into the CI matrix — same follow-up
 as the rest of this file's "not yet implemented" note applied to the
@@ -13,10 +23,41 @@ suite as a whole).
 ## Conventions
 
 - File naming: `tests/integration/<feature>_test.php`
-- Class extends `\phpbb_database_test_case` (gives DB fixtures, no HTTP)
+- Class extends `mock_battlenet_test_case` (`tests/integration/mock_battlenet_test_case.php`)
+  when the test needs to intercept a Battle.net API call, or plain
+  `\phpbb_functional_test_case` directly when it doesn't (e.g.
+  `roster_sync_test.php` drives `sync_guild_members()` with
+  already-fetched data — no HTTP involved at all).
 - Group tag: `@group integration` in the class docblock
-- HTTP client: use a `Symfony\Component\HttpClient\MockHttpClient` so
-  no real Battle.net traffic during tests
+- HTTP interception: **not** `Symfony\Component\HttpClient\MockHttpClient`
+  — `api/battlenet_resource.php` makes its requests with raw `curl_exec()`,
+  with no injectable HTTP client to mock. `mock_battlenet_test_case`
+  instead starts a real local `php -S` server (driven by a JSON control
+  file) and tests point production code at it via the `create_battlenet()`
+  seam (`game/wow_api.php` / `model/achievement.php`, extracted 2026-09):
+  subclass the test's model class, override `create_battlenet()` to
+  return a `battlenet` facade wrapping a mock-server-pointed resource.
+  See `tests/integration/sync_portraits_test.php` for the pattern.
+- No DI container is reachable in-process: `phpbb_functional_test_case`'s
+  own HTTP-driven request handling happens in a separate PHP process, so
+  `$this->get_container()` (used in earlier drafts of these tests) does
+  not exist and none of the app's real services are available here.
+  Construct dependencies directly instead — table names via
+  `self::$config['table_prefix'] . '<suffix>'`, and
+  `get_db()`/`get_cache_driver()`/`get_extension_manager()` (protected
+  helpers already on the base class) cover most of the rest. A
+  `\phpbb\user` needed only for the specific `$user->lang[...]` keys a
+  constructor reads can be a `disableOriginalConstructor()` PHPUnit mock
+  with `__get()` stubbed — it's a normal, overridable method on
+  `\phpbb\user` (see `phpbb/user.php`), not true PHP magic dispatch.
+- `phpbb_functional_test_case` does not reset DB state between test
+  methods or between test classes in the same suite run. Give fixtures
+  in different files (or different methods needing distinct rows) their
+  own identity — e.g. a distinct `player_guild_id` per file when the
+  production query being tested scopes by guild (as `sync_portraits_test.php`,
+  `sync_specs_test.php`, and `equipment_sync_test.php` each do), not just
+  a distinct realm/name, since an unscoped query would otherwise pick up
+  another file's rows too.
 
 ## Implemented
 
