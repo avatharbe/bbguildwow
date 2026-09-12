@@ -99,10 +99,11 @@ class avathar_bbguildwow_roster_sync_test extends phpbb_functional_test_case
 
 	/**
 	 * Scoped by guild_id, not just name+realm: bb_players has no cross-guild
-	 * uniqueness guarantee, and every other integration test file in this
-	 * suite also seeds a 'Sajaki'/'area-52' row (under guild_id=1). Without
-	 * this filter, whichever row sql_fetchrow() happens to return first is
-	 * run-order-dependent, not deterministic.
+	 * uniqueness guarantee, and this file's own 'Sajaki'-under-424242 row
+	 * sits alongside other integration test files that also seed a
+	 * 'Sajaki'/'area-52' row, each under their own distinct guild_id.
+	 * Without this filter, whichever row sql_fetchrow() happens to return
+	 * first is run-order-dependent, not deterministic.
 	 */
 	private function fetch_player(string $name, string $realm, int $guild_id): ?array
 	{
