@@ -23,6 +23,9 @@ plugin classes can resolve core interfaces) and runs phpunit with
   retry logic, non-2xx handling.
 - `tests/api/battlenet_character_test.php` — character endpoint URL
   composition, response shape.
+- `game/wow_api.php` and `model/achievement.php` — `create_battlenet()`
+  factory method (2026-09) is the seam for mocking their Battle.net API
+  calls in higher-level tests; see `tests/integration-tests.md`.
 
 ## Suggested additions
 

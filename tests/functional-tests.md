@@ -18,6 +18,14 @@ CI status: currently excluded with `--exclude-group functional` in
 - Use `$this->add_lang_ext('avathar/bbguildwow', 'wow')` in `setUp()`
   before asserting on translated strings.
 
+**Testability note:** any future functional/integration test that needs
+to intercept a Battle.net API call made from inside `wow_api` or
+`model\achievement` can use the `create_battlenet()` seam (extracted
+2026-09) instead of hitting the network — see
+`tests/integration/sync_portraits_test.php` for the pattern (subclass +
+override `create_battlenet()` to return a `battlenet` facade built
+around a mock-server-pointed resource).
+
 ## Suggested tests
 
 The following tests cover the most valuable seams between bbguild core,

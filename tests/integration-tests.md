@@ -6,9 +6,9 @@ the full phpBB request stack. Faster than functional tests, broader
 than unit tests. Best fit for verifying API integration paths without
 the overhead of full HTTP routing.
 
-CI status: not yet implemented. Will run as a separate matrix in CI
-(needs DB but not phpBB web server). Tagged `@group integration` for
-selective execution.
+CI status: implemented (not yet wired into the CI matrix — same follow-up
+as the rest of this file's "not yet implemented" note applied to the
+suite as a whole).
 
 ## Conventions
 
@@ -18,7 +18,53 @@ selective execution.
 - HTTP client: use a `Symfony\Component\HttpClient\MockHttpClient` so
   no real Battle.net traffic during tests
 
-## Suggested tests
+## Implemented
+
+### `roster_sync_test.php`
+
+Drives `wow_api::sync_guild_members()` directly with fabricated member
+data (no HTTP mock needed — this method takes already-fetched data).
+Covers: new-member insert with class/race mapping, in-place update on a
+re-appearing same-name-same-realm character, soft-delete-old +
+insert-new on a character rename (see below — NOT an in-place update),
+soft-delete on departure.
+
+**Correction to the original suggestion below:** a Battle.net name
+change does not update the existing row. `update_wow_roster()` keys
+players by `name-realm_slug`; a rename produces a different key, so the
+old key is soft-deleted and the new key is inserted fresh. The test
+locks down this actual behavior.
+
+### `equipment_sync_test.php`
+
+Mocks `/profile/wow/character/{realm}/{name}/equipment` via the mock
+server. Covers first-sync insert and resync replace/remove-on-unequip
+(delete-then-reinsert wipes the prior loadout rather than merging).
+
+### `achievement_sync_test.php`
+
+Mocks the category index/detail and guild achievement/detail endpoints.
+Covers category hierarchy insert, `setAchievements()` → `syncCategories()`
+category_id backfill, and re-run idempotency for both.
+
+**Scope cut:** `insert_achievement()`, `insert_criteria()`,
+`collect_criteria()`, and `flatten_criteria()` are dead code — grepped
+the whole codebase, nothing calls them. Only `syncCategories()` and
+`setAchievements()` (via `fetch_achievement_detail_from()` /
+`update_achievement_detail()`) are reachable from any caller, so those
+are the only paths tested. Same treatment as tests #5/#6 below.
+
+### `sync_portraits_test.php` / `sync_specs_test.php`
+
+Added beyond the original suggested list — these two sync methods
+(along with `sync_equipment()` above) had no test seam at all before
+`create_battlenet()` was extracted in game/wow_api.php (see the plan
+this file's checklist came from). `sync_portraits()`'s remote-image
+download path can't be exercised deterministically without network;
+the test asserts the code's own documented fallback (raw URL stored)
+instead — see that test file's docblock.
+
+## Original suggestions (superseded by "Implemented" above)
 
 ### 1. `oauth_token_lifecycle_test.php`
 
