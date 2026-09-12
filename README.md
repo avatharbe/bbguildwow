@@ -1,6 +1,6 @@
 # bbGuild - World of Warcraft
 
-**Current version:** 2.0.0-rc3 (release candidate)
+**Current version:** 2.1.0-b1 (in development; requires bbGuild core >= 2.0.0)
 
 World of Warcraft is where this project's own history starts — bbGuild began life over a decade ago as a WoW guild tool, and bbguildwow is still the one plugin that goes beyond static game data. It talks to Blizzard's Battle.net API directly: a raid officer clicks "sync" and the roster, character profiles, portraits, and armory links update themselves, instead of someone manually re-typing the roster after every Mythic+ night. All 14 classes and 15 races are covered across Retail and every Classic edition (Era, Progression, Anniversary), so guilds running classic servers get the same tooling as retail. This release adds a full specialization layer — a Frost Mage shows up as a Frost Mage, not just "Mage" — plus a 3-level achievement browser your members can drill into without leaving the forum.
 [![Tests](https://github.com/avatharbe/bbguildwow/actions/workflows/tests.yml/badge.svg)](https://github.com/avatharbe/bbguildwow/actions/workflows/tests.yml)
@@ -13,7 +13,9 @@ World of Warcraft is where this project's own history starts — bbGuild began l
 - **WoW Classic Support** - Retail, Classic Era, Classic Progression, and Classic Anniversary editions with edition-aware API namespaces
 - **Battle.net API** - OAuth 2.0 guild roster sync, character profiles, specializations, armory links, and portrait images
 - **Achievement Browser** - 3-level drill-down: category cards with SVG progress rings, achievement lists, and detail modals via AJAX
-- **Guild News** - Activity feed portal module showing recent loots and achievement completions
+- **Gear Tooltips** - Equipped items render through bbTips' item-anchor builder, with captured enchant/gem/bonus IDs so tooltips reflect a character's actual itemization, not just the base item
+- **Per-Character Sync** - Implements bbGuild core's character-sync scheduler contract, so a background cron keeps specs/equipment/portraits fresh incrementally alongside the existing manual full-sync buttons
+- **Guild News** - Activity feed portal module showing recent loots, achievement completions, and (via the Battle.net Guild Activity API) roster/guild events
 - **Localization** - Class and race names in English, French, German, Italian, Spanish, Dutch, and Polish
 
 ## Requirements
@@ -45,10 +47,12 @@ See [docs/INSTALL.md](docs/INSTALL.md) for detailed setup instructions including
 ## Battle.net API
 
 This extension integrates with the Blizzard Battle.net API for:
-- Automatic guild member synchronization with AJAX batch processing
+- Automatic guild member synchronization with AJAX batch processing, plus an incremental per-character background sync (specs, equipment, portraits) via bbGuild core's cron scheduler
 - Character profile data (level, class, race, specialization, achievements)
+- Character equipment detail (enchants, gems, bonus IDs, set pieces) for accurate bbTips tooltips
 - Character portraits via Character Media API (batch sync)
 - Guild emblem generation (stored in phpBB's `files/` directory)
+- Guild activity feed (roster/guild events surfaced as guild news)
 - Achievement category and progress synchronization
 - Edition-aware API namespaces for WoW Classic support
 
