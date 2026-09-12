@@ -36,7 +36,7 @@ class battlenet_module
 	 */
 	public function main($id, $mode)
 	{
-		global $user, $db, $template, $request, $phpbb_container, $auth;
+		global $user, $db, $template, $request, $phpbb_container, $auth, $config;
 
 		$form_key = 'avathar/bbguildwow_battlenet';
 		add_form_key($form_key);
@@ -89,6 +89,37 @@ class battlenet_module
 				}
 				trigger_error($user->lang['WOW_BNET_CACHE_CLEARED'] . adm_back_link($this->u_action));
 			}
+		}
+
+		if ($request->is_set_post('save_sync_settings'))
+		{
+			if (!check_form_key($form_key))
+			{
+				trigger_error($user->lang['FORM_INVALID'] . adm_back_link($this->u_action), E_USER_WARNING);
+			}
+
+			$sync_interval = $request->variable('sync_interval', 21600);
+			if (!in_array($sync_interval, array(3600, 10800, 21600, 43200, 86400), true))
+			{
+				$sync_interval = 21600;
+			}
+
+			$config->set('bbguild_wow_sync_enabled', $request->variable('sync_enabled', false) ? 1 : 0);
+			$config->set('bbguild_wow_sync_interval', $sync_interval);
+
+			trigger_error($user->lang['WOW_SYNC_SETTINGS_SAVED'] . adm_back_link($this->u_action));
+		}
+
+		if ($request->is_set_post('sync_now'))
+		{
+			if (!check_form_key($form_key))
+			{
+				trigger_error($user->lang['FORM_INVALID'] . adm_back_link($this->u_action), E_USER_WARNING);
+			}
+
+			$phpbb_container->get('avathar.bbguildwow.cron.task.sync_guild')->run();
+
+			trigger_error($user->lang['WOW_SYNC_NOW_DONE'] . adm_back_link($this->u_action));
 		}
 
 		// Test connection if requested
@@ -150,6 +181,13 @@ class battlenet_module
 			'TEST_TOKEN_PREVIEW' => $test_token_preview,
 			'U_ACTION'          => $this->u_action,
 			'U_EDIT_GAME'       => $this->get_edit_game_url($db),
+
+			'S_SYNC_ENABLED'    => (bool) $config['bbguild_wow_sync_enabled'],
+			'SYNC_INTERVAL'     => (int) $config['bbguild_wow_sync_interval'],
+			'LAST_SYNC'         => ((int) $config['bbguild_wow_last_sync'] > 0)
+				? $user->format_date((int) $config['bbguild_wow_last_sync'])
+				: $user->lang['WOW_SYNC_NEVER'],
+			'LAST_SYNC_RESULT'  => (string) $config['bbguild_wow_last_sync_result'],
 		));
 	}
 

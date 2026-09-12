@@ -82,6 +82,48 @@
 </fieldset>
 
 <fieldset>
+	<legend>{{ lang('WOW_SYNC_SCHEDULE') }}</legend>
+	<p>{{ lang('WOW_SYNC_SCHEDULE_EXPLAIN') }}</p>
+
+	<dl>
+		<dt><label for="sync_enabled">{{ lang('WOW_SYNC_ENABLED') }}:</label></dt>
+		<dd>
+			<label><input type="checkbox" name="sync_enabled" id="sync_enabled" value="1" {% if S_SYNC_ENABLED %}checked="checked"{% endif %} /></label>
+		</dd>
+	</dl>
+
+	<dl>
+		<dt><label for="sync_interval">{{ lang('WOW_SYNC_INTERVAL') }}:</label></dt>
+		<dd>
+			<select name="sync_interval" id="sync_interval">
+				<option value="3600" {% if SYNC_INTERVAL == 3600 %}selected="selected"{% endif %}>{{ lang('WOW_SYNC_INTERVAL_1H') }}</option>
+				<option value="10800" {% if SYNC_INTERVAL == 10800 %}selected="selected"{% endif %}>{{ lang('WOW_SYNC_INTERVAL_3H') }}</option>
+				<option value="21600" {% if SYNC_INTERVAL == 21600 %}selected="selected"{% endif %}>{{ lang('WOW_SYNC_INTERVAL_6H') }}</option>
+				<option value="43200" {% if SYNC_INTERVAL == 43200 %}selected="selected"{% endif %}>{{ lang('WOW_SYNC_INTERVAL_12H') }}</option>
+				<option value="86400" {% if SYNC_INTERVAL == 86400 %}selected="selected"{% endif %}>{{ lang('WOW_SYNC_INTERVAL_24H') }}</option>
+			</select>
+		</dd>
+	</dl>
+
+	<dl>
+		<dt><label>{{ lang('WOW_SYNC_LAST_RUN') }}:</label></dt>
+		<dd>{{ LAST_SYNC }}</dd>
+	</dl>
+
+	{% if LAST_SYNC_RESULT %}
+	<dl>
+		<dt><label>{{ lang('WOW_SYNC_LAST_RESULT') }}:</label></dt>
+		<dd>{{ LAST_SYNC_RESULT }}</dd>
+	</dl>
+	{% endif %}
+
+	<p>
+		<input class="button1" type="submit" name="save_sync_settings" value="{{ lang('WOW_SYNC_SAVE_SETTINGS') }}" />
+		<input class="button2" type="submit" name="sync_now" value="{{ lang('WOW_SYNC_NOW') }}" {% if not HAS_CREDENTIALS %}disabled="disabled"{% endif %} />
+	</p>
+</fieldset>
+
+<fieldset>
 	<legend>{{ lang('WOW_BNET_TOKEN_CACHE') }}</legend>
 	<p>{{ lang('WOW_BNET_TOKEN_CACHE_EXPLAIN') }}</p>
 

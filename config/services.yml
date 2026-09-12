@@ -128,6 +128,22 @@ services:
         tags:
             - { name: bbguild.portal.module }
 
+    # --- Cron ---
+
+    avathar.bbguildwow.cron.task.sync_guild:
+        class: avathar\bbguildwow\cron\task\sync_guild
+        arguments:
+            - '@config'
+            - '@dbal.conn'
+            - '@avathar.bbguild.log'
+            - '@avathar.bbguildwow.api'
+            - '%avathar.bbguild.tables.bb_guild%'
+            - '%avathar.bbguild.tables.bb_games%'
+        calls:
+            - [set_name, ['avathar.bbguildwow.cron.task.sync_guild']]
+        tags:
+            - { name: cron.task }
+
     avathar.bbguildwow.portal.module.guild_news:
         class: avathar\bbguildwow\portal\modules\guild_news
         arguments:
