@@ -395,6 +395,15 @@ class achievement
 	}
 
 	/**
+	 * @see \avathar\bbguildwow\game\wow_api::create_battlenet() — identical
+	 * seam, duplicated here because achievement has no shared base with wow_api.
+	 */
+	protected function create_battlenet(string $api, string $region, string $apikey, string $locale, string $privkey, string $ext_path = '', int $cache_ttl = 3600, string $edition = 'retail'): battlenet
+	{
+		return new battlenet($api, $region, $apikey, $locale, $privkey, $ext_path, $this->cache, $cache_ttl, $edition);
+	}
+
+	/**
 	 * Set the game context for this achievement instance.
 	 *
 	 * @param game $game
@@ -633,7 +642,7 @@ class achievement
 		$locale = $game->get_apilocale();
 
 		// First verify the guild exists by fetching the basic guild profile
-		$api = new battlenet('guild', $region, $apikey, $locale, $privkey, '', $cache, 3600, $this->edition);
+		$api = $this->create_battlenet('guild', $region, $apikey, $locale, $privkey, '', 3600, $this->edition);
 
 		$guild_response = $api->guild->getGuild($realm_slug, $name_slug);
 		$guild_data = isset($guild_response['response']) ? $guild_response['response'] : array();
@@ -785,8 +794,8 @@ class achievement
 		$detail_api = null;
 		if (!empty($incomplete_ids))
 		{
-			$detail_api = new battlenet('achievement', $region, $apikey,
-				$game->get_apilocale(), $privkey, '', $cache, 3600, $this->edition);
+			$detail_api = $this->create_battlenet('achievement', $region, $apikey,
+				$game->get_apilocale(), $privkey, '', 3600, $this->edition);
 		}
 
 		$detail_count = 0;
@@ -872,8 +881,8 @@ class achievement
 	{
 		$cache = $this->cache;
 
-		$api = new battlenet('achievement', $game->getRegion(), $game->getApikey(),
-			$game->get_apilocale(), $game->get_privkey(), '', $cache, 3600, $this->edition);
+		$api = $this->create_battlenet('achievement', $game->getRegion(), $game->getApikey(),
+			$game->get_apilocale(), $game->get_privkey(), '', 3600, $this->edition);
 		$response = $api->achievement->getAchievementDetail($achievement_id);
 		unset($api);
 
@@ -1166,7 +1175,7 @@ class achievement
 		$locale = $game->get_apilocale();
 
 		// Fetch the category index
-		$api = new battlenet('achievement-category', $region, $apikey, $locale, $privkey, '', $cache, 3600, $this->edition);
+		$api = $this->create_battlenet('achievement-category', $region, $apikey, $locale, $privkey, '', 3600, $this->edition);
 		$response = $api->achievement_category->getCategoryIndex();
 		$data = isset($response['response']) ? $response['response'] : null;
 

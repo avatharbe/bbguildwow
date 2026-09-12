@@ -70,6 +70,27 @@ class wow_api implements game_api_interface
 	}
 
 	/**
+	 * Create a Battle.net API facade. Extracted so tests can override this
+	 * one seam and point the returned facade's resource objects at a local
+	 * mock server — none of battlenet_resource's HTTP calls are otherwise
+	 * interceptable (raw curl, no injectable client).
+	 *
+	 * @param string $api      One of battlenet's supported API types
+	 * @param string $region
+	 * @param string $apikey
+	 * @param string $locale
+	 * @param string $privkey
+	 * @param string $ext_path
+	 * @param int    $cache_ttl
+	 * @param string $edition
+	 * @return battlenet
+	 */
+	protected function create_battlenet(string $api, string $region, string $apikey, string $locale, string $privkey, string $ext_path = '', int $cache_ttl = 3600, string $edition = 'retail'): battlenet
+	{
+		return new battlenet($api, $region, $apikey, $locale, $privkey, $ext_path, $this->cache, $cache_ttl, $edition);
+	}
+
+	/**
 	 * Ensure a directory exists, best-effort (matches the tolerant
 	 * semantics of the @mkdir() calls this replaces — sync continues
 	 * even if the directory can't be created, individual file writes
@@ -158,7 +179,7 @@ class wow_api implements game_api_interface
 		$edition = isset($params['edition']) ? $params['edition'] : 'retail';
 
 		// Fetch guild profile
-		$api = new battlenet('guild', $region, $game->getApikey(), $game->get_apilocale(), $game->get_privkey(), $ext_path, $this->cache, 3600, $edition);
+		$api = $this->create_battlenet('guild', $region, $game->getApikey(), $game->get_apilocale(), $game->get_privkey(), $ext_path, 3600, $edition);
 		$guild_data = $api->guild->getGuild($realm_slug, $name_slug);
 		unset($api);
 
@@ -179,7 +200,7 @@ class wow_api implements game_api_interface
 		// Fetch roster if requested
 		if (in_array('members', $params))
 		{
-			$api = new battlenet('guild', $region, $game->getApikey(), $game->get_apilocale(), $game->get_privkey(), $ext_path, $this->cache, 3600, $edition);
+			$api = $this->create_battlenet('guild', $region, $game->getApikey(), $game->get_apilocale(), $game->get_privkey(), $ext_path, 3600, $edition);
 			$roster_data = $api->guild->getRoster($realm_slug, $name_slug);
 			unset($api);
 
@@ -279,7 +300,7 @@ class wow_api implements game_api_interface
 		$ext_path = $this->get_ext_path($phpbb_container);
 		$realm_slug = $this->to_slug($realm);
 
-		$api = new battlenet('character', $region, $game->getApikey(), $game->get_apilocale(), $game->get_privkey(), $ext_path, $this->cache, 3600, $edition);
+		$api = $this->create_battlenet('character', $region, $game->getApikey(), $game->get_apilocale(), $game->get_privkey(), $ext_path, 3600, $edition);
 		$data = $api->character->getCharacter($realm_slug, $name);
 		unset($api);
 
@@ -369,7 +390,7 @@ class wow_api implements game_api_interface
 			return array('success' => true, 'message' => 'All player portraits are up to date.', 'count' => 0);
 		}
 
-		$api = new battlenet('character', $region, $apikey, $locale, $privkey, '', $this->cache, 3600, $edition);
+		$api = $this->create_battlenet('character', $region, $apikey, $locale, $privkey, '', 3600, $edition);
 
 		$time_start = time();
 		$time_limit = 20;
@@ -530,7 +551,7 @@ class wow_api implements game_api_interface
 			return array('success' => true, 'message' => 'All player specs are up to date.', 'count' => 0);
 		}
 
-		$api = new battlenet('character', $region, $apikey, $locale, $privkey, '', $this->cache, 3600, $edition);
+		$api = $this->create_battlenet('character', $region, $apikey, $locale, $privkey, '', 3600, $edition);
 
 		$time_start = time();
 		$time_limit = 20;
@@ -642,7 +663,7 @@ class wow_api implements game_api_interface
 		}
 
 		$ext_path = $this->get_ext_path($phpbb_container);
-		$api = new battlenet('character', $region, $game->getApikey(), $game->get_apilocale(), $game->get_privkey(), $ext_path, $this->cache, 3600, $edition);
+		$api = $this->create_battlenet('character', $region, $game->getApikey(), $game->get_apilocale(), $game->get_privkey(), $ext_path, 3600, $edition);
 		$data = $api->character->getCharacterStatistics($this->to_slug($realm), $name);
 		unset($api);
 
@@ -675,7 +696,7 @@ class wow_api implements game_api_interface
 		}
 
 		$ext_path = $this->get_ext_path($phpbb_container);
-		$api = new battlenet('character', $region, $game->getApikey(), $game->get_apilocale(), $game->get_privkey(), $ext_path, $this->cache, 3600, $edition);
+		$api = $this->create_battlenet('character', $region, $game->getApikey(), $game->get_apilocale(), $game->get_privkey(), $ext_path, 3600, $edition);
 		$data = $api->character->getCharacterProfessions($this->to_slug($realm), $name);
 		unset($api);
 
@@ -708,7 +729,7 @@ class wow_api implements game_api_interface
 		}
 
 		$ext_path = $this->get_ext_path($phpbb_container);
-		$api = new battlenet('character', $region, $game->getApikey(), $game->get_apilocale(), $game->get_privkey(), $ext_path, $this->cache, 3600, $edition);
+		$api = $this->create_battlenet('character', $region, $game->getApikey(), $game->get_apilocale(), $game->get_privkey(), $ext_path, 3600, $edition);
 		$data = $api->character->getCharacterMythicKeystoneProfile($this->to_slug($realm), $name);
 		unset($api);
 
@@ -741,7 +762,7 @@ class wow_api implements game_api_interface
 		}
 
 		$ext_path = $this->get_ext_path($phpbb_container);
-		$api = new battlenet('character', $region, $game->getApikey(), $game->get_apilocale(), $game->get_privkey(), $ext_path, $this->cache, 3600, $edition);
+		$api = $this->create_battlenet('character', $region, $game->getApikey(), $game->get_apilocale(), $game->get_privkey(), $ext_path, 3600, $edition);
 		$data = $api->character->getCharacterPvPSummary($this->to_slug($realm), $name);
 		unset($api);
 
@@ -800,7 +821,7 @@ class wow_api implements game_api_interface
 			return array('success' => true, 'message' => 'All player equipment is up to date.', 'count' => 0);
 		}
 
-		$api = new battlenet('character', $region, $apikey, $locale, $privkey, '', $this->cache, 3600, $edition);
+		$api = $this->create_battlenet('character', $region, $apikey, $locale, $privkey, '', 3600, $edition);
 
 		$time_start = time();
 		$time_limit = 20;
@@ -1300,7 +1321,7 @@ class wow_api implements game_api_interface
 		}
 
 		$ext_path = $this->get_ext_path($phpbb_container);
-		$api = new battlenet('playable-data', $region, $game->getApikey(), $game->get_apilocale(), $game->get_privkey(), $ext_path, $this->cache, 3600, $edition);
+		$api = $this->create_battlenet('playable-data', $region, $game->getApikey(), $game->get_apilocale(), $game->get_privkey(), $ext_path, 3600, $edition);
 		$data = $api->static_data->getPlayableClasses();
 		unset($api);
 
@@ -1347,7 +1368,7 @@ class wow_api implements game_api_interface
 		}
 
 		$ext_path = $this->get_ext_path($phpbb_container);
-		$api = new battlenet('playable-data', $region, $game->getApikey(), $game->get_apilocale(), $game->get_privkey(), $ext_path, $this->cache, 3600, $edition);
+		$api = $this->create_battlenet('playable-data', $region, $game->getApikey(), $game->get_apilocale(), $game->get_privkey(), $ext_path, 3600, $edition);
 		$data = $api->static_data->getPlayableRaces();
 		unset($api);
 
@@ -1622,7 +1643,7 @@ class wow_api implements game_api_interface
 		}
 
 		$ext_path = $this->get_ext_path($phpbb_container);
-		$api = new battlenet('playable-data', $region, $game->getApikey(), $game->get_apilocale(), $game->get_privkey(), $ext_path, $this->cache);
+		$api = $this->create_battlenet('playable-data', $region, $game->getApikey(), $game->get_apilocale(), $game->get_privkey(), $ext_path);
 
 		$data = ($type === 'emblem')
 			? $api->static_data->getEmblemMedia($id)
