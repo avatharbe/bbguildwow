@@ -410,6 +410,214 @@ class wow_api implements game_api_interface
 	}
 
 	/**
+	 * Sync one character's active specialization. Extracted from
+	 * sync_specs()'s per-player loop body so it can be shared with
+	 * sync_character() (#362).
+	 *
+	 * @param array     $player  Row with at least player_id, player_name, player_realm
+	 * @param battlenet $api     Facade with ->character set
+	 * @return array{success: bool, error_code: string|int|null, stop_batch: bool}
+	 */
+	protected function sync_one_specs(array $player, battlenet $api): array
+	{
+		$response = $api->character->getCharacterSpecializations(
+			$player['player_realm'],
+			$player['player_name']
+		);
+		$data = isset($response['response']) ? $response['response'] : null;
+		$http_code = isset($response['response_headers']['http_code']) ? (int) $response['response_headers']['http_code'] : 0;
+
+		if (!is_array($data) || isset($data['code']))
+		{
+			$error_code = isset($data['code']) ? (int) $data['code'] : $http_code;
+			if ($error_code === 0)
+			{
+				$error_code = 'unknown';
+			}
+
+			if ($http_code === 404)
+			{
+				$this->db->sql_query('UPDATE ' . $this->bb_players_table .
+					" SET player_spec = 'N/A'" .
+					' WHERE player_id = ' . (int) $player['player_id']);
+			}
+
+			return array('success' => false, 'error_code' => $error_code, 'stop_batch' => $http_code >= 500);
+		}
+
+		$spec_name = '';
+		if (isset($data['active_specialization']['name']))
+		{
+			$spec_name = $data['active_specialization']['name'];
+		}
+
+		$success = true;
+		$error_code = null;
+		if (empty($spec_name))
+		{
+			$spec_name = 'N/A';
+			$success = false;
+			$error_code = 'no_spec';
+		}
+
+		$this->db->sql_query('UPDATE ' . $this->bb_players_table .
+			" SET player_spec = '" . $this->db->sql_escape($spec_name) . "'" .
+			' WHERE player_id = ' . (int) $player['player_id']);
+
+		return array('success' => $success, 'error_code' => $error_code, 'stop_batch' => false);
+	}
+
+	/**
+	 * Sync one character's equipment. Extracted from sync_equipment()'s
+	 * per-player loop body so it can be shared with sync_character() (#362).
+	 *
+	 * @param array     $player          Row with at least player_id, player_name, player_realm
+	 * @param battlenet $api             Facade with ->character set
+	 * @param string    $equipment_table
+	 * @param string    $stat_table
+	 * @return array{success: bool, error_code: string|int|null, stop_batch: bool}
+	 */
+	protected function sync_one_equipment(array $player, battlenet $api, string $equipment_table, string $stat_table): array
+	{
+		$response = $api->character->getCharacterEquipment(
+			$player['player_realm'],
+			$player['player_name']
+		);
+		$data = isset($response['response']) ? $response['response'] : null;
+		$http_code = isset($response['response_headers']['http_code']) ? (int) $response['response_headers']['http_code'] : 0;
+
+		if (!is_array($data) || isset($data['code']) || !isset($data['equipped_items']))
+		{
+			$error_code = isset($data['code']) ? (int) $data['code'] : $http_code;
+			if ($error_code === 0)
+			{
+				$error_code = 'unknown';
+			}
+
+			return array('success' => false, 'error_code' => $error_code, 'stop_batch' => $http_code >= 500);
+		}
+
+		$now = time();
+		$player_id = (int) $player['player_id'];
+
+		$this->db->sql_query('DELETE FROM ' . $equipment_table . ' WHERE player_id = ' . $player_id);
+		$this->db->sql_query('DELETE FROM ' . $stat_table . ' WHERE player_id = ' . $player_id);
+
+		foreach ($data['equipped_items'] as $item)
+		{
+			$parsed = $this->parse_equipped_item($item);
+			if ($parsed['slot_type'] === '')
+			{
+				continue;
+			}
+
+			$sql_ary = array_merge(
+				array('player_id' => $player_id, 'slot_type' => $parsed['slot_type'], 'last_update' => $now),
+				$parsed['equipment']
+			);
+			$this->db->sql_query('INSERT INTO ' . $equipment_table . ' ' . $this->db->sql_build_array('INSERT', $sql_ary));
+
+			foreach ($parsed['stats'] as $stat)
+			{
+				$stat_ary = array(
+					'player_id'  => $player_id,
+					'slot_type'  => $parsed['slot_type'],
+					'stat_type'  => $stat['stat_type'],
+					'stat_value' => (int) $stat['stat_value'],
+				);
+				$this->db->sql_query('INSERT INTO ' . $stat_table . ' ' . $this->db->sql_build_array('INSERT', $stat_ary));
+			}
+		}
+
+		return array('success' => true, 'error_code' => null, 'stop_batch' => false);
+	}
+
+	/**
+	 * Sync one character's portrait/render. Extracted from sync_portraits()'s
+	 * per-player loop body so it can be shared with sync_character() (#362).
+	 *
+	 * @param array     $player        Row with at least player_id, player_name, player_realm
+	 * @param battlenet $api           Facade with ->character set
+	 * @param string    $portrait_dir  Absolute filesystem path
+	 * @param string    $portrait_rel  Path relative to phpBB root, stored in DB
+	 * @param string    $upload_path   phpBB's configured upload_path
+	 * @param string    $phpbb_root_path
+	 * @return array{success: bool, error_code: string|int|null, stop_batch: bool}
+	 */
+	protected function sync_one_portrait(array $player, battlenet $api, string $portrait_dir, string $portrait_rel, string $upload_path, string $phpbb_root_path): array
+	{
+		$response = $api->character->getCharacterMedia($player['player_realm'], $player['player_name']);
+		$data = isset($response['response']) ? $response['response'] : null;
+		$http_code = isset($response['response_headers']['http_code']) ? (int) $response['response_headers']['http_code'] : 0;
+
+		if (!is_array($data) || isset($data['code']))
+		{
+			$error_code = isset($data['code']) ? (int) $data['code'] : $http_code;
+			if ($error_code === 0)
+			{
+				$error_code = 'unknown';
+			}
+
+			if ($http_code === 404)
+			{
+				$this->db->sql_query('UPDATE ' . $this->bb_players_table .
+					" SET player_portrait_url = 'N/A'" .
+					' WHERE player_id = ' . (int) $player['player_id']);
+			}
+
+			return array('success' => false, 'error_code' => $error_code, 'stop_batch' => $http_code >= 500);
+		}
+
+		$avatar_url = '';
+		$render_url = '';
+		if (isset($data['assets']) && is_array($data['assets']))
+		{
+			foreach ($data['assets'] as $asset)
+			{
+				if (isset($asset['key']) && isset($asset['value']))
+				{
+					if ($asset['key'] === 'avatar')
+					{
+						$avatar_url = $asset['value'];
+					}
+					else if ($asset['key'] === 'main')
+					{
+						$render_url = $asset['value'];
+					}
+				}
+			}
+		}
+
+		if (empty($avatar_url))
+		{
+			return array('success' => false, 'error_code' => 'no_avatar', 'stop_batch' => false);
+		}
+
+		$local_path = $this->download_portrait($avatar_url, $portrait_dir, $portrait_rel, (int) $player['player_id']);
+		$stored_url = !empty($local_path) ? $local_path : $avatar_url;
+
+		$render_rel = $upload_path . '/bbguildwow/renders/';
+		$render_dir = $phpbb_root_path . $render_rel;
+		$this->ensure_dir($render_dir);
+		$stored_render = '';
+		if (!empty($render_url))
+		{
+			$render_local = $this->download_portrait($render_url, $render_dir, $render_rel, (int) $player['player_id']);
+			$stored_render = !empty($render_local) ? $render_local : $render_url;
+		}
+
+		$sql_update = "SET player_portrait_url = '" . $this->db->sql_escape($stored_url) . "'";
+		if (!empty($stored_render))
+		{
+			$sql_update .= ", player_render_url = '" . $this->db->sql_escape($stored_render) . "'";
+		}
+		$this->db->sql_query('UPDATE ' . $this->bb_players_table . ' ' . $sql_update .
+			' WHERE player_id = ' . (int) $player['player_id']);
+
+		return array('success' => true, 'error_code' => null, 'stop_batch' => false);
+	}
+
+	/**
 	 * Fetch character portraits from the Character Media API.
 	 *
 	 * Processes players that have an empty portrait URL, with a time guard
@@ -427,13 +635,11 @@ class wow_api implements game_api_interface
 		global $phpbb_root_path, $phpbb_container;
 		$db = $this->db;
 
-		// Use phpBB's configured upload path (default: 'files')
 		$upload_path = $phpbb_container->get('config')['upload_path'];
 		$portrait_rel = $upload_path . '/bbguildwow/portraits/';
 		$portrait_dir = $phpbb_root_path . $portrait_rel;
 		$this->ensure_dir($portrait_dir);
 
-		// Get players without local portraits (empty, NULL, or still pointing to external URLs)
 		$sql = 'SELECT player_id, player_name, player_realm, player_region
 			FROM ' . $this->bb_players_table . '
 			WHERE player_guild_id = ' . $guild_id . '
@@ -463,7 +669,7 @@ class wow_api implements game_api_interface
 		$time_limit = 20;
 		$fetched = 0;
 		$failed = 0;
-		$errors = array(); // error_code => [player_name, ...]
+		$errors = array();
 
 		foreach ($players as $player)
 		{
@@ -472,90 +678,21 @@ class wow_api implements game_api_interface
 				break;
 			}
 
-			$realm_slug = $player['player_realm'];
-			$char_name = $player['player_name'];
+			$outcome = $this->sync_one_portrait($player, $api, $portrait_dir, $portrait_rel, $upload_path, $phpbb_root_path);
 
-			$response = $api->character->getCharacterMedia($realm_slug, $char_name);
-			$data = isset($response['response']) ? $response['response'] : null;
-			$http_code = isset($response['response_headers']['http_code']) ? (int) $response['response_headers']['http_code'] : 0;
-
-			if (!is_array($data) || isset($data['code']))
+			if ($outcome['success'])
 			{
-				$error_code = isset($data['code']) ? (int) $data['code'] : $http_code;
-				if ($error_code === 0)
-				{
-					$error_code = 'unknown';
-				}
-				$errors[$error_code][] = $player['player_name'];
-				$failed++;
-
-				// Mark as unavailable so this player is not retried next batch
-				if ($http_code === 404)
-				{
-					$db->sql_query('UPDATE ' . $this->bb_players_table .
-						" SET player_portrait_url = 'N/A'" .
-						' WHERE player_id = ' . (int) $player['player_id']);
-				}
-
-				// Stop batch early on server errors (5xx) — API is likely down
-				if ($http_code >= 500)
-				{
-					break;
-				}
-				continue;
-			}
-
-			// Extract avatar and main render URLs from assets array
-			$avatar_url = '';
-			$render_url = '';
-			if (isset($data['assets']) && is_array($data['assets']))
-			{
-				foreach ($data['assets'] as $asset)
-				{
-					if (isset($asset['key']) && isset($asset['value']))
-					{
-						if ($asset['key'] === 'avatar')
-						{
-							$avatar_url = $asset['value'];
-						}
-						else if ($asset['key'] === 'main')
-						{
-							$render_url = $asset['value'];
-						}
-					}
-				}
-			}
-
-			if (!empty($avatar_url))
-			{
-				// Download and cache portrait locally
-				$local_path = $this->download_portrait($avatar_url, $portrait_dir, $portrait_rel, (int) $player['player_id']);
-				$stored_url = !empty($local_path) ? $local_path : $avatar_url;
-
-				// Download and cache full-body render
-				$render_rel = $upload_path . '/bbguildwow/renders/';
-				$render_dir = $phpbb_root_path . $render_rel;
-				$this->ensure_dir($render_dir);
-				$stored_render = '';
-				if (!empty($render_url))
-				{
-					$render_local = $this->download_portrait($render_url, $render_dir, $render_rel, (int) $player['player_id']);
-					$stored_render = !empty($render_local) ? $render_local : $render_url;
-				}
-
-				$sql_update = "SET player_portrait_url = '" . $db->sql_escape($stored_url) . "'";
-				if (!empty($stored_render))
-				{
-					$sql_update .= ", player_render_url = '" . $db->sql_escape($stored_render) . "'";
-				}
-				$db->sql_query('UPDATE ' . $this->bb_players_table . ' ' . $sql_update .
-					' WHERE player_id = ' . (int) $player['player_id']);
 				$fetched++;
 			}
 			else
 			{
-				$errors['no_avatar'][] = $player['player_name'];
+				$errors[$outcome['error_code']][] = $player['player_name'];
 				$failed++;
+
+				if ($outcome['stop_batch'])
+				{
+					break;
+				}
 			}
 		}
 
@@ -596,7 +733,6 @@ class wow_api implements game_api_interface
 	{
 		$db = $this->db;
 
-		// Get players without specs
 		$sql = 'SELECT player_id, player_name, player_realm
 			FROM ' . $this->bb_players_table . '
 			WHERE player_guild_id = ' . $guild_id . '
@@ -624,7 +760,7 @@ class wow_api implements game_api_interface
 		$time_limit = 20;
 		$fetched = 0;
 		$failed = 0;
-		$errors = array(); // error_code => [player_name, ...]
+		$errors = array();
 
 		foreach ($players as $player)
 		{
@@ -633,59 +769,22 @@ class wow_api implements game_api_interface
 				break;
 			}
 
-			$response = $api->character->getCharacterSpecializations(
-				$player['player_realm'],
-				$player['player_name']
-			);
-			$data = isset($response['response']) ? $response['response'] : null;
-			$http_code = isset($response['response_headers']['http_code']) ? (int) $response['response_headers']['http_code'] : 0;
+			$outcome = $this->sync_one_specs($player, $api);
 
-			if (!is_array($data) || isset($data['code']))
-			{
-				$error_code = isset($data['code']) ? (int) $data['code'] : $http_code;
-				if ($error_code === 0)
-				{
-					$error_code = 'unknown';
-				}
-				$errors[$error_code][] = $player['player_name'];
-				$failed++;
-
-				// Mark as unavailable so this player is not retried next batch
-				if ($http_code === 404)
-				{
-					$db->sql_query('UPDATE ' . $this->bb_players_table .
-						" SET player_spec = 'N/A'" .
-						' WHERE player_id = ' . (int) $player['player_id']);
-				}
-
-				// Stop batch early on server errors (5xx) — API is likely down
-				if ($http_code >= 500)
-				{
-					break;
-				}
-				continue;
-			}
-
-			$spec_name = '';
-			if (isset($data['active_specialization']['name']))
-			{
-				$spec_name = $data['active_specialization']['name'];
-			}
-
-			if (empty($spec_name))
-			{
-				$spec_name = 'N/A';
-				$errors['no_spec'][] = $player['player_name'];
-				$failed++;
-			}
-			else
+			if ($outcome['success'])
 			{
 				$fetched++;
 			}
+			else
+			{
+				$errors[$outcome['error_code']][] = $player['player_name'];
+				$failed++;
 
-			$db->sql_query('UPDATE ' . $this->bb_players_table .
-				" SET player_spec = '" . $db->sql_escape($spec_name) . "'" .
-				' WHERE player_id = ' . (int) $player['player_id']);
+				if ($outcome['stop_batch'])
+				{
+					break;
+				}
+			}
 		}
 
 		unset($api);
@@ -862,9 +961,8 @@ class wow_api implements game_api_interface
 
 		$equipment_table = $phpbb_container->getParameter('avathar.bbguildwow.tables.bb_player_equipment');
 		$stat_table = $phpbb_container->getParameter('avathar.bbguildwow.tables.bb_player_item_stat');
-		$stale_threshold = time() - 86400; // 24 hours
+		$stale_threshold = time() - 86400;
 
-		// Get active WoW players whose equipment is stale or missing
 		$sql = 'SELECT p.player_id, p.player_name, p.player_realm
 			FROM ' . $this->bb_players_table . ' p
 			LEFT JOIN ' . $equipment_table . ' e
@@ -903,64 +1001,22 @@ class wow_api implements game_api_interface
 				break;
 			}
 
-			$response = $api->character->getCharacterEquipment(
-				$player['player_realm'],
-				$player['player_name']
-			);
-			$data = isset($response['response']) ? $response['response'] : null;
-			$http_code = isset($response['response_headers']['http_code']) ? (int) $response['response_headers']['http_code'] : 0;
+			$outcome = $this->sync_one_equipment($player, $api, $equipment_table, $stat_table);
 
-			if (!is_array($data) || isset($data['code']) || !isset($data['equipped_items']))
+			if ($outcome['success'])
 			{
-				$error_code = isset($data['code']) ? (int) $data['code'] : $http_code;
-				if ($error_code === 0)
-				{
-					$error_code = 'unknown';
-				}
-				$errors[$error_code][] = $player['player_name'];
+				$fetched++;
+			}
+			else
+			{
+				$errors[$outcome['error_code']][] = $player['player_name'];
 				$failed++;
 
-				if ($http_code >= 500)
+				if ($outcome['stop_batch'])
 				{
 					break;
 				}
-				continue;
 			}
-
-			$now = time();
-			$player_id = (int) $player['player_id'];
-
-			// Replace this player's cached gear + stats atomically-ish.
-			$db->sql_query('DELETE FROM ' . $equipment_table . ' WHERE player_id = ' . $player_id);
-			$db->sql_query('DELETE FROM ' . $stat_table . ' WHERE player_id = ' . $player_id);
-
-			foreach ($data['equipped_items'] as $item)
-			{
-				$parsed = $this->parse_equipped_item($item);
-				if ($parsed['slot_type'] === '')
-				{
-					continue;
-				}
-
-				$sql_ary = array_merge(
-					array('player_id' => $player_id, 'slot_type' => $parsed['slot_type'], 'last_update' => $now),
-					$parsed['equipment']
-				);
-				$db->sql_query('INSERT INTO ' . $equipment_table . ' ' . $db->sql_build_array('INSERT', $sql_ary));
-
-				foreach ($parsed['stats'] as $stat)
-				{
-					$stat_ary = array(
-						'player_id'  => $player_id,
-						'slot_type'  => $parsed['slot_type'],
-						'stat_type'  => $stat['stat_type'],
-						'stat_value' => (int) $stat['stat_value'],
-					);
-					$db->sql_query('INSERT INTO ' . $stat_table . ' ' . $db->sql_build_array('INSERT', $stat_ary));
-				}
-			}
-
-			$fetched++;
 		}
 
 		unset($api);
@@ -982,6 +1038,44 @@ class wow_api implements game_api_interface
 		}
 
 		return array('success' => true, 'message' => $message, 'count' => $fetched, 'errors' => $errors);
+	}
+
+	/**
+	 * Sync one character's specs, equipment, and portrait — the
+	 * character_sync_interface implementation's actual orchestrator (#362).
+	 * Returns true only if all three sub-syncs succeed.
+	 *
+	 * @param array $player_row Full bb_players row
+	 * @return bool
+	 */
+	public function sync_character(array $player_row): bool
+	{
+		global $phpbb_container, $phpbb_root_path;
+
+		$game = $this->get_game_from_db($phpbb_container);
+		if (!$game || trim($game->getApikey()) == '')
+		{
+			return false;
+		}
+
+		$ext_path = $this->get_ext_path($phpbb_container);
+		$api = $this->create_battlenet('character', $player_row['player_region'], $game->getApikey(), $game->get_apilocale(), $game->get_privkey(), $ext_path);
+
+		$specs_outcome = $this->sync_one_specs($player_row, $api);
+
+		$equipment_table = $phpbb_container->getParameter('avathar.bbguildwow.tables.bb_player_equipment');
+		$stat_table = $phpbb_container->getParameter('avathar.bbguildwow.tables.bb_player_item_stat');
+		$equipment_outcome = $this->sync_one_equipment($player_row, $api, $equipment_table, $stat_table);
+
+		$upload_path = $phpbb_container->get('config')['upload_path'];
+		$portrait_rel = $upload_path . '/bbguildwow/portraits/';
+		$portrait_dir = $phpbb_root_path . $portrait_rel;
+		$this->ensure_dir($portrait_dir);
+		$portrait_outcome = $this->sync_one_portrait($player_row, $api, $portrait_dir, $portrait_rel, $upload_path, $phpbb_root_path);
+
+		unset($api);
+
+		return $specs_outcome['success'] && $equipment_outcome['success'] && $portrait_outcome['success'];
 	}
 
 	/**
@@ -1760,7 +1854,7 @@ class wow_api implements game_api_interface
 	 * @param \Symfony\Component\DependencyInjection\ContainerInterface $container
 	 * @return \avathar\bbguild\model\games\game|null
 	 */
-	private function get_game_from_db($container)
+	protected function get_game_from_db($container)
 	{
 		try
 		{
@@ -1795,7 +1889,7 @@ class wow_api implements game_api_interface
 	 * @param \Symfony\Component\DependencyInjection\ContainerInterface $container
 	 * @return string
 	 */
-	private function get_ext_path($container)
+	protected function get_ext_path($container)
 	{
 		$ext_manager = $container->get('ext.manager');
 		return $ext_manager->get_extension_path('avathar/bbguild', true);
