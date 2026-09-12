@@ -2,6 +2,7 @@
 .phpunit.result.cache
 .claude/
 docs/superpowers/
+.worktrees/
 contrib/wowkeys.txt
 *.key
 *.secret
