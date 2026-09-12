@@ -52,5 +52,8 @@ $lang = array_merge(
 	'FV_REQUIRED_TITLE'        => 'Please enter a title.',
 	'FV_REQUIRED_DESCRIPTION'  => 'Please enter a description.',
 	'FV_REQUIRED_ID'           => 'Please enter an achievement ID.',
+
+	'RETURN_ACHIEVLIST'        => 'Return to Index',
+	'ACP_GUILD_OPTION_NONE'    => '(None)',
 	)
 );

@@ -14,6 +14,7 @@ namespace avathar\bbguildwow\game;
 
 use avathar\bbguild\model\games\game_api_interface;
 use avathar\bbguildwow\api\battlenet;
+use phpbb\language\language;
 
 /**
  * Class wow_api
@@ -52,6 +53,13 @@ class wow_api implements game_api_interface
 	private $filesystem;
 
 	/**
+	 * @var language|null Set via set_language() — optional so unit tests that
+	 *                    construct wow_api directly (no DI container) keep
+	 *                    working against the fallback strings in lang().
+	 */
+	private $language;
+
+	/**
 	 * @param \phpbb\cache\service              $cache
 	 * @param \phpbb\db\driver\driver_interface $db
 	 * @param string                            $guild_wow_table
@@ -68,6 +76,65 @@ class wow_api implements game_api_interface
 		$this->bb_ranks_table = $bb_ranks_table;
 		$this->filesystem = $filesystem;
 	}
+
+	/**
+	 * Setter-injected (not a constructor arg) so existing call sites —
+	 * including several unit tests that construct wow_api directly —
+	 * don't need updating. See lang().
+	 *
+	 * @param language $language
+	 */
+	public function set_language(language $language): void
+	{
+		$this->language = $language;
+	}
+
+	/**
+	 * Resolve a user-facing message through phpBB's language framework when
+	 * available, falling back to the English text below otherwise (e.g. in
+	 * unit tests that construct this class without a DI container and never
+	 * call set_language()). Keep LANG_FALLBACK in sync with the matching
+	 * keys in language/en/wow.php.
+	 *
+	 * @param string $key
+	 * @param mixed  ...$args
+	 * @return string
+	 */
+	private function lang(string $key, ...$args): string
+	{
+		if ($this->language !== null)
+		{
+			$this->language->add_lang('wow', 'avathar/bbguildwow');
+			return $args ? $this->language->lang($key, ...$args) : $this->language->lang($key);
+		}
+
+		$fallback = self::LANG_FALLBACK[$key] ?? $key;
+		return $args ? vsprintf($fallback, $args) : $fallback;
+	}
+
+	private const LANG_FALLBACK = array(
+		'WOW_API_PORTRAITS_UP_TO_DATE' => 'All player portraits are up to date.',
+		'WOW_API_PORTRAITS_FETCHED'    => 'Fetched %d portraits.',
+		'WOW_API_SPECS_UP_TO_DATE'     => 'All player specs are up to date.',
+		'WOW_API_SPECS_FETCHED'        => 'Fetched %d specs.',
+		'WOW_API_EQUIPMENT_UP_TO_DATE' => 'All player equipment is up to date.',
+		'WOW_API_EQUIPMENT_FETCHED'    => 'Fetched equipment for %d players.',
+		'WOW_API_BATCH_FAILED'         => ' %d failed [%s].',
+		'WOW_API_BATCH_REMAINING'      => ' %d remaining.',
+		'WOW_API_ERR_404'              => '404 Not Found',
+		'WOW_API_ERR_403'              => '403 Forbidden',
+		'WOW_API_ERR_500'              => '500 Server Error',
+		'WOW_API_ERR_502'              => '502 Bad Gateway',
+		'WOW_API_ERR_503'              => '503 Service Unavailable',
+		'WOW_API_ERR_504'              => '504 Gateway Timeout',
+		'WOW_API_ERR_NO_AVATAR'        => 'No avatar data',
+		'WOW_API_ERR_NO_SPEC'          => 'No spec data',
+		'WOW_API_ERR_UNKNOWN'          => 'Unknown error',
+		'WOW_API_ERR_HTTP_CODE'        => 'HTTP %s',
+		'WOW_API_FACTION_ALLIANCE'     => 'Alliance',
+		'WOW_API_FACTION_HORDE'        => 'Horde',
+		'WOW_API_DEFAULT_RANK_NAME'    => 'Rank%d',
+	);
 
 	/**
 	 * Create a Battle.net API facade. Extracted so tests can override this
@@ -246,13 +313,13 @@ class wow_api implements game_api_interface
 			{
 				$faction = 1;
 				$result['faction'] = 1;
-				$result['faction_name'] = 'Alliance';
+				$result['faction_name'] = $this->lang('WOW_API_FACTION_ALLIANCE');
 			}
 			else if ($raw_data['faction']['type'] === 'HORDE')
 			{
 				$faction = 2;
 				$result['faction'] = 2;
-				$result['faction_name'] = 'Horde';
+				$result['faction_name'] = $this->lang('WOW_API_FACTION_HORDE');
 			}
 		}
 
@@ -387,7 +454,7 @@ class wow_api implements game_api_interface
 
 		if (empty($players))
 		{
-			return array('success' => true, 'message' => 'All player portraits are up to date.', 'count' => 0);
+			return array('success' => true, 'message' => $this->lang('WOW_API_PORTRAITS_UP_TO_DATE'), 'count' => 0);
 		}
 
 		$api = $this->create_battlenet('character', $region, $apikey, $locale, $privkey, '', 3600, $edition);
@@ -495,7 +562,7 @@ class wow_api implements game_api_interface
 		unset($api);
 
 		$remaining = count($players) - $fetched - $failed;
-		$message = sprintf('Fetched %d portraits.', $fetched);
+		$message = $this->lang('WOW_API_PORTRAITS_FETCHED', $fetched);
 		if (!empty($errors))
 		{
 			$parts = array();
@@ -503,11 +570,11 @@ class wow_api implements game_api_interface
 			{
 				$parts[] = sprintf('%s: %s', $this->error_label($code), implode(', ', $names));
 			}
-			$message .= sprintf(' %d failed [%s].', $failed, implode('; ', $parts));
+			$message .= $this->lang('WOW_API_BATCH_FAILED', $failed, implode('; ', $parts));
 		}
 		if ($remaining > 0)
 		{
-			$message .= sprintf(' %d remaining.', $remaining);
+			$message .= $this->lang('WOW_API_BATCH_REMAINING', $remaining);
 		}
 
 		return array('success' => true, 'message' => $message, 'count' => $fetched, 'errors' => $errors);
@@ -548,7 +615,7 @@ class wow_api implements game_api_interface
 
 		if (empty($players))
 		{
-			return array('success' => true, 'message' => 'All player specs are up to date.', 'count' => 0);
+			return array('success' => true, 'message' => $this->lang('WOW_API_SPECS_UP_TO_DATE'), 'count' => 0);
 		}
 
 		$api = $this->create_battlenet('character', $region, $apikey, $locale, $privkey, '', 3600, $edition);
@@ -624,7 +691,7 @@ class wow_api implements game_api_interface
 		unset($api);
 
 		$remaining = count($players) - $fetched - $failed;
-		$message = sprintf('Fetched %d specs.', $fetched);
+		$message = $this->lang('WOW_API_SPECS_FETCHED', $fetched);
 		if (!empty($errors))
 		{
 			$parts = array();
@@ -632,11 +699,11 @@ class wow_api implements game_api_interface
 			{
 				$parts[] = sprintf('%s: %s', $this->error_label($code), implode(', ', $names));
 			}
-			$message .= sprintf(' %d failed [%s].', $failed, implode('; ', $parts));
+			$message .= $this->lang('WOW_API_BATCH_FAILED', $failed, implode('; ', $parts));
 		}
 		if ($remaining > 0)
 		{
-			$message .= sprintf(' %d remaining.', $remaining);
+			$message .= $this->lang('WOW_API_BATCH_REMAINING', $remaining);
 		}
 
 		return array('success' => true, 'message' => $message, 'count' => $fetched, 'errors' => $errors);
@@ -818,7 +885,7 @@ class wow_api implements game_api_interface
 
 		if (empty($players))
 		{
-			return array('success' => true, 'message' => 'All player equipment is up to date.', 'count' => 0);
+			return array('success' => true, 'message' => $this->lang('WOW_API_EQUIPMENT_UP_TO_DATE'), 'count' => 0);
 		}
 
 		$api = $this->create_battlenet('character', $region, $apikey, $locale, $privkey, '', 3600, $edition);
@@ -899,7 +966,7 @@ class wow_api implements game_api_interface
 		unset($api);
 
 		$remaining = count($players) - $fetched - $failed;
-		$message = sprintf('Fetched equipment for %d players.', $fetched);
+		$message = $this->lang('WOW_API_EQUIPMENT_FETCHED', $fetched);
 		if (!empty($errors))
 		{
 			$parts = array();
@@ -907,11 +974,11 @@ class wow_api implements game_api_interface
 			{
 				$parts[] = sprintf('%s: %s', $this->error_label($code), implode(', ', $names));
 			}
-			$message .= sprintf(' %d failed [%s].', $failed, implode('; ', $parts));
+			$message .= $this->lang('WOW_API_BATCH_FAILED', $failed, implode('; ', $parts));
 		}
 		if ($remaining > 0)
 		{
-			$message .= sprintf(' %d remaining.', $remaining);
+			$message .= $this->lang('WOW_API_BATCH_REMAINING', $remaining);
 		}
 
 		return array('success' => true, 'message' => $message, 'count' => $fetched, 'errors' => $errors);
@@ -925,19 +992,19 @@ class wow_api implements game_api_interface
 	 */
 	private function error_label($code): string
 	{
-		$labels = array(
-			404       => '404 Not Found',
-			403       => '403 Forbidden',
-			500       => '500 Server Error',
-			502       => '502 Bad Gateway',
-			503       => '503 Service Unavailable',
-			504       => '504 Gateway Timeout',
-			'no_avatar' => 'No avatar data',
-			'no_spec'   => 'No spec data',
-			'unknown'   => 'Unknown error',
+		$keys = array(
+			404         => 'WOW_API_ERR_404',
+			403         => 'WOW_API_ERR_403',
+			500         => 'WOW_API_ERR_500',
+			502         => 'WOW_API_ERR_502',
+			503         => 'WOW_API_ERR_503',
+			504         => 'WOW_API_ERR_504',
+			'no_avatar' => 'WOW_API_ERR_NO_AVATAR',
+			'no_spec'   => 'WOW_API_ERR_NO_SPEC',
+			'unknown'   => 'WOW_API_ERR_UNKNOWN',
 		);
 
-		return isset($labels[$code]) ? $labels[$code] : 'HTTP ' . $code;
+		return isset($keys[$code]) ? $this->lang($keys[$code]) : $this->lang('WOW_API_ERR_HTTP_CODE', $code);
 	}
 
 	/**
@@ -1120,7 +1187,7 @@ class wow_api implements game_api_interface
 
 			$query = $this->db->sql_build_array('INSERT', array(
 				'rank_id'     => (int) $rank_id,
-				'rank_name'   => 'Rank' . $rank_id,
+				'rank_name'   => $this->lang('WOW_API_DEFAULT_RANK_NAME', $rank_id),
 				'rank_hide'   => 0,
 				'rank_prefix' => '',
 				'rank_suffix' => '',

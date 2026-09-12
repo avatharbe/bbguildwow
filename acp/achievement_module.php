@@ -118,7 +118,7 @@ class achievement_module
 			 * List achievement for this guild
 			 */
 			case 'listachievements':
-				$this->link = '<br /><a href="' . append_sid("{$phpbb_admin_path}index.$phpEx", $this->moduleurl . 'mode=listachievements') . '"><h3>Return to Index</h3></a>';
+				$this->link = '<br /><a href="' . append_sid("{$phpbb_admin_path}index.$phpEx", $this->moduleurl . 'mode=listachievements') . '"><h3>' . $this->user->lang['RETURN_ACHIEVLIST'] . '</h3></a>';
 				$this->guild = $this->GetGuild();
 
 				// add achievement button redirect
@@ -231,7 +231,7 @@ class achievement_module
 				'guild_row', array(
 					'VALUE'    => $g['id'],
 					'SELECTED' => ($g['id'] == $Guild->getGuildid()) ? ' selected="selected"' : '',
-					'OPTION'   => (!empty($g['name'])) ? $g['name'] : '(None)')
+					'OPTION'   => (!empty($g['name'])) ? $g['name'] : $this->user->lang['ACP_GUILD_OPTION_NONE'])
 			);
 		}
 
@@ -317,7 +317,7 @@ class achievement_module
 		{
 			if (count((array) $guildlist) === 0)
 			{
-				trigger_error('ERROR_NOGUILD', E_USER_WARNING);
+				trigger_error($this->user->lang['ERROR_NOGUILD'], E_USER_WARNING);
 			}
 			if (count((array) $guildlist) === 1)
 			{
@@ -326,7 +326,7 @@ class achievement_module
 				$Guild->setName($guildlist[0]['name']);
 				if ($Guild->getGuildid() === 0 && $Guild->getName() === 'Guildless')
 				{
-					trigger_error('ERROR_NOGUILD', E_USER_WARNING);
+					trigger_error($this->user->lang['ERROR_NOGUILD'], E_USER_WARNING);
 				}
 			} else
 			{

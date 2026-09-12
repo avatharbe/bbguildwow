@@ -13,6 +13,7 @@ namespace avathar\bbguildwow\model;
 use avathar\bbguildwow\api\battlenet;
 use avathar\bbguild\model\games\game;
 use avathar\bbguild\model\player\guilds;
+use phpbb\language\language;
 
 /**
  * This provides data about an individual achievement.
@@ -404,6 +405,71 @@ class achievement
 	}
 
 	/**
+	 * @var language|null Set via set_language() — optional so unit/integration
+	 *                    tests that construct achievement directly (no DI
+	 *                    container) keep working against the fallback
+	 *                    strings in lang().
+	 */
+	private $language;
+
+	/**
+	 * Setter-injected (not a constructor arg) so existing call sites —
+	 * including several tests that construct achievement directly — don't
+	 * need updating. See lang().
+	 *
+	 * @param language $language
+	 */
+	public function set_language(language $language): void
+	{
+		$this->language = $language;
+	}
+
+	/**
+	 * Resolve a user-facing message through phpBB's language framework when
+	 * available, falling back to the English text below otherwise (e.g. in
+	 * tests that construct this class without a DI container and never call
+	 * set_language()). Keep LANG_FALLBACK in sync with the matching keys in
+	 * language/en/wow.php.
+	 *
+	 * @param string $key
+	 * @param mixed  ...$args
+	 * @return string
+	 */
+	private function lang(string $key, ...$args): string
+	{
+		if ($this->language !== null)
+		{
+			$this->language->add_lang('wow', 'avathar/bbguildwow');
+			return $args ? $this->language->lang($key, ...$args) : $this->language->lang($key);
+		}
+
+		$fallback = self::LANG_FALLBACK[$key] ?? $key;
+		return $args ? vsprintf($fallback, $args) : $fallback;
+	}
+
+	private const LANG_FALLBACK = array(
+		'WOW_ACH_ARMORY_DISABLED_GAME'    => 'Armory is not enabled for this game. Enable it in ACP Game settings.',
+		'WOW_ACH_ARMORY_DISABLED_GUILD'   => 'Armory is not enabled for this guild. Enable it in ACP Guild settings.',
+		'WOW_ACH_CREDENTIALS_MISSING'     => 'Battle.net API credentials not configured. Set Client ID and Secret in ACP Game settings.',
+		'WOW_ACH_GUILD_SLUG_EMPTY'        => 'Guild realm or name is empty (realm="%s", name="%s"). Check guild settings.',
+		'WOW_ACH_API_ERROR_DETAIL'        => 'API error %d: %s',
+		'WOW_ACH_UNKNOWN_SHORT'           => 'Unknown',
+		'WOW_ACH_EMPTY_RESPONSE_HTTP'     => 'Empty response (HTTP %s)',
+		'WOW_ACH_GUILD_NOT_FOUND_DETAIL'  => '%s. Could not find guild "%s" on realm "%s" (region: %s). Request URL: %s',
+		'WOW_ACH_API_EMPTY_RESPONSE'      => 'Achievements API returned empty response (HTTP %s). %s URL: %s',
+		'WOW_ACH_UNKNOWN_ERROR'           => 'Unknown error',
+		'WOW_ACH_API_ERROR'               => 'Achievements API error %d: %s. URL: %s',
+		'WOW_ACH_NO_ACHIEVEMENTS_ARRAY'   => 'API response has no achievements array. Response keys: %s',
+		'WOW_ACH_SYNCED_RESULT'           => 'Synced %d achievements, fetched details for %d.',
+		'WOW_ACH_REMAINING_DETAILS'       => ' %d achievements still need details — click "Load from API" again to fetch more.',
+		'WOW_ACH_CAT_ARMORY_DISABLED'     => 'Armory is not enabled for this game.',
+		'WOW_ACH_CAT_CREDENTIALS_MISSING' => 'Battle.net API credentials not configured.',
+		'WOW_ACH_CAT_API_ERROR'           => 'Category index API error: %s',
+		'WOW_ACH_CAT_SYNCED_RESULT'       => 'Synced %d categories, inserted %d new achievements, mapped %d.',
+		'WOW_ACH_CAT_REMAINING'           => ' %d achievements still need category mapping — click "Sync Categories" again.',
+	);
+
+	/**
 	 * Set the game context for this achievement instance.
 	 *
 	 * @param game $game
@@ -607,12 +673,12 @@ class achievement
 
 		if (!$game->getArmoryEnabled())
 		{
-			return array('success' => false, 'message' => 'Armory is not enabled for this game. Enable it in ACP Game settings.', 'count' => 0);
+			return array('success' => false, 'message' => $this->lang('WOW_ACH_ARMORY_DISABLED_GAME'), 'count' => 0);
 		}
 
 		if (!$Guild->isArmoryEnabled())
 		{
-			return array('success' => false, 'message' => 'Armory is not enabled for this guild. Enable it in ACP Guild settings.', 'count' => 0);
+			return array('success' => false, 'message' => $this->lang('WOW_ACH_ARMORY_DISABLED_GUILD'), 'count' => 0);
 		}
 
 		// Use the guild's own region (guilds can be on different regions within the same game)
@@ -627,7 +693,7 @@ class achievement
 
 		if (empty($apikey) || empty($privkey))
 		{
-			return array('success' => false, 'message' => 'Battle.net API credentials not configured. Set Client ID and Secret in ACP Game settings.', 'count' => 0);
+			return array('success' => false, 'message' => $this->lang('WOW_ACH_CREDENTIALS_MISSING'), 'count' => 0);
 		}
 
 		$realm_slug = $this->make_slug($Guild->getRealm());
@@ -635,7 +701,7 @@ class achievement
 
 		if (empty($realm_slug) || empty($name_slug))
 		{
-			return array('success' => false, 'message' => sprintf('Guild realm or name is empty (realm="%s", name="%s"). Check guild settings.', $Guild->getRealm(), $Guild->getName()), 'count' => 0);
+			return array('success' => false, 'message' => $this->lang('WOW_ACH_GUILD_SLUG_EMPTY', $Guild->getRealm(), $Guild->getName()), 'count' => 0);
 		}
 
 		$locale = $game->get_apilocale();
@@ -653,15 +719,15 @@ class achievement
 			$error_detail = '';
 			if (isset($guild_data['code']))
 			{
-				$error_detail = sprintf('API error %d: %s', $guild_data['code'], isset($guild_data['detail']) ? $guild_data['detail'] : 'Unknown');
+				$error_detail = $this->lang('WOW_ACH_API_ERROR_DETAIL', $guild_data['code'], isset($guild_data['detail']) ? $guild_data['detail'] : $this->lang('WOW_ACH_UNKNOWN_SHORT'));
 			}
 			else
 			{
-				$error_detail = sprintf('Empty response (HTTP %s)', $http_code);
+				$error_detail = $this->lang('WOW_ACH_EMPTY_RESPONSE_HTTP', $http_code);
 			}
 			unset($api);
-			return array('success' => false, 'message' => sprintf(
-				'%s. Could not find guild "%s" on realm "%s" (region: %s). Request URL: %s',
+			return array('success' => false, 'message' => $this->lang(
+				'WOW_ACH_GUILD_NOT_FOUND_DETAIL',
 				$error_detail, $Guild->getName(), $Guild->getRealm(), $region, $request_url
 			), 'count' => 0);
 		}
@@ -678,13 +744,13 @@ class achievement
 		{
 			$http_code = isset($response['response_headers']['http_code']) ? $response['response_headers']['http_code'] : 'unknown';
 			$error = isset($response['error']) ? $response['error'] : '';
-			return array('success' => false, 'message' => sprintf('Achievements API returned empty response (HTTP %s). %s URL: %s', $http_code, $error, $achiev_url), 'count' => 0);
+			return array('success' => false, 'message' => $this->lang('WOW_ACH_API_EMPTY_RESPONSE', $http_code, $error, $achiev_url), 'count' => 0);
 		}
 
 		if (isset($data['code']))
 		{
-			$detail = isset($data['detail']) ? $data['detail'] : 'Unknown error';
-			return array('success' => false, 'message' => sprintf('Achievements API error %d: %s. URL: %s', $data['code'], $detail, $achiev_url), 'count' => 0);
+			$detail = isset($data['detail']) ? $data['detail'] : $this->lang('WOW_ACH_UNKNOWN_ERROR');
+			return array('success' => false, 'message' => $this->lang('WOW_ACH_API_ERROR', $data['code'], $detail, $achiev_url), 'count' => 0);
 		}
 
 		// Clear existing tracking data for this guild
@@ -697,7 +763,7 @@ class achievement
 
 		if (empty($achievements))
 		{
-			return array('success' => false, 'message' => sprintf('API response has no achievements array. Response keys: %s', implode(', ', array_keys($data))), 'count' => 0);
+			return array('success' => false, 'message' => $this->lang('WOW_ACH_NO_ACHIEVEMENTS_ARRAY', implode(', ', array_keys($data))), 'count' => 0);
 		}
 
 		$track_rows = array();
@@ -822,10 +888,10 @@ class achievement
 		$remaining = (int) $db->sql_fetchfield('cnt');
 		$db->sql_freeresult($result);
 
-		$message = sprintf('Synced %d achievements, fetched details for %d.', $track_count, $detail_count);
+		$message = $this->lang('WOW_ACH_SYNCED_RESULT', $track_count, $detail_count);
 		if ($remaining > 0)
 		{
-			$message .= sprintf(' %d achievements still need details — click "Load from API" again to fetch more.', $remaining);
+			$message .= $this->lang('WOW_ACH_REMAINING_DETAILS', $remaining);
 		}
 
 		return array(
@@ -1156,7 +1222,7 @@ class achievement
 
 		if (!$game->getArmoryEnabled())
 		{
-			return array('success' => false, 'message' => 'Armory is not enabled for this game.', 'count' => 0);
+			return array('success' => false, 'message' => $this->lang('WOW_ACH_CAT_ARMORY_DISABLED'), 'count' => 0);
 		}
 
 		$region = $game->getRegion();
@@ -1165,7 +1231,7 @@ class achievement
 
 		if (empty($apikey) || empty($privkey))
 		{
-			return array('success' => false, 'message' => 'Battle.net API credentials not configured.', 'count' => 0);
+			return array('success' => false, 'message' => $this->lang('WOW_ACH_CAT_CREDENTIALS_MISSING'), 'count' => 0);
 		}
 
 		$locale = $game->get_apilocale();
@@ -1177,9 +1243,9 @@ class achievement
 
 		if (!is_array($data) || isset($data['code']))
 		{
-			$detail = isset($data['detail']) ? $data['detail'] : 'Unknown error';
+			$detail = isset($data['detail']) ? $data['detail'] : $this->lang('WOW_ACH_UNKNOWN_ERROR');
 			unset($api);
-			return array('success' => false, 'message' => 'Category index API error: ' . $detail, 'count' => 0);
+			return array('success' => false, 'message' => $this->lang('WOW_ACH_CAT_API_ERROR', $detail), 'count' => 0);
 		}
 
 		// Truncate existing categories
@@ -1402,10 +1468,10 @@ class achievement
 		$unmapped_remaining = (int) $db->sql_fetchfield('cnt');
 		$db->sql_freeresult($result);
 
-		$message = sprintf('Synced %d categories, inserted %d new achievements, mapped %d.', $cat_count, $inserted_count, $mapped_count);
+		$message = $this->lang('WOW_ACH_CAT_SYNCED_RESULT', $cat_count, $inserted_count, $mapped_count);
 		if ($unmapped_remaining > 0)
 		{
-			$message .= sprintf(' %d achievements still need category mapping — click "Sync Categories" again.', $unmapped_remaining);
+			$message .= $this->lang('WOW_ACH_CAT_REMAINING', $unmapped_remaining);
 		}
 
 		return array(

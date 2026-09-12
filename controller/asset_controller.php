@@ -14,6 +14,7 @@
 namespace avathar\bbguildwow\controller;
 
 use phpbb\db\driver\driver_interface;
+use phpbb\language\language;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\ResponseHeaderBag;
@@ -22,6 +23,9 @@ class asset_controller
 {
 	/** @var driver_interface */
 	protected $db;
+
+	/** @var language */
+	protected $language;
 
 	/** @var string */
 	protected $root_path;
@@ -34,12 +38,14 @@ class asset_controller
 
 	public function __construct(
 		driver_interface $db,
+		language $language,
 		string $root_path,
 		string $guild_table,
 		string $players_table
 	)
 	{
 		$this->db = $db;
+		$this->language = $language;
 		$this->root_path = $root_path;
 		$this->guild_table = $guild_table;
 		$this->players_table = $players_table;
@@ -62,7 +68,7 @@ class asset_controller
 
 		if (empty($emblemurl) || strpos($emblemurl, 'bbguildwow/emblems/') === false)
 		{
-			return new Response('Not found', 404);
+			return new Response($this->lang_not_found(), 404);
 		}
 
 		return $this->serve_file($emblemurl, 'image/png');
@@ -85,7 +91,7 @@ class asset_controller
 
 		if (empty($portrait_url) || strpos($portrait_url, 'bbguildwow/portraits/') === false)
 		{
-			return new Response('Not found', 404);
+			return new Response($this->lang_not_found(), 404);
 		}
 
 		// Determine content type from extension
@@ -93,6 +99,15 @@ class asset_controller
 		$content_type = ($ext === 'png') ? 'image/png' : 'image/jpeg';
 
 		return $this->serve_file($portrait_url, $content_type);
+	}
+
+	/**
+	 * @return string
+	 */
+	private function lang_not_found(): string
+	{
+		$this->language->add_lang('wow', 'avathar/bbguildwow');
+		return $this->language->lang('WOW_ASSET_NOT_FOUND');
 	}
 
 	/**
@@ -112,7 +127,7 @@ class asset_controller
 
 		if ($real_path === false || $allowed_base === false || strpos($real_path, $allowed_base) !== 0)
 		{
-			return new Response('Not found', 404);
+			return new Response($this->lang_not_found(), 404);
 		}
 
 		$response = new BinaryFileResponse($real_path);

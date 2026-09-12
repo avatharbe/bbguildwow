@@ -19,6 +19,8 @@ services:
             - '%avathar.bbguild.tables.bb_players%'
             - '%avathar.bbguild.tables.bb_ranks%'
             - '@filesystem'
+        calls:
+            - [set_language, ['@language']]
 
     avathar.bbguildwow.provider:
         class: avathar\bbguildwow\game\wow_provider
@@ -46,6 +48,7 @@ services:
         class: avathar\bbguildwow\controller\asset_controller
         arguments:
             - '@dbal.conn'
+            - '@language'
             - '%core.root_path%'
             - '%avathar.bbguild.tables.bb_guild%'
             - '%avathar.bbguild.tables.bb_players%'
@@ -76,6 +79,8 @@ services:
             - '%avathar.bbguildwow.tables.bb_relations_table%'
             - '%avathar.bbguildwow.tables.bb_guild_wow%'
             - '%avathar.bbguildwow.tables.bb_achievement_category%'
+        calls:
+            - [set_language, ['@language']]
 
     # --- Controllers ---
 
