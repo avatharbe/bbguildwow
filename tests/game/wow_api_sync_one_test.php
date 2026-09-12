@@ -98,6 +98,9 @@ class wow_api_sync_one_test extends TestCase
 
 	public function test_sync_one_specs_404_marks_unavailable(): void
 	{
+		// Default $mark_unavailable (no 3rd argument) must still write the
+		// sentinel — this is the guild-batch path's existing behaviour and
+		// must not regress now that sync_character() (#362) needs to opt out.
 		$this->character->scripted_response = array(
 			'response' => array('code' => 404),
 			'response_headers' => array('http_code' => 404),
@@ -111,6 +114,20 @@ class wow_api_sync_one_test extends TestCase
 
 		$this->assertSame(array('success' => false, 'error_code' => 404, 'stop_batch' => false), $result);
 		$this->assertStringContainsString("player_spec = 'N/A'", $captured_sql);
+	}
+
+	public function test_sync_one_specs_404_with_mark_unavailable_false_skips_sentinel_write(): void
+	{
+		$this->character->scripted_response = array(
+			'response' => array('code' => 404),
+			'response_headers' => array('http_code' => 404),
+		);
+		$this->db->expects($this->never())->method('sql_query');
+
+		$player = array('player_id' => 42, 'player_name' => 'Sajaki', 'player_realm' => 'argent-dawn');
+		$result = $this->invoke_protected('sync_one_specs', array($player, $this->battlenet, false));
+
+		$this->assertSame(array('success' => false, 'error_code' => 404, 'stop_batch' => false), $result);
 	}
 
 	public function test_sync_one_specs_500_sets_stop_batch(): void
@@ -192,5 +209,39 @@ class wow_api_sync_one_test extends TestCase
 		$result = $this->invoke_protected('sync_one_portrait', array($player, $this->battlenet, '/tmp/portraits/', 'files/bbguildwow/portraits/', 'files', '/tmp/'));
 
 		$this->assertSame(array('success' => false, 'error_code' => 'no_avatar', 'stop_batch' => false), $result);
+	}
+
+	public function test_sync_one_portrait_404_marks_unavailable(): void
+	{
+		// Default $mark_unavailable (no 7th argument) must write the
+		// sentinel — matches sync_one_specs()'s default-preserved behaviour
+		// for the existing guild-batch path (#362).
+		$this->character->scripted_response = array(
+			'response' => array('code' => 404),
+			'response_headers' => array('http_code' => 404),
+		);
+		$captured_sql = '';
+		$this->db->expects($this->once())->method('sql_query')
+			->with($this->callback(function ($sql) use (&$captured_sql) { $captured_sql = $sql; return true; }));
+
+		$player = array('player_id' => 42, 'player_name' => 'Sajaki', 'player_realm' => 'argent-dawn');
+		$result = $this->invoke_protected('sync_one_portrait', array($player, $this->battlenet, '/tmp/portraits/', 'files/bbguildwow/portraits/', 'files', '/tmp/'));
+
+		$this->assertSame(array('success' => false, 'error_code' => 404, 'stop_batch' => false), $result);
+		$this->assertStringContainsString("player_portrait_url = 'N/A'", $captured_sql);
+	}
+
+	public function test_sync_one_portrait_404_with_mark_unavailable_false_skips_sentinel_write(): void
+	{
+		$this->character->scripted_response = array(
+			'response' => array('code' => 404),
+			'response_headers' => array('http_code' => 404),
+		);
+		$this->db->expects($this->never())->method('sql_query');
+
+		$player = array('player_id' => 42, 'player_name' => 'Sajaki', 'player_realm' => 'argent-dawn');
+		$result = $this->invoke_protected('sync_one_portrait', array($player, $this->battlenet, '/tmp/portraits/', 'files/bbguildwow/portraits/', 'files', '/tmp/', false));
+
+		$this->assertSame(array('success' => false, 'error_code' => 404, 'stop_batch' => false), $result);
 	}
 }

@@ -414,11 +414,19 @@ class wow_api implements game_api_interface
 	 * sync_specs()'s per-player loop body so it can be shared with
 	 * sync_character() (#362).
 	 *
-	 * @param array     $player  Row with at least player_id, player_name, player_realm
-	 * @param battlenet $api     Facade with ->character set
+	 * @param array     $player           Row with at least player_id, player_name, player_realm
+	 * @param battlenet $api              Facade with ->character set
+	 * @param bool      $mark_unavailable Whether to write the 'N/A' sentinel on a 404. Safe
+	 *                                    to default true for the guild-batch callers below,
+	 *                                    whose own SELECT only ever returns players with an
+	 *                                    already-empty player_spec — the sentinel can only
+	 *                                    overwrite emptiness there. sync_character() (#362)
+	 *                                    has no such guarantee (any stale player row, spec
+	 *                                    populated or not) and must pass false to avoid
+	 *                                    blanking real data on a transient 404.
 	 * @return array{success: bool, error_code: string|int|null, stop_batch: bool}
 	 */
-	protected function sync_one_specs(array $player, battlenet $api): array
+	protected function sync_one_specs(array $player, battlenet $api, bool $mark_unavailable = true): array
 	{
 		$response = $api->character->getCharacterSpecializations(
 			$player['player_realm'],
@@ -435,7 +443,7 @@ class wow_api implements game_api_interface
 				$error_code = 'unknown';
 			}
 
-			if ($http_code === 404)
+			if ($http_code === 404 && $mark_unavailable)
 			{
 				$this->db->sql_query('UPDATE ' . $this->bb_players_table .
 					" SET player_spec = 'N/A'" .
@@ -540,11 +548,15 @@ class wow_api implements game_api_interface
 	 * @param battlenet $api           Facade with ->character set
 	 * @param string    $portrait_dir  Absolute filesystem path
 	 * @param string    $portrait_rel  Path relative to phpBB root, stored in DB
-	 * @param string    $upload_path   phpBB's configured upload_path
+	 * @param string    $upload_path      phpBB's configured upload_path
 	 * @param string    $phpbb_root_path
+	 * @param bool      $mark_unavailable Whether to write the 'N/A' sentinel on a 404. See
+	 *                                    sync_one_specs()'s matching parameter for the full
+	 *                                    rationale — same guild-batch-safe/sync_character-unsafe
+	 *                                    distinction applies here.
 	 * @return array{success: bool, error_code: string|int|null, stop_batch: bool}
 	 */
-	protected function sync_one_portrait(array $player, battlenet $api, string $portrait_dir, string $portrait_rel, string $upload_path, string $phpbb_root_path): array
+	protected function sync_one_portrait(array $player, battlenet $api, string $portrait_dir, string $portrait_rel, string $upload_path, string $phpbb_root_path, bool $mark_unavailable = true): array
 	{
 		$response = $api->character->getCharacterMedia($player['player_realm'], $player['player_name']);
 		$data = isset($response['response']) ? $response['response'] : null;
@@ -558,7 +570,7 @@ class wow_api implements game_api_interface
 				$error_code = 'unknown';
 			}
 
-			if ($http_code === 404)
+			if ($http_code === 404 && $mark_unavailable)
 			{
 				$this->db->sql_query('UPDATE ' . $this->bb_players_table .
 					" SET player_portrait_url = 'N/A'" .
@@ -1058,20 +1070,53 @@ class wow_api implements game_api_interface
 			return false;
 		}
 
-		$ext_path = $this->get_ext_path($phpbb_container);
-		$api = $this->create_battlenet('character', $player_row['player_region'], $game->getApikey(), $game->get_apilocale(), $game->get_privkey(), $ext_path);
+		// Resolve the owning guild's edition — mirrors
+		// controller/portrait_controller.php's do_sync_roster() pattern. Every
+		// other single-character wow_api method threads $edition explicitly;
+		// omitting it here would 404 every request for Classic-edition guilds
+		// forever, since the Battle.net namespace differs per edition (#362).
+		$sql = 'SELECT game_edition FROM ' . $phpbb_container->getParameter('avathar.bbguild.tables.bb_guild') .
+			' WHERE id = ' . (int) $player_row['player_guild_id'];
+		$result = $this->db->sql_query($sql);
+		$guild_row = $this->db->sql_fetchrow($result);
+		$this->db->sql_freeresult($result);
 
-		$specs_outcome = $this->sync_one_specs($player_row, $api);
+		$edition = !empty($guild_row['game_edition']) ? $guild_row['game_edition'] : 'retail';
+
+		$ext_path = $this->get_ext_path($phpbb_container);
+		$api = $this->create_battlenet('character', $player_row['player_region'], $game->getApikey(), $game->get_apilocale(), $game->get_privkey(), $ext_path, 3600, $edition);
+
+		// mark_unavailable=false on both 404-sentinel-writing sub-syncs: unlike
+		// the guild-batch callers, sync_character() can be handed ANY stale
+		// character (bbguild core's character_sync cron has no filter on
+		// whether player_spec/player_portrait_url are already populated), so a
+		// transient 404 must never blank out real, previously-synced data.
+		$specs_outcome = $this->sync_one_specs($player_row, $api, false);
+		if ($specs_outcome['stop_batch'])
+		{
+			unset($api);
+			return false;
+		}
 
 		$equipment_table = $phpbb_container->getParameter('avathar.bbguildwow.tables.bb_player_equipment');
 		$stat_table = $phpbb_container->getParameter('avathar.bbguildwow.tables.bb_player_item_stat');
 		$equipment_outcome = $this->sync_one_equipment($player_row, $api, $equipment_table, $stat_table);
+		if ($equipment_outcome['stop_batch'])
+		{
+			unset($api);
+			return false;
+		}
 
 		$upload_path = $phpbb_container->get('config')['upload_path'];
 		$portrait_rel = $upload_path . '/bbguildwow/portraits/';
 		$portrait_dir = $phpbb_root_path . $portrait_rel;
 		$this->ensure_dir($portrait_dir);
-		$portrait_outcome = $this->sync_one_portrait($player_row, $api, $portrait_dir, $portrait_rel, $upload_path, $phpbb_root_path);
+		$portrait_outcome = $this->sync_one_portrait($player_row, $api, $portrait_dir, $portrait_rel, $upload_path, $phpbb_root_path, false);
+		if ($portrait_outcome['stop_batch'])
+		{
+			unset($api);
+			return false;
+		}
 
 		unset($api);
 

@@ -24,18 +24,29 @@ class wow_api_with_stubbed_sync_one extends wow_api
 	public $stub_game;
 	public $create_battlenet_called = false;
 
-	protected function sync_one_specs(array $player, $api): array
+	/** @var string|null Edition argument captured from the last create_battlenet() call (#362) */
+	public $create_battlenet_edition_arg;
+
+	/** @var int Incremented on each sync_one_equipment() call, so short-circuit tests (#362) can assert it stays 0 */
+	public $equipment_call_count = 0;
+
+	/** @var int Incremented on each sync_one_portrait() call, so short-circuit tests (#362) can assert it stays 0 */
+	public $portrait_call_count = 0;
+
+	protected function sync_one_specs(array $player, $api, bool $mark_unavailable = true): array
 	{
 		return $this->specs_result;
 	}
 
 	protected function sync_one_equipment(array $player, $api, string $equipment_table, string $stat_table): array
 	{
+		$this->equipment_call_count++;
 		return $this->equipment_result;
 	}
 
-	protected function sync_one_portrait(array $player, $api, string $portrait_dir, string $portrait_rel, string $upload_path, string $phpbb_root_path): array
+	protected function sync_one_portrait(array $player, $api, string $portrait_dir, string $portrait_rel, string $upload_path, string $phpbb_root_path, bool $mark_unavailable = true): array
 	{
+		$this->portrait_call_count++;
 		return $this->portrait_result;
 	}
 
@@ -52,6 +63,7 @@ class wow_api_with_stubbed_sync_one extends wow_api
 	protected function create_battlenet(string $api, string $region, string $apikey, string $locale, string $privkey, string $ext_path = '', int $cache_ttl = 3600, string $edition = 'retail'): battlenet
 	{
 		$this->create_battlenet_called = true;
+		$this->create_battlenet_edition_arg = $edition;
 
 		// wow_api_with_stubbed_sync_one is not itself a TestCase (it extends
 		// wow_api, a production class), so PHPUnit's getMockBuilder() isn't
@@ -97,15 +109,27 @@ class wow_api_sync_character_test extends TestCase
 		$container->method('getParameter')->willReturnMap(array(
 			array('avathar.bbguildwow.tables.bb_player_equipment', 'bb_player_equipment'),
 			array('avathar.bbguildwow.tables.bb_player_item_stat', 'bb_player_item_stat'),
+			array('avathar.bbguild.tables.bb_guild', 'bb_guild'),
 		));
 		$container->method('get')->with('config')->willReturn(array('upload_path' => 'files'));
 		$phpbb_container = $container;
 	}
 
-	private function make_api(): wow_api_with_stubbed_sync_one
+	/**
+	 * @param array|null $guild_row Row to script the guild-edition SELECT's sql_fetchrow()
+	 *                              to return (e.g. ['game_edition' => 'classic_era']). Null
+	 *                              leaves the db mock's sql_fetchrow() unconfigured (returns
+	 *                              null), matching a guild row that can't be found — edition
+	 *                              should then fall back to 'retail'.
+	 */
+	private function make_api(array $guild_row = null): wow_api_with_stubbed_sync_one
 	{
 		$cache = $this->createMock(\phpbb\cache\service::class);
 		$db = $this->createMock(\phpbb\db\driver\driver_interface::class);
+		if ($guild_row !== null)
+		{
+			$db->method('sql_fetchrow')->willReturn($guild_row);
+		}
 		$filesystem = new \phpbb\filesystem\filesystem();
 
 		return new wow_api_with_stubbed_sync_one($cache, $db, 'phpbb_guild_wow', 'phpbb_players', 'phpbb_ranks', $filesystem);
@@ -116,8 +140,31 @@ class wow_api_sync_character_test extends TestCase
 		$api = $this->make_api();
 		$api->stub_game = new stub_game('client-id');
 
-		$this->assertTrue($api->sync_character(array('player_id' => 1, 'player_name' => 'Sajaki', 'player_realm' => 'argent-dawn', 'player_region' => 'eu')));
+		$this->assertTrue($api->sync_character(array('player_id' => 1, 'player_name' => 'Sajaki', 'player_realm' => 'argent-dawn', 'player_region' => 'eu', 'player_guild_id' => 7)));
 		$this->assertTrue($api->create_battlenet_called);
+		// No guild row found (db mock's sql_fetchrow() unconfigured) -> edition
+		// must fall back to 'retail' rather than erroring or passing null (#362).
+		$this->assertSame('retail', $api->create_battlenet_edition_arg);
+	}
+
+	public function test_sync_character_resolves_and_passes_guild_edition(): void
+	{
+		$api = $this->make_api(array('game_edition' => 'classic_era'));
+		$api->stub_game = new stub_game('client-id');
+
+		$this->assertTrue($api->sync_character(array('player_id' => 1, 'player_name' => 'Sajaki', 'player_realm' => 'argent-dawn', 'player_region' => 'eu', 'player_guild_id' => 7)));
+		$this->assertSame('classic_era', $api->create_battlenet_edition_arg);
+	}
+
+	public function test_sync_character_stop_batch_short_circuits_remaining_syncs(): void
+	{
+		$api = $this->make_api();
+		$api->stub_game = new stub_game('client-id');
+		$api->specs_result = array('success' => false, 'error_code' => 500, 'stop_batch' => true);
+
+		$this->assertFalse($api->sync_character(array('player_id' => 1, 'player_name' => 'Sajaki', 'player_realm' => 'argent-dawn', 'player_region' => 'eu', 'player_guild_id' => 7)));
+		$this->assertSame(0, $api->equipment_call_count);
+		$this->assertSame(0, $api->portrait_call_count);
 	}
 
 	public function test_sync_character_false_when_specs_fails(): void
@@ -126,7 +173,7 @@ class wow_api_sync_character_test extends TestCase
 		$api->stub_game = new stub_game('client-id');
 		$api->specs_result = array('success' => false, 'error_code' => 404, 'stop_batch' => false);
 
-		$this->assertFalse($api->sync_character(array('player_id' => 1, 'player_name' => 'Sajaki', 'player_realm' => 'argent-dawn', 'player_region' => 'eu')));
+		$this->assertFalse($api->sync_character(array('player_id' => 1, 'player_name' => 'Sajaki', 'player_realm' => 'argent-dawn', 'player_region' => 'eu', 'player_guild_id' => 1)));
 	}
 
 	public function test_sync_character_false_when_equipment_fails(): void
@@ -135,7 +182,7 @@ class wow_api_sync_character_test extends TestCase
 		$api->stub_game = new stub_game('client-id');
 		$api->equipment_result = array('success' => false, 'error_code' => 500, 'stop_batch' => true);
 
-		$this->assertFalse($api->sync_character(array('player_id' => 1, 'player_name' => 'Sajaki', 'player_realm' => 'argent-dawn', 'player_region' => 'eu')));
+		$this->assertFalse($api->sync_character(array('player_id' => 1, 'player_name' => 'Sajaki', 'player_realm' => 'argent-dawn', 'player_region' => 'eu', 'player_guild_id' => 1)));
 	}
 
 	public function test_sync_character_false_when_portrait_fails(): void
@@ -144,7 +191,7 @@ class wow_api_sync_character_test extends TestCase
 		$api->stub_game = new stub_game('client-id');
 		$api->portrait_result = array('success' => false, 'error_code' => 'no_avatar', 'stop_batch' => false);
 
-		$this->assertFalse($api->sync_character(array('player_id' => 1, 'player_name' => 'Sajaki', 'player_realm' => 'argent-dawn', 'player_region' => 'eu')));
+		$this->assertFalse($api->sync_character(array('player_id' => 1, 'player_name' => 'Sajaki', 'player_realm' => 'argent-dawn', 'player_region' => 'eu', 'player_guild_id' => 1)));
 	}
 
 	public function test_sync_character_false_when_credentials_missing_and_never_calls_create_battlenet(): void
