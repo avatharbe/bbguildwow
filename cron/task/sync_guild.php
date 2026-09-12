@@ -13,12 +13,11 @@ use avathar\bbguild\model\admin\log;
 use avathar\bbguildwow\game\wow_api;
 
 /**
- * Periodically syncs the roster (bb_players) of every WoW guild from the
- * Battle.net API. Character profile refresh (ilvl/spec) and the guild
- * activity feed are intentionally out of scope here: profile refresh is
- * owned by bbguild core's character_sync cron via the WoW
- * character_sync_interface handler (avoids double-syncing on two
- * schedules), and activity feed sync has no fetch path yet (bbguildwow#10).
+ * Periodically syncs the roster (bb_players) and activity feed (bb_news)
+ * of every WoW guild from the Battle.net API. Character profile refresh
+ * (ilvl/spec) is intentionally out of scope here — it's owned by bbguild
+ * core's character_sync cron via the WoW character_sync_interface handler,
+ * to avoid double-syncing on two schedules (#11/#362).
  */
 class sync_guild extends \phpbb\cron\task\base
 {
@@ -102,6 +101,9 @@ class sync_guild extends \phpbb\cron\task\base
 
 		$synced = 0;
 		$failed = 0;
+		$activity_synced = 0;
+		$activity_failed = 0;
+
 		foreach ($this->get_wow_guilds() as $guild_row)
 		{
 			if ($this->sync_guild_roster($guild_row, $game_row))
@@ -112,12 +114,28 @@ class sync_guild extends \phpbb\cron\task\base
 			{
 				$failed++;
 			}
+
+			// Independent of roster sync above — a roster failure shouldn't
+			// block activity sync or vice versa (see class docblock).
+			if ($this->sync_guild_activity_feed($guild_row, $game_row))
+			{
+				$activity_synced++;
+			}
+			else
+			{
+				$activity_failed++;
+			}
 		}
 
 		$summary = $synced . ' guild(s) synced';
 		if ($failed > 0)
 		{
 			$summary .= ', ' . $failed . ' failed';
+		}
+		$summary .= '; activity: ' . $activity_synced . ' guild(s) synced';
+		if ($activity_failed > 0)
+		{
+			$summary .= ', ' . $activity_failed . ' failed';
 		}
 		$this->finish_run($summary);
 	}
@@ -234,6 +252,52 @@ class sync_guild extends \phpbb\cron\task\base
 				'log_type'   => 'L_ERROR_ROSTER_SYNCED',
 				'log_result' => 'L_ERROR',
 				'log_action' => array($guild_row['name'], $e->getMessage()),
+			));
+
+			return false;
+		}
+	}
+
+	/**
+	 * Fetch + sync the activity feed for a single guild. Failures are
+	 * logged and swallowed here, independent of sync_guild_roster()'s own
+	 * error handling — one doesn't block the other.
+	 *
+	 * @param array $guild_row
+	 * @param array $game_row
+	 * @return bool True if the guild's activity feed synced without error.
+	 */
+	private function sync_guild_activity_feed(array $guild_row, array $game_row): bool
+	{
+		$guild_id = (int) $guild_row['id'];
+		$region = !empty($guild_row['region']) ? $guild_row['region'] : $game_row['region'];
+		$edition = !empty($guild_row['game_edition']) ? $guild_row['game_edition'] : 'retail';
+
+		try
+		{
+			$data = $this->wow_api->fetch_guild_activity($guild_row['name'], $guild_row['realm'], $region, $edition);
+
+			if (!is_array($data))
+			{
+				$this->bbguild_log->log_insert(array(
+					'log_type'   => 'L_ERROR_ARMORY_DOWN',
+					'log_result' => 'L_ERROR',
+					'log_action' => array($guild_row['name'] . '-' . $guild_row['realm'] . ': activity feed fetch failed.'),
+				));
+				return false;
+			}
+
+			$activities = isset($data['activities']) && is_array($data['activities']) ? $data['activities'] : array();
+			$this->wow_api->sync_guild_activity($guild_id, $activities);
+
+			return true;
+		}
+		catch (\Throwable $e)
+		{
+			$this->bbguild_log->log_insert(array(
+				'log_type'   => 'L_ERROR_ARMORY_DOWN',
+				'log_result' => 'L_ERROR',
+				'log_action' => array($guild_row['name'] . ': ' . $e->getMessage()),
 			));
 
 			return false;

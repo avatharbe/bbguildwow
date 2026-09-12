@@ -45,6 +45,12 @@ class sync_guild_test extends TestCase
 		$this->db->method('sql_freeresult')->willReturn(null);
 		$this->db->method('sql_build_array')->willReturn("'dummy'");
 
+		// Benign defaults for the activity-feed step so tests focused on
+		// roster-sync behavior aren't affected by it. Tests that actually
+		// exercise activity sync override these explicitly.
+		$this->wow_api->method('fetch_guild_activity')->willReturn(array('activities' => array()));
+		$this->wow_api->method('sync_guild_activity')->willReturn(array('inserted' => 0, 'skipped' => 0, 'total' => 0));
+
 		return new \avathar\bbguildwow\cron\task\sync_guild(
 			$this->config,
 			$this->db,
@@ -300,5 +306,107 @@ class sync_guild_test extends TestCase
 		$task->run();
 
 		$this->assertStringContainsString('credentials', (string) $this->config['bbguild_wow_last_sync_result']);
+	}
+
+	public function test_run_syncs_activity_feed_for_each_guild()
+	{
+		$activities = array(array('activity' => array('type' => 'CHARACTER_ACHIEVEMENT')));
+
+		$task = $this->get_task_with_activity_behavior(function ($wow_api) use ($activities) {
+			$wow_api->expects($this->once())
+				->method('fetch_guild_activity')
+				->with('Test Guild', 'Area 52', 'us', 'retail')
+				->willReturn(array('activities' => $activities));
+
+			$wow_api->expects($this->once())
+				->method('sync_guild_activity')
+				->with(5, $activities);
+		});
+
+		$task->run();
+	}
+
+	/**
+	 * Builds a task with a fresh wow_api mock whose fetch_guild_activity()
+	 * behaves per $activity_behavior (a callable applied to the mock's
+	 * expectation), independent of the shared get_task() defaults — used
+	 * by the two isolation tests below.
+	 */
+	private function get_task_with_activity_behavior(callable $activity_behavior)
+	{
+		$defaults = array(
+			'bbguild_wow_sync_enabled'     => 0,
+			'bbguild_wow_sync_interval'    => 21600,
+			'bbguild_wow_last_sync'        => 0,
+			'bbguild_wow_last_sync_result' => '',
+		);
+		$this->config = new \phpbb\config\config($defaults);
+		$this->db = $this->createMock(\phpbb\db\driver\driver_interface::class);
+		$this->db->method('sql_query')->willReturn(true);
+		$this->db->method('sql_freeresult')->willReturn(null);
+		$this->db->method('sql_build_array')->willReturn("'dummy'");
+		$this->db->method('sql_fetchrow')->willReturnOnConsecutiveCalls(
+			$this->make_game_row(),
+			$this->make_guild_row(),
+			false
+		);
+
+		$this->log = $this->getMockBuilder(\avathar\bbguild\model\admin\log::class)
+			->disableOriginalConstructor()
+			->getMock();
+
+		$this->wow_api = $this->getMockBuilder(\avathar\bbguildwow\game\wow_api::class)
+			->disableOriginalConstructor()
+			->getMock();
+		$this->wow_api->method('fetch_guild_data')->willReturn(array('members' => array()));
+		$this->wow_api->method('process_guild_data')->willReturn(array());
+		$activity_behavior($this->wow_api);
+
+		return new \avathar\bbguildwow\cron\task\sync_guild(
+			$this->config,
+			$this->db,
+			$this->log,
+			$this->wow_api,
+			'phpbb_bb_guild',
+			'phpbb_bb_games'
+		);
+	}
+
+	public function test_run_logs_error_and_continues_when_activity_fetch_fails()
+	{
+		$task = $this->get_task_with_activity_behavior(function ($wow_api) {
+			$wow_api->method('fetch_guild_activity')->willReturn(false);
+			$wow_api->expects($this->never())->method('sync_guild_activity');
+		});
+
+		$log_types = array();
+		$this->log->method('log_insert')->willReturnCallback(function ($values) use (&$log_types) {
+			$log_types[] = $values['log_type'];
+			return true;
+		});
+
+		$task->run();
+
+		$this->assertContains('L_ACTION_ROSTER_SYNCED', $log_types);
+		$this->assertContains('L_ERROR_ARMORY_DOWN', $log_types);
+	}
+
+	public function test_run_isolates_activity_exception_from_roster_sync()
+	{
+		$task = $this->get_task_with_activity_behavior(function ($wow_api) {
+			$wow_api->method('fetch_guild_activity')->willThrowException(new \RuntimeException('boom'));
+		});
+
+		$log_types = array();
+		$this->log->method('log_insert')->willReturnCallback(function ($values) use (&$log_types) {
+			$log_types[] = $values['log_type'];
+			return true;
+		});
+
+		$task->run();
+
+		// Roster sync must still succeed despite the activity-feed exception.
+		$this->assertContains('L_ACTION_ROSTER_SYNCED', $log_types);
+		$this->assertContains('L_ERROR_ARMORY_DOWN', $log_types);
 	}
 }

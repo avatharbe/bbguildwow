@@ -287,6 +287,178 @@ class wow_api implements game_api_interface
 	}
 
 	/**
+	 * Fetch the guild's recent activity feed (boss kills, achievements,
+	 * roster changes, item loots) from the Battle.net Guild Activity API.
+	 *
+	 * @param string $guild_name
+	 * @param string $realm
+	 * @param string $region
+	 * @param string $edition
+	 * @return array|false The raw activity response, or false on missing
+	 *                      credentials or a malformed/error response.
+	 */
+	public function fetch_guild_activity(string $guild_name, string $realm, string $region, string $edition = 'retail')
+	{
+		global $phpbb_container;
+
+		$game = $this->get_game_from_db($phpbb_container);
+		if (!$game || trim($game->getApikey()) == '')
+		{
+			return false;
+		}
+
+		$ext_path = $this->get_ext_path($phpbb_container);
+		$realm_slug = $this->to_slug($realm);
+		$name_slug = $this->to_slug($guild_name);
+
+		$api = $this->create_battlenet('guild', $region, $game->getApikey(), $game->get_apilocale(), $game->get_privkey(), $ext_path, 3600, $edition);
+		$activity_data = $api->guild->getActivity($realm_slug, $name_slug);
+		unset($api);
+
+		if (!isset($activity_data['response']) || !is_array($activity_data['response']))
+		{
+			return false;
+		}
+
+		return $activity_data['response'];
+	}
+
+	/**
+	 * Sync a guild's fetched activity feed into bb_news, skipping entries
+	 * already recorded (by news_source_key) so repeated cron runs don't
+	 * duplicate rows.
+	 *
+	 * NOTE: the exact Battle.net Guild Activity response shape (activity
+	 * type strings, nested field names beyond `activity.type`/`timestamp`/
+	 * `character.name`) has not been verified against a live guild — the
+	 * text built here is deliberately generic (type + character name only)
+	 * rather than guessing at per-type field mappings that could be wrong.
+	 * Dedup/storage correctness does not depend on that mapping being
+	 * exact. Revisit once a real response is available (#10 follow-up).
+	 *
+	 * @param int   $guild_id
+	 * @param array $activities Raw entries from fetch_guild_activity()'s
+	 *                          response['activities'] array.
+	 * @return array ['inserted' => int, 'skipped' => int, 'total' => int]
+	 */
+	public function sync_guild_activity(int $guild_id, array $activities): array
+	{
+		global $phpbb_container;
+
+		$news_table = $phpbb_container->getParameter('avathar.bbguild.tables.bb_news');
+
+		$existing_keys = $this->get_existing_activity_keys($guild_id, $news_table);
+
+		$inserted = 0;
+		$skipped = 0;
+
+		foreach ($activities as $activity)
+		{
+			$key = $this->build_activity_source_key($guild_id, $activity);
+
+			if (isset($existing_keys[$key]))
+			{
+				$skipped++;
+				continue;
+			}
+
+			$this->insert_activity_news($guild_id, $news_table, $activity, $key);
+			$existing_keys[$key] = true;
+			$inserted++;
+		}
+
+		return array('inserted' => $inserted, 'skipped' => $skipped, 'total' => count($activities));
+	}
+
+	/**
+	 * @param int    $guild_id
+	 * @param string $news_table
+	 * @return array Set (news_source_key => true) of already-recorded keys.
+	 */
+	private function get_existing_activity_keys(int $guild_id, string $news_table): array
+	{
+		$sql = 'SELECT news_source_key FROM ' . $news_table .
+			' WHERE guild_id = ' . $guild_id . " AND news_source = 'api'";
+		$result = $this->db->sql_query($sql);
+
+		$keys = array();
+		while ($row = $this->db->sql_fetchrow($result))
+		{
+			$keys[$row['news_source_key']] = true;
+		}
+		$this->db->sql_freeresult($result);
+
+		return $keys;
+	}
+
+	/**
+	 * Builds a stable, structure-based dedup key — independent of whether
+	 * describe_activity_headline()'s text mapping is exactly right, since
+	 * it hashes the raw activity entry rather than the derived text.
+	 *
+	 * @param int   $guild_id
+	 * @param array $activity
+	 * @return string
+	 */
+	private function build_activity_source_key(int $guild_id, array $activity): string
+	{
+		$timestamp = isset($activity['timestamp']) ? (string) $activity['timestamp'] : '';
+		$type = isset($activity['activity']['type']) ? (string) $activity['activity']['type'] : 'unknown';
+
+		return 'wow_activity_' . $guild_id . '_' . $timestamp . '_' . $type . '_' . md5(json_encode($activity));
+	}
+
+	/**
+	 * @param int    $guild_id
+	 * @param string $news_table
+	 * @param array  $activity
+	 * @param string $source_key
+	 */
+	private function insert_activity_news(int $guild_id, string $news_table, array $activity, string $source_key): void
+	{
+		// Plain server-generated label, no bbcode/HTML involved — stored as-is
+		// (empty uid/bitfield/options=0), matching how generate_text_for_display()
+		// already renders an empty bitfield as plain text (see guild_news.php).
+		$headline = $this->describe_activity_headline($activity);
+
+		$timestamp = isset($activity['timestamp']) ? (int) ((int) $activity['timestamp'] / 1000) : time();
+
+		$data = array(
+			'guild_id'        => $guild_id,
+			'news_headline'   => $headline,
+			'news_message'    => $headline,
+			'news_date'       => $timestamp,
+			'user_id'         => 0,
+			'bbcode_bitfield' => '',
+			'bbcode_uid'      => '',
+			'bbcode_options'  => 0,
+			'news_source'     => 'api',
+			'news_source_key' => $source_key,
+		);
+
+		$sql = 'INSERT INTO ' . $news_table . ' ' . $this->db->sql_build_array('INSERT', $data);
+		$this->db->sql_query($sql);
+	}
+
+	/**
+	 * Best-effort, deliberately generic activity label — see the
+	 * sync_guild_activity() docblock for why this doesn't attempt
+	 * per-type field mapping.
+	 *
+	 * @param array $activity
+	 * @return string
+	 */
+	private function describe_activity_headline(array $activity): string
+	{
+		$type = isset($activity['activity']['type']) ? (string) $activity['activity']['type'] : 'activity';
+		$label = ucwords(strtolower(str_replace('_', ' ', $type)));
+
+		$character = isset($activity['character']['name']) ? (string) $activity['character']['name'] : '';
+
+		return $character !== '' ? $character . ' — ' . $label : $label;
+	}
+
+	/**
 	 * @inheritdoc
 	 */
 	public function process_guild_data(array $raw_data, array $params): array

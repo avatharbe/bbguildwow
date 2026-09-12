@@ -101,4 +101,28 @@ class battlenet_guild extends battlenet_resource
 
 		return $this->consume($realm_slug . '/' . $name_slug . '/roster', array());
 	}
+
+	/**
+	 * Fetch guild activity feed (boss kills, achievements, roster changes, loots).
+	 *
+	 * @param string $realm_slug Lowercase hyphenated realm slug
+	 * @param string $name_slug  Lowercase hyphenated guild name slug
+	 * @return array
+	 */
+	public function getActivity(string $realm_slug, string $name_slug): array
+	{
+		global $user;
+
+		if ($name_slug === '')
+		{
+			throw new battlenet_api_exception($user->lang['WOWAPI_NO_GUILD']);
+		}
+
+		if ($realm_slug === '')
+		{
+			throw new battlenet_api_exception($user->lang['WOWAPI_NO_REALMS']);
+		}
+
+		return $this->consume($realm_slug . '/' . $name_slug . '/activity', array());
+	}
 }
