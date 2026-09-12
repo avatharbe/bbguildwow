@@ -60,6 +60,28 @@ class wow_api_with_mock_character extends wow_api
  */
 class sync_portraits_test extends mock_battlenet_test_case
 {
+	static protected function setup_extensions()
+	{
+		return array('avathar/bbguild', 'avathar/bbguildwow');
+	}
+
+	protected function setUp(): void
+	{
+		parent::setUp();
+
+		// sync_portraits() reads global $phpbb_container->get('config')['upload_path']
+		// directly (it's called in-process, not through the board under test's own
+		// HTTP-driven container) — this test's in-process $phpbb_container is the
+		// bare phpbb_mock_container_builder the functional test framework leaves
+		// behind, which has no 'config' service registered. Populate the one key
+		// this code path needs.
+		global $phpbb_container;
+		if (!$phpbb_container->has('config'))
+		{
+			$phpbb_container->set('config', new \phpbb\config\config(array('upload_path' => 'files')));
+		}
+	}
+
 	private function get_table_prefix(): string
 	{
 		return self::$config['table_prefix'];
@@ -84,17 +106,24 @@ class sync_portraits_test extends mock_battlenet_test_case
 		return (int) $db->sql_nextid();
 	}
 
+	/**
+	 * No real DI container is reachable from inside a phpbb_functional_test_case
+	 * subclass (Goutte drives the board under test over real HTTP, in a
+	 * separate PHP process — there is no in-process container to fetch).
+	 * Every dependency wow_api's constructor needs is either directly
+	 * constructible (filesystem, table-name strings via table_prefix) or,
+	 * for $cache, inert here: create_battlenet() is overridden below and
+	 * never touches $this->cache, so any \phpbb\cache\service stand-in works.
+	 */
 	private function make_api(): wow_api_with_mock_character
 	{
-		$container = $this->get_container();
-
 		return new wow_api_with_mock_character(
-			$container->get('cache'),
+			$this->make_stateful_cache(),
 			$this->get_db(),
-			$container->getParameter('avathar.bbguildwow.tables.bb_guild_wow'),
+			$this->get_table_prefix() . 'bb_guild_wow',
 			$this->get_table_prefix() . 'bb_players',
-			$container->getParameter('avathar.bbguild.tables.bb_ranks'),
-			$container->get('filesystem')
+			$this->get_table_prefix() . 'bb_ranks',
+			new \phpbb\filesystem\filesystem()
 		);
 	}
 
@@ -137,12 +166,15 @@ class sync_portraits_test extends mock_battlenet_test_case
 	{
 		$this->configure_mock_routes(array(
 			'/token' => array(array('status' => 200, 'body' => array('access_token' => 'tok', 'expires_in' => 3600))),
-			'/profile/wow/character/area-52/sajaki/character-media' => array(
+			'/profile/wow/character/area-53/sajaki/character-media' => array(
 				array('status' => 404, 'body' => array('code' => 404, 'detail' => 'Not Found')),
 			),
 		));
 
-		$player_id = $this->seed_player('Sajaki', 'area-52');
+		// Distinct realm from the other tests in this class — phpbb_functional_test_case
+		// does not reset DB state between test methods, and bb_players has a
+		// UNIQUE(player_guild_id, player_name, player_realm) constraint.
+		$player_id = $this->seed_player('Sajaki', 'area-53');
 
 		$api = $this->make_api();
 		$api->mock_resource = new mock_battlenet_character_for_portraits($this->make_stateful_cache(), self::base_url(), 'us');
@@ -161,12 +193,13 @@ class sync_portraits_test extends mock_battlenet_test_case
 	{
 		$this->configure_mock_routes(array(
 			'/token' => array(array('status' => 200, 'body' => array('access_token' => 'tok', 'expires_in' => 3600))),
-			'/profile/wow/character/area-52/sajaki/character-media' => array(
+			'/profile/wow/character/area-54/sajaki/character-media' => array(
 				array('status' => 200, 'body' => array('assets' => array())),
 			),
 		));
 
-		$player_id = $this->seed_player('Sajaki', 'area-52');
+		// Distinct realm from the other tests in this class — see note above.
+		$player_id = $this->seed_player('Sajaki', 'area-54');
 
 		$api = $this->make_api();
 		$api->mock_resource = new mock_battlenet_character_for_portraits($this->make_stateful_cache(), self::base_url(), 'us');
