@@ -604,7 +604,6 @@ class achievement
 	public function setAchievements(guilds $Guild, game $game): array
 	{
 		$db = $this->db;
-		$cache = $this->cache;
 
 		if (!$game->getArmoryEnabled())
 		{
@@ -879,8 +878,6 @@ class achievement
 	 */
 	private function fetch_achievement_detail(int $achievement_id, game $game)
 	{
-		$cache = $this->cache;
-
 		$api = $this->create_battlenet('achievement', $game->getRegion(), $game->getApikey(),
 			$game->get_apilocale(), $game->get_privkey(), '', 3600, $this->edition);
 		$response = $api->achievement->getAchievementDetail($achievement_id);
@@ -1156,7 +1153,6 @@ class achievement
 	public function syncCategories(game $game): array
 	{
 		$db = $this->db;
-		$cache = $this->cache;
 
 		if (!$game->getArmoryEnabled())
 		{
