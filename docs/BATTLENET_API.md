@@ -139,6 +139,38 @@ OAuth tokens are cached separately:
 
 **Request:** `GET /achievement/{id}?locale={locale}`
 
+## Guild Activity API (#10)
+
+**Note:** unlike the Guild/Character/Realm/Achievement sections above (legacy
+Community API shape), this section reflects the actual modern **Game Data
+API** implementation — OAuth 2.0, `Battlenet-Namespace` header, `data/wow/`
+path prefix — matching what `api/battlenet_resource.php`/`battlenet_guild.php`
+actually send.
+
+**Request:** `GET /data/wow/guild/{realmSlug}/{nameSlug}/activity?namespace=profile-{region}&locale={locale}` (`battlenet_guild::getActivity()`)
+
+Returns recent guild activity: boss kills, achievements earned by members,
+members joined/left, item loots — see `bbguildwow#10`'s original issue for
+the intended categories.
+
+**Sync path:** `wow_api::fetch_guild_activity()` calls this and returns the
+raw `response` array; `wow_api::sync_guild_activity(int $guild_id, array
+$activities)` maps entries into `bb_news` (`news_source = 'api'`), skipping
+any whose `news_source_key` (a hash of the raw entry — guild id + timestamp +
+`activity.type` + full-entry md5) is already present, so repeated cron runs
+don't duplicate rows.
+
+**Known gap:** the exact response shape — specifically the enumeration of
+`activity.type` values and the nested field names beyond `activity.type` /
+`timestamp` / `character.name` (e.g. what an achievement entry's detail
+object looks like) — has not been verified against a live guild's actual API
+response. `describe_activity_headline()` in `wow_api.php` therefore builds
+news text generically (humanized type string + character name, if present)
+rather than asserting specific per-type field mappings it can't confirm.
+Dedup/storage correctness doesn't depend on getting that mapping right, but
+the displayed text quality would improve once a real response — or a
+`mock_battlenet_server.php`-style fixture — is available to verify against.
+
 ## Error Handling
 
 The API returns structured error responses:
@@ -189,7 +221,8 @@ Set per guild — only characters at or above this level will be imported during
 | `game/wow_api.php` | Implements `game_api_interface`, orchestrates API calls |
 | `api/battlenet.php` | Factory — creates resource instances per API type |
 | `api/battlenet_resource.php` | Abstract base — OAuth 2.0 auth, caching, HTTP requests |
-| `api/battlenet_guild.php` | Guild resource — `getGuild()` |
+| `api/battlenet_guild.php` | Guild resource — `getGuild()`, `getRoster()`, `getAchievements()`, `getActivity()` |
 | `api/battlenet_character.php` | Character resource — `getCharacter()` |
 | `api/battlenet_realm.php` | Realm resource — `getRealmStatus()` |
 | `api/battlenet_achievement.php` | Achievement resource — `getAchievementDetail()` |
+| `cron/task/sync_guild.php` | Scheduled roster + activity feed sync (#11/#10) |

@@ -125,9 +125,13 @@ ext/avathar/bbguildwow/
 │   ├── battlenet.php                # API factory
 │   ├── battlenet_resource.php       # Abstract base (URL building, caching, auth)
 │   ├── battlenet_character.php      # Character API resource
-│   ├── battlenet_guild.php          # Guild API resource
+│   ├── battlenet_guild.php          # Guild API resource — getGuild/getRoster/getAchievements/getActivity
 │   ├── battlenet_realm.php          # Realm API resource
 │   └── battlenet_achievement.php    # Achievement API resource
+├── cron/task/
+│   └── sync_guild.php               # Scheduled roster + activity feed sync (#11/#10)
+├── sync/
+│   └── character_sync_handler.php   # bbGuild core's per-character character_sync_interface (#362)
 └── docs/
     └── ...
 ```
