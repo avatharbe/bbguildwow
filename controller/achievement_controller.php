@@ -16,6 +16,7 @@ namespace avathar\bbguildwow\controller;
 
 use avathar\bbguildwow\model\achievement;
 use phpbb\db\driver\driver_interface;
+use phpbb\language\language;
 use phpbb\request\request;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
@@ -29,6 +30,9 @@ class achievement_controller
 
 	/** @var request */
 	protected $request;
+
+	/** @var language */
+	protected $language;
 
 	/** @var string */
 	protected $achievement_table;
@@ -52,6 +56,7 @@ class achievement_controller
 		achievement $achievement_model,
 		driver_interface $db,
 		request $request,
+		language $language,
 		string $achievement_table,
 		string $achievement_track_table,
 		string $achievement_category_table,
@@ -63,6 +68,7 @@ class achievement_controller
 		$this->achievement_model = $achievement_model;
 		$this->db = $db;
 		$this->request = $request;
+		$this->language = $language;
 		$this->achievement_table = $achievement_table;
 		$this->achievement_track_table = $achievement_track_table;
 		$this->achievement_category_table = $achievement_category_table;
@@ -94,6 +100,8 @@ class achievement_controller
 	 */
 	public function achievement_list($guild_id, $category_id)
 	{
+		$this->language->add_lang('wow', 'avathar/bbguildwow');
+
 		$guild_id = (int) $guild_id;
 		$category_id = (int) $category_id;
 		$db = $this->db;
@@ -107,7 +115,7 @@ class achievement_controller
 
 		if ($category_name === false)
 		{
-			return new JsonResponse(array('error' => 'Category not found'), 404);
+			return new JsonResponse(array('error' => $this->language->lang('WOW_ACHIEV_CATEGORY_NOT_FOUND')), 404);
 		}
 
 		// Get all category IDs (this category + its children)
@@ -180,6 +188,8 @@ class achievement_controller
 	 */
 	public function achievement_detail($guild_id, $achievement_id)
 	{
+		$this->language->add_lang('wow', 'avathar/bbguildwow');
+
 		$guild_id = (int) $guild_id;
 		$achievement_id = (int) $achievement_id;
 		$db = $this->db;
@@ -198,7 +208,7 @@ class achievement_controller
 
 		if (!$row)
 		{
-			return new JsonResponse(array('error' => 'Achievement not found'), 404);
+			return new JsonResponse(array('error' => $this->language->lang('WOW_ACHIEV_NOT_FOUND')), 404);
 		}
 
 		$completed = (int) $row['achievements_completed'];

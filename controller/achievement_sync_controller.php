@@ -19,6 +19,7 @@ use avathar\bbguild\model\games\game;
 use avathar\bbguild\model\player\guilds;
 use phpbb\auth\auth;
 use phpbb\db\driver\driver_interface;
+use phpbb\language\language;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
 class achievement_sync_controller
@@ -35,6 +36,9 @@ class achievement_sync_controller
 	/** @var auth */
 	protected $auth;
 
+	/** @var language */
+	protected $language;
+
 	/** @var string */
 	protected $guild_table;
 
@@ -49,6 +53,7 @@ class achievement_sync_controller
 		driver_interface $db,
 		log $bbguildlog,
 		auth $auth,
+		language $language,
 		string $guild_table,
 		string $games_table,
 		string $achievement_table
@@ -58,6 +63,7 @@ class achievement_sync_controller
 		$this->db = $db;
 		$this->bbguildlog = $bbguildlog;
 		$this->auth = $auth;
+		$this->language = $language;
 		$this->guild_table = $guild_table;
 		$this->games_table = $games_table;
 		$this->achievement_table = $achievement_table;
@@ -74,9 +80,11 @@ class achievement_sync_controller
 	 */
 	private function check_auth(): ?JsonResponse
 	{
+		$this->language->add_lang('wow', 'avathar/bbguildwow');
+
 		if (!$this->auth->acl_get('a_bbguild'))
 		{
-			return new JsonResponse(array('error' => 'Insufficient permissions.', 'done' => true), 403);
+			return new JsonResponse(array('error' => $this->language->lang('WOW_SYNC_INSUFFICIENT_PERMISSIONS'), 'done' => true), 403);
 		}
 		return null;
 	}
@@ -142,7 +150,7 @@ class achievement_sync_controller
 			$this->bbguildlog->log_insert(array(
 				'log_type'   => $sync_result['success'] ? 'L_ACTION_SPECS_SYNCED' : 'L_ERROR_SPECS_SYNCED',
 				'log_result' => $sync_result['success'] ? 'L_SUCCESS' : 'L_ERROR',
-				'log_action' => [$guild->getName(), 'Categories: ' . $sync_result['message']],
+				'log_action' => [$guild->getName(), $this->language->lang('WOW_SYNC_LOG_CATEGORIES', $sync_result['message'])],
 			));
 		}
 
@@ -216,7 +224,7 @@ class achievement_sync_controller
 			$this->bbguildlog->log_insert(array(
 				'log_type'   => $sync_result['success'] ? 'L_ACTION_SPECS_SYNCED' : 'L_ERROR_SPECS_SYNCED',
 				'log_result' => $sync_result['success'] ? 'L_SUCCESS' : 'L_ERROR',
-				'log_action' => [$guild->getName(), 'Achievements: ' . $sync_result['message']],
+				'log_action' => [$guild->getName(), $this->language->lang('WOW_SYNC_LOG_ACHIEVEMENTS', $sync_result['message'])],
 			));
 		}
 
@@ -246,7 +254,7 @@ class achievement_sync_controller
 
 		if (!$row || $row['game_id'] !== 'wow')
 		{
-			return new JsonResponse(array('error' => 'Guild not found or not a WoW guild', 'done' => true), 400);
+			return new JsonResponse(array('error' => $this->language->lang('WOW_SYNC_GUILD_NOT_WOW'), 'done' => true), 400);
 		}
 
 		try
@@ -272,7 +280,7 @@ class achievement_sync_controller
 		}
 		catch (\Exception $e)
 		{
-			return new JsonResponse(array('error' => 'Could not load game: ' . $e->getMessage(), 'done' => true), 500);
+			return new JsonResponse(array('error' => $this->language->lang('WOW_SYNC_GAME_LOAD_FAILED', $e->getMessage()), 'done' => true), 500);
 		}
 	}
 
@@ -309,7 +317,7 @@ class achievement_sync_controller
 		}
 		catch (\Exception $e)
 		{
-			return new JsonResponse(array('error' => 'Could not load guild: ' . $e->getMessage(), 'done' => true), 500);
+			return new JsonResponse(array('error' => $this->language->lang('WOW_SYNC_GUILD_LOAD_FAILED', $e->getMessage()), 'done' => true), 500);
 		}
 	}
 }
