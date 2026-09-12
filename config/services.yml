@@ -33,6 +33,13 @@ services:
         tags:
             - { name: bbguild.game_provider }
 
+    avathar.bbguildwow.character_sync_handler:
+        class: avathar\bbguildwow\sync\character_sync_handler
+        arguments:
+            - '@avathar.bbguildwow.api'
+        tags:
+            - { name: bbguild.character_sync }
+
     avathar.bbguildwow.listener:
         class: avathar\bbguildwow\event\listener
         arguments:
