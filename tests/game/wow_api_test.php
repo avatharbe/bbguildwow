@@ -178,7 +178,10 @@ class wow_api_test extends TestCase
 		$this->assertSame('40133:40132', $eq['gem_ids']);
 		$this->assertSame('6652:1487', $eq['bonus_ids']);
 		$this->assertSame('50468:50469', $eq['set_item_ids']);
-		$this->assertStringContainsString('/icons/56/12345.jpg', $eq['icon_url']);
+		// icon_url is no longer guessed from media.id here (that id is a media
+		// *reference*, not the render-CDN file id — resolving it needs a real
+		// API call, done separately by sync_one_equipment()/resolve_item_icon_url()).
+		$this->assertSame('', $eq['icon_url']);
 	}
 
 	public function test_parse_equipped_item_stats_skip_negated(): void

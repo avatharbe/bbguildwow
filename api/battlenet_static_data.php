@@ -70,4 +70,19 @@ class battlenet_static_data extends battlenet_resource
 	{
 		return $this->consume('media/guild-crest/border/' . $border_id, array());
 	}
+
+	/**
+	 * Fetch item media (icon asset) by item ID.
+	 *
+	 * Returns the assets array containing the render URL for the item's icon.
+	 * Needed because equipment API responses only carry a media *reference*
+	 * id, not the render-CDN file id (#41) — this resolves that reference.
+	 *
+	 * @param int $item_id
+	 * @return array
+	 */
+	public function getItemMedia(int $item_id): array
+	{
+		return $this->consume('media/item/' . $item_id, array());
+	}
 }

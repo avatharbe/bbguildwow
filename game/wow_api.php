@@ -31,6 +31,9 @@ class wow_api implements game_api_interface
 	/** Cache key for race ID→name map */
 	const CACHE_KEY_RACES = 'bbguild_wow_playable_races';
 
+	/** Cache key prefix for resolved item icon URLs, keyed by item_id */
+	const CACHE_KEY_ITEM_ICON = 'bbguild_wow_item_icon';
+
 	/** Cache TTL for static data: 7 days */
 	const STATIC_CACHE_TTL = 604800;
 
@@ -691,6 +694,8 @@ class wow_api implements game_api_interface
 				continue;
 			}
 
+			$parsed['equipment']['icon_url'] = $this->resolve_item_icon_url((int) $parsed['equipment']['item_id'], $api);
+
 			$sql_ary = array_merge(
 				array('player_id' => $player_id, 'slot_type' => $parsed['slot_type'], 'last_update' => $now),
 				$parsed['equipment']
@@ -1348,8 +1353,11 @@ class wow_api implements game_api_interface
 		$set_item_ids = isset($item['set']['items']) && is_array($item['set']['items'])
 			? $this->join_item_ids($item['set']['items'], 'item') : '';
 
-		$icon_url = isset($item['media']['id'])
-			? 'https://render.worldofwarcraft.com/icons/56/' . (int) $item['media']['id'] . '.jpg' : '';
+		// icon_url is resolved separately (sync_one_equipment() calls
+		// resolve_item_icon_url()) — item.media.id here is a media *reference*
+		// id, not the render-CDN file id, so it can't be turned into a URL
+		// without an extra API round-trip (see #41).
+		$icon_url = '';
 
 		// Dedupe by stat_type: bb_player_item_stat has PRIMARY KEY
 		// (player_id, slot_type, stat_type), so two rows with the same
@@ -1391,6 +1399,52 @@ class wow_api implements game_api_interface
 			),
 			'stats' => $stats,
 		);
+	}
+
+	/**
+	 * Resolve an item's icon render URL via Battle.net's item-media endpoint,
+	 * cached by item_id (icon art never changes, and the same item is
+	 * equipped by many characters/guilds — see #41).
+	 *
+	 * @param int       $item_id
+	 * @param battlenet $api      Facade with ->static_data set
+	 * @return string Icon render URL, or '' if unresolvable
+	 */
+	protected function resolve_item_icon_url(int $item_id, battlenet $api): string
+	{
+		if ($item_id <= 0)
+		{
+			return '';
+		}
+
+		$cache_key = self::CACHE_KEY_ITEM_ICON . '_' . $item_id;
+		$cached = $this->cache->get($cache_key);
+		if ($cached !== false)
+		{
+			return $cached;
+		}
+
+		$data = $api->static_data->getItemMedia($item_id);
+
+		$icon_url = '';
+		if (isset($data['response']['assets']) && is_array($data['response']['assets']))
+		{
+			foreach ($data['response']['assets'] as $asset)
+			{
+				if (isset($asset['key'], $asset['value']) && $asset['key'] === 'icon')
+				{
+					$icon_url = (string) $asset['value'];
+					break;
+				}
+			}
+		}
+
+		if ($icon_url !== '')
+		{
+			$this->cache->put($cache_key, $icon_url, self::STATIC_CACHE_TTL);
+		}
+
+		return $icon_url;
 	}
 
 	/**

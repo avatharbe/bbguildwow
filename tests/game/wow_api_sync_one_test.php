@@ -11,6 +11,7 @@ use PHPUnit\Framework\TestCase;
 use avathar\bbguildwow\game\wow_api;
 use avathar\bbguildwow\api\battlenet;
 use avathar\bbguildwow\api\battlenet_character;
+use avathar\bbguildwow\api\battlenet_static_data;
 
 /**
  * Test subclass that returns a scripted consume() response instead of
@@ -34,6 +35,30 @@ class scripted_battlenet_character extends battlenet_character
 	}
 }
 
+/**
+ * Test subclass that returns a scripted consume() response instead of
+ * making HTTP requests, for resolve_item_icon_url()'s getItemMedia() call.
+ */
+class scripted_battlenet_static_data extends battlenet_static_data
+{
+	/** @var array */
+	public $scripted_response = array('response' => array(), 'response_headers' => array('http_code' => 200));
+
+	/** @var int Number of consume() calls made — lets tests assert the cache was actually consulted. */
+	public $call_count = 0;
+
+	public function __construct()
+	{
+		// Skip parent's constructor entirely — consume() is overridden below.
+	}
+
+	public function consume($method, array $params): array
+	{
+		$this->call_count++;
+		return $this->scripted_response;
+	}
+}
+
 class wow_api_sync_one_test extends TestCase
 {
 	/** @var \PHPUnit\Framework\MockObject\MockObject|\phpbb\db\driver\driver_interface */
@@ -45,14 +70,28 @@ class wow_api_sync_one_test extends TestCase
 	/** @var scripted_battlenet_character */
 	private $character;
 
+	/** @var scripted_battlenet_static_data */
+	private $static_data;
+
 	/** @var battlenet */
 	private $battlenet;
+
+	/** @var \PHPUnit\Framework\MockObject\MockObject|\phpbb\cache\service */
+	private $cache;
 
 	protected function setUp(): void
 	{
 		parent::setUp();
 
-		$cache = $this->createMock(\phpbb\cache\service::class);
+		// service::get()/put() are handled via __call() (forwarded to the
+		// driver), not declared directly, so createMock() can't stub them —
+		// addMethods() adds them to the mock's surface instead.
+		$this->cache = $this->getMockBuilder(\phpbb\cache\service::class)
+			->disableOriginalConstructor()
+			->addMethods(array('get', 'put'))
+			->getMock();
+		// No default get()/put() stub: only the item-icon-resolution tests
+		// below ever call the cache, and they configure it explicitly.
 		$this->db = $this->createMock(\phpbb\db\driver\driver_interface::class);
 		$this->db->method('sql_escape')->willReturnCallback(function ($s) { return addslashes($s); });
 		$this->db->method('sql_build_array')->willReturnCallback(function ($type, $data) {
@@ -60,13 +99,15 @@ class wow_api_sync_one_test extends TestCase
 		});
 		$filesystem = new \phpbb\filesystem\filesystem();
 
-		$this->api = new wow_api($cache, $this->db, 'phpbb_guild_wow', 'phpbb_players', 'phpbb_ranks', $filesystem);
+		$this->api = new wow_api($this->cache, $this->db, 'phpbb_guild_wow', 'phpbb_players', 'phpbb_ranks', $filesystem);
 
 		$this->character = new scripted_battlenet_character();
+		$this->static_data = new scripted_battlenet_static_data();
 		$this->battlenet = $this->getMockBuilder(battlenet::class)
 			->disableOriginalConstructor()
 			->getMock();
 		$this->battlenet->character = $this->character;
+		$this->battlenet->static_data = $this->static_data;
 	}
 
 	private function invoke_protected(string $method, array $args)
@@ -173,6 +214,102 @@ class wow_api_sync_one_test extends TestCase
 		$result = $this->invoke_protected('sync_one_equipment', array($player, $this->battlenet, 'bb_player_equipment', 'bb_player_item_stat'));
 
 		$this->assertFalse($result['success']);
+	}
+
+	// ── resolve_item_icon_url() ──────────────────────────────
+
+	public function test_resolve_item_icon_url_zero_item_id_returns_empty_without_api_call(): void
+	{
+		$this->cache->expects($this->never())->method('get');
+
+		$result = $this->invoke_protected('resolve_item_icon_url', array(0, $this->battlenet));
+
+		$this->assertSame('', $result);
+		$this->assertSame(0, $this->static_data->call_count);
+	}
+
+	public function test_resolve_item_icon_url_cache_hit_skips_api_call(): void
+	{
+		$this->cache->method('get')->willReturn('https://render.worldofwarcraft.com/icons/56/cached.jpg');
+
+		$result = $this->invoke_protected('resolve_item_icon_url', array(50468, $this->battlenet));
+
+		$this->assertSame('https://render.worldofwarcraft.com/icons/56/cached.jpg', $result);
+		$this->assertSame(0, $this->static_data->call_count);
+	}
+
+	public function test_resolve_item_icon_url_cache_miss_fetches_and_caches(): void
+	{
+		$this->cache->method('get')->willReturn(false);
+		$this->static_data->scripted_response = array(
+			'response' => array('assets' => array(
+				array('key' => 'icon', 'value' => 'https://render.worldofwarcraft.com/icons/56/999.jpg'),
+			)),
+			'response_headers' => array('http_code' => 200),
+		);
+		$this->cache->expects($this->once())->method('put')->with(
+			$this->stringContains('50468'),
+			'https://render.worldofwarcraft.com/icons/56/999.jpg',
+			$this->anything()
+		);
+
+		$result = $this->invoke_protected('resolve_item_icon_url', array(50468, $this->battlenet));
+
+		$this->assertSame('https://render.worldofwarcraft.com/icons/56/999.jpg', $result);
+		$this->assertSame(1, $this->static_data->call_count);
+	}
+
+	public function test_resolve_item_icon_url_missing_icon_asset_returns_empty_and_does_not_cache(): void
+	{
+		$this->cache->method('get')->willReturn(false);
+		$this->static_data->scripted_response = array(
+			'response' => array('assets' => array(
+				array('key' => 'other', 'value' => 'https://example.com/nope.jpg'),
+			)),
+			'response_headers' => array('http_code' => 200),
+		);
+		$this->cache->expects($this->never())->method('put');
+
+		$result = $this->invoke_protected('resolve_item_icon_url', array(50468, $this->battlenet));
+
+		$this->assertSame('', $result);
+	}
+
+	// ── sync_one_equipment() icon resolution wiring ──────────
+
+	public function test_sync_one_equipment_stores_resolved_item_icon_url(): void
+	{
+		$this->character->scripted_response = array(
+			'response' => array('equipped_items' => array(
+				array(
+					'slot'    => array('type' => 'HEAD'),
+					'item'    => array('id' => 50468),
+					'name'    => 'Sanctified Lightsworn Headpiece',
+					'level'   => array('value' => 277),
+					'quality' => array('type' => 'EPIC'),
+				),
+			)),
+			'response_headers' => array('http_code' => 200),
+		);
+		$this->cache->method('get')->willReturn(false);
+		$this->static_data->scripted_response = array(
+			'response' => array('assets' => array(
+				array('key' => 'icon', 'value' => 'https://render.worldofwarcraft.com/icons/56/999.jpg'),
+			)),
+			'response_headers' => array('http_code' => 200),
+		);
+
+		$captured_sql = array();
+		$this->db->method('sql_query')->willReturnCallback(function ($sql) use (&$captured_sql) {
+			$captured_sql[] = $sql;
+			return true;
+		});
+
+		$player = array('player_id' => 42, 'player_name' => 'Sajaki', 'player_realm' => 'argent-dawn');
+		$result = $this->invoke_protected('sync_one_equipment', array($player, $this->battlenet, 'bb_player_equipment', 'bb_player_item_stat'));
+
+		$this->assertTrue($result['success']);
+		$this->assertStringContainsString('https://render.worldofwarcraft.com/icons/56/999.jpg', implode("\n", $captured_sql));
 	}
 
 	// ── sync_one_portrait() ─────────────────────────────────
