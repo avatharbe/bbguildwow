@@ -96,9 +96,10 @@ $lang = array_merge(
 	// Player detail page
 	'WOW_CHARACTER_INFO'       => 'Character Info',
 	'WOW_SPECIALIZATION'       => 'Specialization',
-	'WOW_EQUIPMENT'            => 'Equipment',
 	'WOW_AVG_ILVL'             => 'Average Item Level',
 	'WOW_STATS'                => 'Character Stats',
+	'WOW_LOADING'              => 'Loading…',
+	'WOW_LOADING_ERROR'        => 'Error loading stats.',
 	'WOW_PROFESSIONS'          => 'Professions',
 	'WOW_MYTHIC_PLUS'          => 'Mythic+',
 	'WOW_MPLUS_RATING'         => 'M+ Rating',

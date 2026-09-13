@@ -138,6 +138,16 @@ services:
             - '%avathar.bbguildwow.tables.bb_achievement_criteria%'
             - '%avathar.bbguildwow.tables.bb_criteria_track%'
 
+    avathar.bbguildwow.character_stats_controller:
+        class: avathar\bbguildwow\controller\character_stats_controller
+        arguments:
+            - '@auth'
+            - '@avathar.bbguildwow.api'
+            - '@dbal.conn'
+            - '%avathar.bbguild.tables.bb_players%'
+            - '%avathar.bbguild.tables.bb_guild%'
+            - '@language'
+
     # --- Portal modules ---
 
     avathar.bbguildwow.portal.module.achievements:

@@ -1,37 +1,11 @@
 {% if S_WOW_PLAYER %}
 <div class="wow-player-detail">
 
-	{% if S_WOW_HAS_RENDER %}
-	<div class="wow-hero-render">
-		<img src="{{ WOW_PLAYER_RENDER }}" alt="{{ PLAYER_NAME }}" />
-	</div>
-	{% endif %}
-
-	{% if WOW_PLAYER_SPEC or S_WOW_HAS_EQUIPMENT %}
-	<fieldset>
-		<legend>{{ lang('WOW_CHARACTER_INFO') }}</legend>
-
-		{% if WOW_PLAYER_SPEC %}
-		<dl>
-			<dt>{{ lang('WOW_SPECIALIZATION') }}:</dt>
-			<dd>{{ WOW_PLAYER_SPEC }}</dd>
-		</dl>
-		{% endif %}
-
-		{% if WOW_AVG_ILVL > 0 %}
-		<dl>
-			<dt>{{ lang('WOW_AVG_ILVL') }}:</dt>
-			<dd><strong>{{ WOW_AVG_ILVL }}</strong></dd>
-		</dl>
-		{% endif %}
-	</fieldset>
-	{% endif %}
-
-	{% if S_WOW_HAS_EQUIPMENT %}
-	<fieldset>
-		<legend>{{ lang('WOW_EQUIPMENT') }}</legend>
-		<div class="wow-equipment-grid">
+	<div class="wow-character-panel">
+		{% if S_WOW_HAS_EQUIPMENT %}
+		<div class="wow-equipment-grid-left">
 			{% for item in wow_equipment %}
+			{% if loop.index0 < 8 %}
 			<div class="wow-equipment-slot{% if not item.S_HAS_ITEM %} wow-slot-empty{% endif %}">
 				<span class="wow-slot-label">{{ item.SLOT_LABEL }}</span>
 				{% if item.S_HAS_ITEM %}
@@ -45,82 +19,155 @@
 				<span class="wow-item-name wow-slot-empty-text">—</span>
 				{% endif %}
 			</div>
+			{% endif %}
 			{% endfor %}
 		</div>
+		{% endif %}
+
+		{% if S_WOW_HAS_RENDER %}
+		<div class="wow-hero-render">
+			<img src="{{ WOW_PLAYER_RENDER }}" alt="{{ PLAYER_NAME }}" />
+		</div>
+		{% endif %}
+
+		{% if S_WOW_HAS_EQUIPMENT %}
+		<div class="wow-equipment-grid-right">
+			{% for item in wow_equipment %}
+			{% if loop.index0 >= 8 %}
+			<div class="wow-equipment-slot{% if not item.S_HAS_ITEM %} wow-slot-empty{% endif %}">
+				<span class="wow-slot-label">{{ item.SLOT_LABEL }}</span>
+				{% if item.S_HAS_ITEM %}
+				{% if item.ITEM_LINK %}
+				<span class="wow-item-name wow-quality-{{ item.QUALITY|lower }}">{{ item.ITEM_LINK|raw }}</span>
+				{% else %}
+				<span class="wow-item-name wow-quality-{{ item.QUALITY|lower }}" data-wowhead="item={{ item.ITEM_ID }}">{{ item.ITEM_NAME }}</span>
+				{% endif %}
+				<span class="wow-item-ilvl">{{ item.ITEM_LEVEL }}</span>
+				{% else %}
+				<span class="wow-item-name wow-slot-empty-text">—</span>
+				{% endif %}
+			</div>
+			{% endif %}
+			{% endfor %}
+		</div>
+		{% endif %}
+	</div>
+
+	{% if WOW_PLAYER_SPEC or WOW_AVG_ILVL > 0 %}
+	<fieldset>
+		<legend>{{ lang('WOW_CHARACTER_INFO') }}</legend>
+		{% if WOW_PLAYER_SPEC %}
+		<dl><dt>{{ lang('WOW_SPECIALIZATION') }}:</dt><dd>{{ WOW_PLAYER_SPEC }}</dd></dl>
+		{% endif %}
+		{% if WOW_AVG_ILVL > 0 %}
+		<dl><dt>{{ lang('WOW_AVG_ILVL') }}:</dt><dd><strong>{{ WOW_AVG_ILVL }}</strong></dd></dl>
+		{% endif %}
 	</fieldset>
 	{% endif %}
 
-	{% if S_WOW_HAS_STATS %}
-	<fieldset>
+	<fieldset id="wow-stats-panel" class="wow-async-panel">
 		<legend>{{ lang('WOW_STATS') }}</legend>
-		<div class="wow-stats-grid">
-			{% for stat in wow_stats %}
-			<dl class="wow-stat-row">
-				<dt>{{ stat.NAME }}:</dt>
-				<dd>{% if stat.S_PCT %}{{ stat.VALUE }}%{% else %}{{ stat.VALUE }}{% endif %}</dd>
-			</dl>
-			{% endfor %}
-		</div>
+		<p class="wow-async-loading">{{ lang('WOW_LOADING') }}</p>
 	</fieldset>
-	{% endif %}
 
-	{% if S_WOW_HAS_PROFESSIONS %}
-	<fieldset>
+	<fieldset id="wow-professions-panel" class="wow-async-panel" style="display:none">
 		<legend>{{ lang('WOW_PROFESSIONS') }}</legend>
-		{% for prof in wow_professions %}
-		<dl>
-			<dt>{{ prof.NAME }}:</dt>
-			<dd>{{ prof.SKILL }}{% if prof.MAX > 0 %} / {{ prof.MAX }}{% endif %}</dd>
-		</dl>
-		{% endfor %}
+		<div class="wow-async-body"></div>
 	</fieldset>
-	{% endif %}
 
-	{% if S_WOW_HAS_MPLUS %}
-	<fieldset>
+	<fieldset id="wow-mplus-panel" class="wow-async-panel" style="display:none">
 		<legend>{{ lang('WOW_MYTHIC_PLUS') }}</legend>
-		{% if WOW_MPLUS_RATING > 0 %}
-		<dl>
-			<dt>{{ lang('WOW_MPLUS_RATING') }}:</dt>
-			<dd><strong{% if WOW_MPLUS_COLOR %} style="color: {{ WOW_MPLUS_COLOR }}"{% endif %}>{{ WOW_MPLUS_RATING }}</strong></dd>
-		</dl>
-		{% endif %}
-		{% if wow_mplus_runs %}
-		<table class="wow-mplus-table">
-			<thead>
-				<tr>
-					<th>{{ lang('WOW_DUNGEON') }}</th>
-					<th>{{ lang('WOW_KEY_LEVEL') }}</th>
-					<th>{{ lang('WOW_TIME') }}</th>
-					<th></th>
-				</tr>
-			</thead>
-			<tbody>
-				{% for run in wow_mplus_runs %}
-				<tr>
-					<td>{{ run.DUNGEON }}</td>
-					<td>+{{ run.LEVEL }}</td>
-					<td>{{ run.TIME }}</td>
-					<td>{% if run.S_TIMED %}<span class="wow-timed">{{ run.UPGRADES }}</span>{% endif %}</td>
-				</tr>
-				{% endfor %}
-			</tbody>
-		</table>
-		{% endif %}
+		<div class="wow-async-body"></div>
 	</fieldset>
-	{% endif %}
 
-	{% if S_WOW_HAS_PVP %}
-	<fieldset>
+	<fieldset id="wow-pvp-panel" class="wow-async-panel" style="display:none">
 		<legend>{{ lang('WOW_PVP') }}</legend>
-		{% if WOW_PVP_HONOR_LEVEL > 0 %}
-		<dl>
-			<dt>{{ lang('WOW_HONOR_LEVEL') }}:</dt>
-			<dd>{{ WOW_PVP_HONOR_LEVEL }}</dd>
-		</dl>
-		{% endif %}
+		<div class="wow-async-body"></div>
 	</fieldset>
-	{% endif %}
 
 </div>
+
+<script>
+(function() {
+	'use strict';
+	var statsUrl = '{{ WOW_STATS_URL }}';
+	if (!statsUrl) { return; }
+
+	function esc(s) {
+		var d = document.createElement('div');
+		d.appendChild(document.createTextNode(s || ''));
+		return d.innerHTML;
+	}
+
+	fetch(statsUrl).then(function(r) { return r.json(); }).then(function(data) {
+		renderStats(data.stats || []);
+		renderProfessions(data.professions || []);
+		renderMplus(data.mplus);
+		renderPvp(data.pvp);
+	}).catch(function() {
+		var loading = document.querySelector('#wow-stats-panel .wow-async-loading');
+		if (loading) { loading.textContent = '{{ lang('WOW_LOADING_ERROR')|e('js') }}'; }
+	});
+
+	function renderStats(stats) {
+		var panel = document.getElementById('wow-stats-panel');
+		if (!stats.length) { panel.style.display = 'none'; return; }
+
+		var html = '<div class="wow-stats-grid">';
+		for (var i = 0; i < stats.length; i++) {
+			var s = stats[i];
+			html += '<dl class="wow-stat-row"><dt>' + esc(s.name) + ':</dt><dd>' + s.value + (s.pct ? '%' : '') + '</dd></dl>';
+		}
+		html += '</div>';
+
+		var loading = panel.querySelector('.wow-async-loading');
+		if (loading) { loading.remove(); }
+		panel.insertAdjacentHTML('beforeend', html);
+	}
+
+	function renderProfessions(professions) {
+		if (!professions.length) { return; }
+
+		var html = '';
+		for (var i = 0; i < professions.length; i++) {
+			var p = professions[i];
+			html += '<dl><dt>' + esc(p.name) + ':</dt><dd>' + p.skill + (p.max > 0 ? ' / ' + p.max : '') + '</dd></dl>';
+		}
+
+		var panel = document.getElementById('wow-professions-panel');
+		panel.querySelector('.wow-async-body').innerHTML = html;
+		panel.style.display = '';
+	}
+
+	function renderMplus(mplus) {
+		if (!mplus || (!mplus.rating && (!mplus.runs || !mplus.runs.length))) { return; }
+
+		var html = '';
+		if (mplus.rating > 0) {
+			html += '<dl><dt>{{ lang('WOW_MPLUS_RATING')|e('js') }}:</dt><dd><strong' + (mplus.color ? ' style="color: ' + mplus.color + '"' : '') + '>' + mplus.rating + '</strong></dd></dl>';
+		}
+		if (mplus.runs && mplus.runs.length) {
+			html += '<table class="wow-mplus-table"><thead><tr><th>{{ lang('WOW_DUNGEON')|e('js') }}</th><th>{{ lang('WOW_KEY_LEVEL')|e('js') }}</th><th>{{ lang('WOW_TIME')|e('js') }}</th><th></th></tr></thead><tbody>';
+			for (var i = 0; i < mplus.runs.length; i++) {
+				var r = mplus.runs[i];
+				html += '<tr><td>' + esc(r.dungeon) + '</td><td>+' + r.level + '</td><td>' + r.time + '</td><td>' +
+					(r.timed ? '<span class="wow-timed">' + r.upgrades + '</span>' : '') + '</td></tr>';
+			}
+			html += '</tbody></table>';
+		}
+
+		var panel = document.getElementById('wow-mplus-panel');
+		panel.querySelector('.wow-async-body').innerHTML = html;
+		panel.style.display = '';
+	}
+
+	function renderPvp(pvp) {
+		if (!pvp || !pvp.honor_level) { return; }
+
+		var panel = document.getElementById('wow-pvp-panel');
+		panel.querySelector('.wow-async-body').innerHTML = '<dl><dt>{{ lang('WOW_HONOR_LEVEL')|e('js') }}:</dt><dd>' + pvp.honor_level + '</dd></dl>';
+		panel.style.display = '';
+	}
+})();
+</script>
 {% endif %}
