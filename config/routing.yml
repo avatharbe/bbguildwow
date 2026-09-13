@@ -65,3 +65,9 @@ avathar_bbguildwow_achiev_detail:
     requirements:
         guild_id: \d+
         achievement_id: \d+
+
+avathar_bbguildwow_character_stats:
+    path: /bbguildwow/character-stats/{player_id}
+    defaults: { _controller: avathar.bbguildwow.character_stats_controller:stats }
+    requirements:
+        player_id: \d+
