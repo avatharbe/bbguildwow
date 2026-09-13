@@ -3,7 +3,7 @@
 
 	<div class="wow-character-panel">
 		{% if S_WOW_HAS_EQUIPMENT %}
-		<div class="wow-equipment-grid wow-equipment-grid-left">
+		<div class="wow-equipment-grid-left">
 			{% for item in wow_equipment %}
 			{% if loop.index0 < 8 %}
 			<div class="wow-equipment-slot{% if not item.S_HAS_ITEM %} wow-slot-empty{% endif %}">
@@ -31,7 +31,7 @@
 		{% endif %}
 
 		{% if S_WOW_HAS_EQUIPMENT %}
-		<div class="wow-equipment-grid wow-equipment-grid-right">
+		<div class="wow-equipment-grid-right">
 			{% for item in wow_equipment %}
 			{% if loop.index0 >= 8 %}
 			<div class="wow-equipment-slot{% if not item.S_HAS_ITEM %} wow-slot-empty{% endif %}">
@@ -106,7 +106,7 @@
 		renderPvp(data.pvp);
 	}).catch(function() {
 		var loading = document.querySelector('#wow-stats-panel .wow-async-loading');
-		if (loading) { loading.textContent = '{{ lang('WOW_LOADING_ERROR') }}'; }
+		if (loading) { loading.textContent = '{{ lang('WOW_LOADING_ERROR')|e('js') }}'; }
 	});
 
 	function renderStats(stats) {
@@ -144,10 +144,10 @@
 
 		var html = '';
 		if (mplus.rating > 0) {
-			html += '<dl><dt>{{ lang('WOW_MPLUS_RATING') }}:</dt><dd><strong' + (mplus.color ? ' style="color: ' + mplus.color + '"' : '') + '>' + mplus.rating + '</strong></dd></dl>';
+			html += '<dl><dt>{{ lang('WOW_MPLUS_RATING')|e('js') }}:</dt><dd><strong' + (mplus.color ? ' style="color: ' + mplus.color + '"' : '') + '>' + mplus.rating + '</strong></dd></dl>';
 		}
 		if (mplus.runs && mplus.runs.length) {
-			html += '<table class="wow-mplus-table"><thead><tr><th>{{ lang('WOW_DUNGEON') }}</th><th>{{ lang('WOW_KEY_LEVEL') }}</th><th>{{ lang('WOW_TIME') }}</th><th></th></tr></thead><tbody>';
+			html += '<table class="wow-mplus-table"><thead><tr><th>{{ lang('WOW_DUNGEON')|e('js') }}</th><th>{{ lang('WOW_KEY_LEVEL')|e('js') }}</th><th>{{ lang('WOW_TIME')|e('js') }}</th><th></th></tr></thead><tbody>';
 			for (var i = 0; i < mplus.runs.length; i++) {
 				var r = mplus.runs[i];
 				html += '<tr><td>' + esc(r.dungeon) + '</td><td>+' + r.level + '</td><td>' + r.time + '</td><td>' +
@@ -165,7 +165,7 @@
 		if (!pvp || !pvp.honor_level) { return; }
 
 		var panel = document.getElementById('wow-pvp-panel');
-		panel.querySelector('.wow-async-body').innerHTML = '<dl><dt>{{ lang('WOW_HONOR_LEVEL') }}:</dt><dd>' + pvp.honor_level + '</dd></dl>';
+		panel.querySelector('.wow-async-body').innerHTML = '<dl><dt>{{ lang('WOW_HONOR_LEVEL')|e('js') }}:</dt><dd>' + pvp.honor_level + '</dd></dl>';
 		panel.style.display = '';
 	}
 })();

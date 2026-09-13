@@ -141,10 +141,12 @@ services:
     avathar.bbguildwow.character_stats_controller:
         class: avathar\bbguildwow\controller\character_stats_controller
         arguments:
+            - '@auth'
             - '@avathar.bbguildwow.api'
             - '@dbal.conn'
             - '%avathar.bbguild.tables.bb_players%'
             - '%avathar.bbguild.tables.bb_guild%'
+            - '@language'
 
     # --- Portal modules ---
 

@@ -23,7 +23,13 @@ class character_stats_controller_test extends TestCase
 		$db->method('sql_fetchrow')->willReturn($db_row);
 		$db->method('sql_freeresult')->willReturn(true);
 
-		return new character_stats_controller($wow_api, $db, 'phpbb_bb_players', 'phpbb_bb_guild');
+		$auth = $this->createMock('phpbb\auth\auth');
+		$auth->method('acl_get')->willReturn(true);
+
+		$language = $this->createMock('phpbb\language\language');
+		$language->method('lang')->willReturn('Insufficient permissions.');
+
+		return new character_stats_controller($auth, $wow_api, $db, 'phpbb_bb_players', 'phpbb_bb_guild', $language);
 	}
 
 	public function test_returns_404_for_unknown_player(): void
@@ -32,6 +38,32 @@ class character_stats_controller_test extends TestCase
 		$response = $controller->stats(999);
 
 		$this->assertSame(404, $response->getStatusCode());
+	}
+
+	public function test_returns_403_when_not_authorized(): void
+	{
+		$wow_api = $this->getMockBuilder('avathar\bbguildwow\game\wow_api')
+			->disableOriginalConstructor()
+			->onlyMethods(array('fetch_character_stats', 'fetch_character_professions', 'fetch_mythic_keystone_profile', 'fetch_pvp_summary'))
+			->getMock();
+
+		$db = $this->createMock('phpbb\db\driver\driver_interface');
+		$db->method('sql_query')->willReturn('resource');
+		$db->method('sql_fetchrow')->willReturn(false);
+		$db->method('sql_freeresult')->willReturn(true);
+
+		$auth = $this->createMock('phpbb\auth\auth');
+		$auth->method('acl_get')->willReturn(false);
+
+		$language = $this->createMock('phpbb\language\language');
+		$language->method('lang')->willReturn('Insufficient permissions.');
+
+		$controller = new character_stats_controller($auth, $wow_api, $db, 'phpbb_bb_players', 'phpbb_bb_guild', $language);
+		$response = $controller->stats(1);
+		$data = json_decode($response->getContent(), true);
+
+		$this->assertSame(403, $response->getStatusCode());
+		$this->assertArrayHasKey('error', $data);
 	}
 
 	public function test_returns_404_for_non_wow_player(): void

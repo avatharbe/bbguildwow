@@ -17,11 +17,16 @@
 namespace avathar\bbguildwow\controller;
 
 use avathar\bbguildwow\game\wow_api;
+use phpbb\auth\auth;
 use phpbb\db\driver\driver_interface;
+use phpbb\language\language;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
 class character_stats_controller
 {
+	/** @var auth */
+	protected $auth;
+
 	/** @var wow_api */
 	protected $wow_api;
 
@@ -34,17 +39,44 @@ class character_stats_controller
 	/** @var string */
 	protected $guild_table;
 
+	/** @var language */
+	protected $language;
+
 	public function __construct(
+		auth $auth,
 		wow_api $wow_api,
 		driver_interface $db,
 		string $players_table,
-		string $guild_table
+		string $guild_table,
+		language $language
 	)
 	{
+		$this->auth = $auth;
 		$this->wow_api = $wow_api;
 		$this->db = $db;
 		$this->players_table = $players_table;
 		$this->guild_table = $guild_table;
+		$this->language = $language;
+	}
+
+	/**
+	 * Reject the request unless the current user holds the bbGuild
+	 * page-view permission. This endpoint feeds the player-detail page,
+	 * which requires u_bbguild, but the route itself has no auth of its
+	 * own, so it must check explicitly instead of relying on the page
+	 * gate alone.
+	 *
+	 * @return JsonResponse|null Null if authorized, an error response otherwise.
+	 */
+	private function check_auth(): ?JsonResponse
+	{
+		$this->language->add_lang('wow', 'avathar/bbguildwow');
+
+		if (!$this->auth->acl_get('u_bbguild'))
+		{
+			return new JsonResponse(array('error' => $this->language->lang('WOW_SYNC_INSUFFICIENT_PERMISSIONS'), 'done' => true), 403);
+		}
+		return null;
 	}
 
 	/**
@@ -53,6 +85,11 @@ class character_stats_controller
 	 */
 	public function stats($player_id)
 	{
+		if ($auth_error = $this->check_auth())
+		{
+			return $auth_error;
+		}
+
 		$player_id = (int) $player_id;
 
 		$sql = 'SELECT p.game_id, p.player_name, p.player_realm, p.player_region, g.game_edition
@@ -144,8 +181,8 @@ class character_stats_controller
 				if (!empty($prof['tiers']))
 				{
 					$last_tier = end($prof['tiers']);
-					$skill_points = $last_tier['skill_points'] ?? 0;
-					$max_points = $last_tier['max_skill_points'] ?? 0;
+					$skill_points = (int) ($last_tier['skill_points'] ?? 0);
+					$max_points = (int) ($last_tier['max_skill_points'] ?? 0);
 				}
 
 				if ($group === 'secondaries' && $skill_points <= 0)
