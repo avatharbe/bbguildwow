@@ -415,14 +415,19 @@ class listener implements EventSubscriberInterface
 			}
 		}
 
+		if ($avg_ilvl > 0)
+		{
+			$this->template->assign_block_vars('header_pills', array(
+				'PILL_LABEL' => $this->language->lang('WOW_AVG_ILVL') . ': ' . $avg_ilvl,
+			));
+		}
+
 		$this->template->assign_vars(array(
 			'WOW_PLAYER_SPEC'     => $spec,
 			'WOW_AVG_ILVL'        => $avg_ilvl,
 			'WOW_STATS_URL'       => $this->helper->route('avathar_bbguildwow_character_stats', array('player_id' => $player_id)),
 			'S_WOW_PLAYER'        => true,
 			'S_WOW_HAS_EQUIPMENT' => !empty($equipment),
-			'WOW_PLAYER_RENDER'   => isset($row['player_render_url']) && !empty($row['player_render_url']) && $row['player_render_url'] !== 'N/A' ? $row['player_render_url'] : '',
-			'S_WOW_HAS_RENDER'    => isset($row['player_render_url']) && !empty($row['player_render_url']) && $row['player_render_url'] !== 'N/A',
 		));
 	}
 
