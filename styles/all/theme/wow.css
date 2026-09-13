@@ -423,6 +423,9 @@ h3.category {
 }
 
 .wow-stats-group {
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 8px;
+    padding: 12px 14px;
     margin-bottom: 12px;
 }
 
@@ -430,7 +433,9 @@ h3.category {
     font-size: 0.85em;
     text-transform: uppercase;
     opacity: 0.6;
-    margin: 0 0 4px;
+    margin: 0 0 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .wow-equipment-slot {
@@ -539,7 +544,17 @@ h3.category {
 .wow-stats-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 0 16px;
+    gap: 4px 16px;
+    margin: 0;
+}
+
+.wow-stats-grid dt {
+    margin: 0;
+}
+
+.wow-stats-grid dd {
+    margin: 0;
+    text-align: right;
 }
 
 .wow-stat-row {
