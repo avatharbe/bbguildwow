@@ -5,9 +5,7 @@
 [![Tests](https://github.com/avatharbe/bbguildwow/actions/workflows/tests.yml/badge.svg)](https://github.com/avatharbe/bbguildwow/actions/workflows/tests.yml)
 
 
-World of Warcraft is where this project's own history starts.
-bbGuild began as a WoW DKP tool, and bbguildwow is still the one plugin that goes beyond static game data. It talks to Blizzard's Battle.net API directly: a raid officer clicks "sync" and the roster, character profiles, portraits, and armory links update themselves, instead of someone manually re-typing the roster after every Mythic+ night. All 14 classes and 15 races are covered across Retail and every Classic edition (Era, Progression, Anniversary), so guilds running classic servers get the same tooling as retail. 
-This release adds a full specialization layer — a Frost Mage shows up as a Frost Mage, not just "Mage" — plus a 3-level achievement browser your members can drill into without leaving the forum.
+bbGuild WoW is the World of Warcraft plugin for bbGuild, a guild management extension for phpBB with roots in bbDKP and EQdkp. It brings WoW guild management into your forum, connecting to Blizzard’s Battle.net API to synchronize guild rosters, character profiles, specializations, equipment, and portraits. With support for Retail and Classic editions, plus an integrated achievement browser and guild activity feed, it helps your community keep track of its characters and progress in one place.
 
 ## Features
 
