@@ -130,11 +130,12 @@ class character_stats_controller
 		$out = array();
 
 		$stat_groups = array(
-			'strength'  => 'base',
-			'agility'   => 'base',
-			'intellect' => 'base',
-			'stamina'   => 'base',
-			'armor'     => 'base',
+			'strength'    => 'base',
+			'agility'     => 'base',
+			'intellect'   => 'base',
+			'stamina'     => 'base',
+			'armor'       => 'base',
+			'versatility' => 'base',
 		);
 		foreach ($stat_groups as $key => $group)
 		{
