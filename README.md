@@ -1,11 +1,10 @@
 # bbGuild - World of Warcraft
 
+bbGuild WoW is the World of Warcraft plugin for bbGuild, a guild management extension for phpBB with roots in bbDKP and EQdkp. It brings WoW guild management into your forum, connecting to Blizzard’s Battle.net API to synchronize guild rosters, character profiles, specializations, equipment, and portraits. With support for Retail and Classic editions, plus an integrated achievement browser and guild activity feed, it helps your community keep track of its characters and progress in one place.
+
 ## Version 
 - **2.1.0-b1** (in development; requires bbGuild core >= 2.0.0)
 [![Tests](https://github.com/avatharbe/bbguildwow/actions/workflows/tests.yml/badge.svg)](https://github.com/avatharbe/bbguildwow/actions/workflows/tests.yml)
-
-
-bbGuild WoW is the World of Warcraft plugin for bbGuild, a guild management extension for phpBB with roots in bbDKP and EQdkp. It brings WoW guild management into your forum, connecting to Blizzard’s Battle.net API to synchronize guild rosters, character profiles, specializations, equipment, and portraits. With support for Retail and Classic editions, plus an integrated achievement browser and guild activity feed, it helps your community keep track of its characters and progress in one place.
 
 ## Features
 
