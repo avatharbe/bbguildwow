@@ -1,0 +1,13 @@
+<div class="player-detail-body">
+	<fieldset>
+		<legend>{{ lang('WOW_PVP') }}</legend>
+		{% if WOW_PVP_HONOR_LEVEL > 0 %}
+		<dl>
+			<dt>{{ lang('WOW_HONOR_LEVEL') }}:</dt>
+			<dd>{{ WOW_PVP_HONOR_LEVEL }}</dd>
+		</dl>
+		{% else %}
+		<p>{{ lang('WOW_PVP_NO_DATA') }}</p>
+		{% endif %}
+	</fieldset>
+</div>

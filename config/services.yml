@@ -148,6 +148,19 @@ services:
             - '%avathar.bbguild.tables.bb_guild%'
             - '@language'
 
+    # --- Player detail tabs ---
+
+    avathar.bbguildwow.player_detail_tab.pvp:
+        class: avathar\bbguildwow\portal\player_detail_tabs\pvp_tab
+        arguments:
+            - '@avathar.bbguildwow.api'
+            - '@dbal.conn'
+            - '@template'
+            - '%avathar.bbguild.tables.bb_players%'
+            - '%avathar.bbguild.tables.bb_guild%'
+        tags:
+            - { name: bbguild.player_detail_tab }
+
     # --- Portal modules ---
 
     avathar.bbguildwow.portal.module.achievements:
