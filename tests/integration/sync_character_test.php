@@ -57,6 +57,44 @@ class sync_character_test extends mock_battlenet_test_case
 		return array('avathar/bbguild', 'avathar/bbguildwow');
 	}
 
+	protected function setUp(): void
+	{
+		parent::setUp();
+
+		// wow_api::sync_character() -> get_game_from_db() calls
+		// $phpbb_container->get('user') directly (it's called in-process, not
+		// through the board under test's own HTTP-driven container, unlike
+		// sync_specs_test.php/sync_portraits_test.php/equipment_sync_test.php
+		// which exercise their wow_api methods via portrait_controller.php's
+		// AJAX routes and so get a fully-populated container for free). This
+		// test's in-process $phpbb_container is the bare
+		// phpbb_mock_container_builder the functional test framework leaves
+		// behind, which has no 'user' service — get_game_from_db()'s bare
+		// `catch (\Exception $e)` swallows the resulting "Could not find
+		// service: user" completely silently, making sync_character() return
+		// false before ever reaching the specs/equipment/portrait sync it's
+		// actually testing. Stub just enough of \phpbb\user for
+		// avathar\bbguild\model\games\game's constructor (5 region lang keys)
+		// and get_game_from_db()'s own add_lang_ext() call, same spirit as
+		// the $GLOBALS['user'] stubs in roster_sync_test.php/
+		// achievement_sync_test.php — but set on the container, since this
+		// code path reads it via $container->get('user'), not global $user.
+		global $phpbb_container;
+		if (!$phpbb_container->has('user'))
+		{
+			$phpbb_container->set('user', new class {
+				public $lang = array(
+					'REGIONEU' => 'Europe',
+					'REGIONKR' => 'Korea',
+					'REGIONSEA' => 'South-East Asia',
+					'REGIONTW' => 'Taiwan',
+					'REGIONUS' => 'United States',
+				);
+				public function add_lang_ext($ext_name, $lang_file) { }
+			});
+		}
+	}
+
 	private function get_table_prefix(): string
 	{
 		return self::$config['table_prefix'];
