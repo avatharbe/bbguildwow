@@ -468,6 +468,17 @@ h3.category {
     flex-shrink: 0;
 }
 
+/* Suppress Wowhead's own auto-icon (tooltips.js iconizeLinks) on equipment
+   slot links only — wow-item-icon above already shows the real Blizzard
+   icon, so the default "tiny" size's background-image (set directly on the
+   <a>, not a child node, so it can't be hidden by simply not providing one)
+   would otherwise double up. Scoped to .wow-equipment-slot so it doesn't
+   touch Wowhead icons elsewhere on the site (forum post [item] bbcodes etc). */
+.wow-equipment-slot .wow-item-name a {
+    background-image: none !important;
+    padding-left: 0 !important;
+}
+
 .wow-item-ilvl {
     font-size: 0.8em;
     opacity: 0.7;
