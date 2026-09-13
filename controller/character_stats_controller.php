@@ -129,28 +129,34 @@ class character_stats_controller
 
 		$out = array();
 
-		$stat_keys = array('strength', 'agility', 'intellect', 'stamina', 'armor', 'versatility');
-		foreach ($stat_keys as $key)
+		$stat_groups = array(
+			'strength'  => 'base',
+			'agility'   => 'base',
+			'intellect' => 'base',
+			'stamina'   => 'base',
+			'armor'     => 'base',
+		);
+		foreach ($stat_groups as $key => $group)
 		{
 			if (isset($raw_stats[$key]))
 			{
 				$value = is_array($raw_stats[$key]) ? ($raw_stats[$key]['effective'] ?? $raw_stats[$key]['value'] ?? 0) : $raw_stats[$key];
-				$out[] = array('name' => str_replace('_', ' ', ucfirst($key)), 'key' => $key, 'value' => (int) $value, 'pct' => false);
+				$out[] = array('name' => str_replace('_', ' ', ucfirst($key)), 'key' => $key, 'value' => (int) $value, 'pct' => false, 'group' => $group);
 			}
 		}
 
-		$rating_keys = array(
-			'melee_crit' => 'crit',
-			'melee_haste' => 'haste',
-			'mastery' => 'mastery',
-			'versatility_damage_done_bonus' => 'versatility',
+		$rating_groups = array(
+			'melee_crit'                     => array('crit', 'melee'),
+			'melee_haste'                    => array('haste', 'melee'),
+			'mastery'                        => array('mastery', 'spell'),
+			'versatility_damage_done_bonus'  => array('versatility', 'spell'),
 		);
-		foreach ($rating_keys as $api_key => $display_key)
+		foreach ($rating_groups as $api_key => [$display_key, $group])
 		{
 			if (isset($raw_stats[$api_key]))
 			{
 				$val = is_array($raw_stats[$api_key]) ? ($raw_stats[$api_key]['value'] ?? 0) : $raw_stats[$api_key];
-				$out[] = array('name' => str_replace('_', ' ', ucfirst($display_key)), 'key' => $display_key . '_pct', 'value' => round((float) $val, 2), 'pct' => true);
+				$out[] = array('name' => str_replace('_', ' ', ucfirst($display_key)), 'key' => $display_key . '_pct', 'value' => round((float) $val, 2), 'pct' => true, 'group' => $group);
 			}
 		}
 

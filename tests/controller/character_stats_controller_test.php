@@ -102,6 +102,8 @@ class character_stats_controller_test extends TestCase
 		$this->assertSame(123, $data['stats'][0]['value']);
 		$this->assertSame('strength', $data['stats'][0]['key']);
 		$this->assertTrue($data['stats'][1]['pct']);
+		$this->assertSame('base', $data['stats'][0]['group']);
+		$this->assertSame('melee', $data['stats'][1]['group']);
 		$this->assertSame('Blacksmithing', $data['professions'][0]['name']);
 		$this->assertSame(1500, $data['mplus']['rating']);
 		$this->assertSame('#ff8000', $data['mplus']['color']);
