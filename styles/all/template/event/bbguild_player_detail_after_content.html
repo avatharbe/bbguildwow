@@ -10,9 +10,15 @@
 				<span class="wow-slot-label">{{ item.SLOT_LABEL }}</span>
 				{% if item.S_HAS_ITEM %}
 				{% if item.ITEM_LINK %}
-				<span class="wow-item-name wow-quality-{{ item.QUALITY|lower }}">{{ item.ITEM_LINK|raw }}</span>
+				<span class="wow-item-name wow-quality-{{ item.QUALITY|lower }}">
+					{% if item.ICON_URL %}<img src="{{ item.ICON_URL }}" alt="" class="wow-item-icon" />{% endif %}
+					{{ item.ITEM_LINK|raw }}
+				</span>
 				{% else %}
-				<span class="wow-item-name wow-quality-{{ item.QUALITY|lower }}" data-wowhead="item={{ item.ITEM_ID }}">{{ item.ITEM_NAME }}</span>
+				<span class="wow-item-name wow-quality-{{ item.QUALITY|lower }}" data-wowhead="item={{ item.ITEM_ID }}">
+					{% if item.ICON_URL %}<img src="{{ item.ICON_URL }}" alt="" class="wow-item-icon" />{% endif %}
+					{{ item.ITEM_NAME }}
+				</span>
 				{% endif %}
 				<span class="wow-item-ilvl">{{ item.ITEM_LEVEL }}</span>
 				{% else %}
@@ -32,9 +38,15 @@
 				<span class="wow-slot-label">{{ item.SLOT_LABEL }}</span>
 				{% if item.S_HAS_ITEM %}
 				{% if item.ITEM_LINK %}
-				<span class="wow-item-name wow-quality-{{ item.QUALITY|lower }}">{{ item.ITEM_LINK|raw }}</span>
+				<span class="wow-item-name wow-quality-{{ item.QUALITY|lower }}">
+					{% if item.ICON_URL %}<img src="{{ item.ICON_URL }}" alt="" class="wow-item-icon" />{% endif %}
+					{{ item.ITEM_LINK|raw }}
+				</span>
 				{% else %}
-				<span class="wow-item-name wow-quality-{{ item.QUALITY|lower }}" data-wowhead="item={{ item.ITEM_ID }}">{{ item.ITEM_NAME }}</span>
+				<span class="wow-item-name wow-quality-{{ item.QUALITY|lower }}" data-wowhead="item={{ item.ITEM_ID }}">
+					{% if item.ICON_URL %}<img src="{{ item.ICON_URL }}" alt="" class="wow-item-icon" />{% endif %}
+					{{ item.ITEM_NAME }}
+				</span>
 				{% endif %}
 				<span class="wow-item-ilvl">{{ item.ITEM_LEVEL }}</span>
 				{% else %}
@@ -73,11 +85,6 @@
 		<div class="wow-async-body"></div>
 	</fieldset>
 
-	<fieldset id="wow-pvp-panel" class="wow-async-panel" style="display:none">
-		<legend>{{ lang('WOW_PVP') }}</legend>
-		<div class="wow-async-body"></div>
-	</fieldset>
-
 </div>
 
 <script>
@@ -96,7 +103,6 @@
 		renderStats(data.stats || []);
 		renderProfessions(data.professions || []);
 		renderMplus(data.mplus);
-		renderPvp(data.pvp);
 	}).catch(function() {
 		var loading = document.querySelector('#wow-stats-panel .wow-async-loading');
 		if (loading) { loading.textContent = '{{ lang('WOW_LOADING_ERROR')|e('js') }}'; }
@@ -163,13 +169,6 @@
 		panel.style.display = '';
 	}
 
-	function renderPvp(pvp) {
-		if (!pvp || !pvp.honor_level) { return; }
-
-		var panel = document.getElementById('wow-pvp-panel');
-		panel.querySelector('.wow-async-body').innerHTML = '<dl><dt>{{ lang('WOW_HONOR_LEVEL')|e('js') }}:</dt><dd>' + pvp.honor_level + '</dd></dl>';
-		panel.style.display = '';
-	}
 })();
 </script>
 {% endif %}

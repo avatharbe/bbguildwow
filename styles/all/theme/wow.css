@@ -435,7 +435,7 @@ h3.category {
 
 .wow-equipment-slot {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     gap: 6px;
     padding: 3px 0;
     font-size: 0.9em;
@@ -455,6 +455,17 @@ h3.category {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.wow-item-icon {
+    width: 32px;
+    height: 32px;
+    box-sizing: border-box;
+    vertical-align: middle;
+    margin-right: 6px;
+    border-radius: 2px;
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    flex-shrink: 0;
 }
 
 .wow-item-ilvl {
@@ -503,6 +514,16 @@ h3.category {
 .wow-quality-legendary { color: #ff8000; }
 .wow-quality-artifact  { color: #e6cc80; }
 .wow-quality-heirloom  { color: #00ccff; }
+
+/* Quality-colored icon borders, matching the text color above */
+.wow-quality-poor      .wow-item-icon { border-color: #9d9d9d; }
+.wow-quality-common    .wow-item-icon { border-color: #ffffff; }
+.wow-quality-uncommon  .wow-item-icon { border-color: #1eff00; }
+.wow-quality-rare      .wow-item-icon { border-color: #0070dd; }
+.wow-quality-epic      .wow-item-icon { border-color: #a335ee; }
+.wow-quality-legendary .wow-item-icon { border-color: #ff8000; }
+.wow-quality-artifact  .wow-item-icon { border-color: #e6cc80; }
+.wow-quality-heirloom  .wow-item-icon { border-color: #00ccff; }
 
 /* Stats grid */
 .wow-stats-grid {
