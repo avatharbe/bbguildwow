@@ -396,32 +396,34 @@ h3.category {
     margin-bottom: 2px;
 }
 
-/* ===== Player detail: Hero character render ===== */
+/* ===== Player detail: equipment flanking hero render ===== */
+.wow-character-panel {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+.wow-equipment-grid-left,
+.wow-equipment-grid-right {
+    flex: 1 1 260px;
+    min-width: 220px;
+    max-width: 340px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
 .wow-hero-render {
+    flex: 0 0 auto;
     text-align: center;
-    margin: -10px 0 10px;
 }
 
 .wow-hero-render img {
-    max-height: 300px;
+    max-height: 340px;
     width: auto;
-}
-
-/* ===== Player detail: WoW-specific sections ===== */
-.wow-player-detail fieldset {
-    margin-top: 12px;
-}
-
-.wow-player-detail fieldset legend {
-    font-weight: bold;
-    font-size: 1em;
-}
-
-/* Equipment grid */
-.wow-equipment-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 4px 16px;
 }
 
 .wow-equipment-slot {
@@ -456,6 +458,33 @@ h3.category {
 
 .wow-slot-empty-text {
     opacity: 0.3;
+}
+
+@media (max-width: 700px) {
+    .wow-character-panel {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .wow-equipment-grid-left,
+    .wow-equipment-grid-right {
+        max-width: none;
+    }
+}
+
+/* ===== Player detail: WoW-specific sections ===== */
+.wow-player-detail fieldset {
+    margin-top: 12px;
+}
+
+.wow-player-detail fieldset legend {
+    font-weight: bold;
+    font-size: 1em;
+}
+
+.wow-async-loading {
+    opacity: 0.6;
+    font-style: italic;
 }
 
 /* Quality colors */
