@@ -19,6 +19,7 @@ use avathar\bbguildwow\api\battlenet;
 class wow_api_with_stubbed_sync_one extends wow_api
 {
 	public $specs_result = array('success' => true, 'error_code' => null, 'stop_batch' => false);
+	public $profile_result = array('success' => true, 'error_code' => null, 'stop_batch' => false);
 	public $equipment_result = array('success' => true, 'error_code' => null, 'stop_batch' => false);
 	public $portrait_result = array('success' => true, 'error_code' => null, 'stop_batch' => false);
 	public $stub_game;
@@ -26,6 +27,9 @@ class wow_api_with_stubbed_sync_one extends wow_api
 
 	/** @var string|null Edition argument captured from the last create_battlenet() call (#362) */
 	public $create_battlenet_edition_arg;
+
+	/** @var int Incremented on each sync_one_profile() call (#42), so short-circuit tests can assert it stays 0 */
+	public $profile_call_count = 0;
 
 	/** @var int Incremented on each sync_one_equipment() call, so short-circuit tests (#362) can assert it stays 0 */
 	public $equipment_call_count = 0;
@@ -36,6 +40,12 @@ class wow_api_with_stubbed_sync_one extends wow_api
 	protected function sync_one_specs(array $player, $api, bool $mark_unavailable = true): array
 	{
 		return $this->specs_result;
+	}
+
+	protected function sync_one_profile(array $player, $api): array
+	{
+		$this->profile_call_count++;
+		return $this->profile_result;
 	}
 
 	protected function sync_one_equipment(array $player, $api, string $equipment_table, string $stat_table): array
@@ -163,8 +173,35 @@ class wow_api_sync_character_test extends TestCase
 		$api->specs_result = array('success' => false, 'error_code' => 500, 'stop_batch' => true);
 
 		$this->assertFalse($api->sync_character(array('player_id' => 1, 'player_name' => 'Sajaki', 'player_realm' => 'argent-dawn', 'player_region' => 'eu', 'player_guild_id' => 7)));
+		$this->assertSame(0, $api->profile_call_count);
 		$this->assertSame(0, $api->equipment_call_count);
 		$this->assertSame(0, $api->portrait_call_count);
+	}
+
+	public function test_sync_character_profile_stop_batch_short_circuits_remaining_syncs(): void
+	{
+		$api = $this->make_api();
+		$api->stub_game = new stub_game('client-id');
+		$api->profile_result = array('success' => false, 'error_code' => 500, 'stop_batch' => true);
+
+		$this->assertFalse($api->sync_character(array('player_id' => 1, 'player_name' => 'Sajaki', 'player_realm' => 'argent-dawn', 'player_region' => 'eu', 'player_guild_id' => 7)));
+		$this->assertSame(0, $api->equipment_call_count);
+		$this->assertSame(0, $api->portrait_call_count);
+	}
+
+	public function test_sync_character_true_even_when_profile_fails_without_stop_batch(): void
+	{
+		// Gender is best-effort enrichment (#42), not one of the #362 sync
+		// contract's core fields — a non-fatal profile failure must not fail
+		// the whole character sync the way a specs/equipment/portrait
+		// failure does.
+		$api = $this->make_api();
+		$api->stub_game = new stub_game('client-id');
+		$api->profile_result = array('success' => false, 'error_code' => 404, 'stop_batch' => false);
+
+		$this->assertTrue($api->sync_character(array('player_id' => 1, 'player_name' => 'Sajaki', 'player_realm' => 'argent-dawn', 'player_region' => 'eu', 'player_guild_id' => 7)));
+		$this->assertSame(1, $api->equipment_call_count);
+		$this->assertSame(1, $api->portrait_call_count);
 	}
 
 	public function test_sync_character_false_when_specs_fails(): void

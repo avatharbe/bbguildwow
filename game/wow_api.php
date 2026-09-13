@@ -651,6 +651,48 @@ class wow_api implements game_api_interface
 	}
 
 	/**
+	 * Sync one character's gender from the base character profile.
+	 *
+	 * Guild roster sync (sync_guild_members()) can't populate this — the
+	 * Guild Roster API doesn't return gender, only name/level/class/race/rank
+	 * — so every roster-synced character defaults to Male until this runs
+	 * (#42). No 404 sentinel: unlike spec/portrait, there's no meaningful
+	 * "N/A" gender, so a transient failure just leaves the existing value
+	 * (correct or still-default) untouched rather than blanking anything.
+	 *
+	 * @param array     $player Row with at least player_id, player_name, player_realm
+	 * @param battlenet $api    Facade with ->character set
+	 * @return array{success: bool, error_code: string|int|null, stop_batch: bool}
+	 */
+	protected function sync_one_profile(array $player, battlenet $api): array
+	{
+		$response = $api->character->getCharacter($player['player_realm'], $player['player_name']);
+		$data = isset($response['response']) ? $response['response'] : null;
+		$http_code = isset($response['response_headers']['http_code']) ? (int) $response['response_headers']['http_code'] : 0;
+
+		if (!is_array($data) || isset($data['code']))
+		{
+			$error_code = isset($data['code']) ? (int) $data['code'] : $http_code;
+			if ($error_code === 0)
+			{
+				$error_code = 'unknown';
+			}
+
+			return array('success' => false, 'error_code' => $error_code, 'stop_batch' => $http_code >= 500);
+		}
+
+		if (isset($data['gender']['type']))
+		{
+			$gender_id = ($data['gender']['type'] === 'FEMALE') ? 1 : 0;
+			$this->db->sql_query('UPDATE ' . $this->bb_players_table .
+				' SET player_gender_id = ' . $gender_id .
+				' WHERE player_id = ' . (int) $player['player_id']);
+		}
+
+		return array('success' => true, 'error_code' => null, 'stop_batch' => false);
+	}
+
+	/**
 	 * Sync one character's equipment. Extracted from sync_equipment()'s
 	 * per-player loop body so it can be shared with sync_character() (#362).
 	 *
@@ -694,7 +736,7 @@ class wow_api implements game_api_interface
 				continue;
 			}
 
-			$parsed['equipment']['icon_url'] = $this->resolve_item_icon_url((int) $parsed['equipment']['item_id'], $api);
+			$parsed['equipment']['icon_url'] = $this->resolve_item_icon_url((int) $parsed['equipment']['item_id'], $player['player_region']);
 
 			$sql_ary = array_merge(
 				array('player_id' => $player_id, 'slot_type' => $parsed['slot_type'], 'last_update' => $now),
@@ -1275,6 +1317,17 @@ class wow_api implements game_api_interface
 			return false;
 		}
 
+		// Best-effort: gender is enrichment, not one of the #362 sync
+		// contract's core fields, so a failure here doesn't fail the whole
+		// character sync — only a 5xx aborts early, same budget-protection
+		// reasoning as the other sub-syncs.
+		$profile_outcome = $this->sync_one_profile($player_row, $api);
+		if ($profile_outcome['stop_batch'])
+		{
+			unset($api);
+			return false;
+		}
+
 		$equipment_table = $phpbb_container->getParameter('avathar.bbguildwow.tables.bb_player_equipment');
 		$stat_table = $phpbb_container->getParameter('avathar.bbguildwow.tables.bb_player_item_stat');
 		$equipment_outcome = $this->sync_one_equipment($player_row, $api, $equipment_table, $stat_table);
@@ -1406,11 +1459,19 @@ class wow_api implements game_api_interface
 	 * cached by item_id (icon art never changes, and the same item is
 	 * equipped by many characters/guilds — see #41).
 	 *
-	 * @param int       $item_id
-	 * @param battlenet $api      Facade with ->static_data set
+	 * Self-contained rather than reusing a caller-supplied facade: the
+	 * 'character'-typed battlenet facade sync_one_equipment() already has
+	 * doesn't populate ->static_data (each battlenet instance only builds
+	 * the one resource type it was constructed for — see battlenet.php's
+	 * switch). Mirrors load_crest_asset()'s pattern of building its own
+	 * dedicated 'playable-data' facade. Only reaches the container/API on
+	 * an actual cache miss, so a fully cache-warm sync never pays for it.
+	 *
+	 * @param int    $item_id
+	 * @param string $region
 	 * @return string Icon render URL, or '' if unresolvable
 	 */
-	protected function resolve_item_icon_url(int $item_id, battlenet $api): string
+	protected function resolve_item_icon_url(int $item_id, string $region): string
 	{
 		if ($item_id <= 0)
 		{
@@ -1424,7 +1485,17 @@ class wow_api implements game_api_interface
 			return $cached;
 		}
 
+		global $phpbb_container;
+		$game = $this->get_game_from_db($phpbb_container);
+		if (!$game || trim($game->getApikey()) == '')
+		{
+			return '';
+		}
+
+		$ext_path = $this->get_ext_path($phpbb_container);
+		$api = $this->create_battlenet('playable-data', $region, $game->getApikey(), $game->get_apilocale(), $game->get_privkey(), $ext_path);
 		$data = $api->static_data->getItemMedia($item_id);
+		unset($api);
 
 		$icon_url = '';
 		if (isset($data['response']['assets']) && is_array($data['response']['assets']))

@@ -76,6 +76,9 @@ class wow_api_sync_one_test extends TestCase
 	/** @var battlenet */
 	private $battlenet;
 
+	/** @var battlenet The facade resolve_item_icon_url()'s stubbed create_battlenet() returns */
+	private $static_data_facade;
+
 	/** @var \PHPUnit\Framework\MockObject\MockObject|\phpbb\cache\service */
 	private $cache;
 
@@ -99,7 +102,16 @@ class wow_api_sync_one_test extends TestCase
 		});
 		$filesystem = new \phpbb\filesystem\filesystem();
 
-		$this->api = new wow_api($this->cache, $this->db, 'phpbb_guild_wow', 'phpbb_players', 'phpbb_ranks', $filesystem);
+		// resolve_item_icon_url() builds its own dedicated 'playable-data'
+		// facade internally on a cache miss (see wow_api.php) — get_game_from_db()/
+		// get_ext_path()/create_battlenet() are stubbed here, matching
+		// wow_api_sync_character_test.php's established seam, so tests can
+		// control what that facade resolves to without a real container or
+		// Battle.net API. Every other method on $this->api runs for real.
+		$this->api = $this->getMockBuilder(wow_api::class)
+			->setConstructorArgs(array($this->cache, $this->db, 'phpbb_guild_wow', 'phpbb_players', 'phpbb_ranks', $filesystem))
+			->onlyMethods(array('get_game_from_db', 'get_ext_path', 'create_battlenet'))
+			->getMock();
 
 		$this->character = new scripted_battlenet_character();
 		$this->static_data = new scripted_battlenet_static_data();
@@ -107,7 +119,12 @@ class wow_api_sync_one_test extends TestCase
 			->disableOriginalConstructor()
 			->getMock();
 		$this->battlenet->character = $this->character;
-		$this->battlenet->static_data = $this->static_data;
+
+		// The facade resolve_item_icon_url() gets back from its stubbed
+		// create_battlenet() call — separate from $this->battlenet, which is
+		// the 'character'-typed facade passed into sync_one_equipment() etc.
+		$this->static_data_facade = (new \ReflectionClass(battlenet::class))->newInstanceWithoutConstructor();
+		$this->static_data_facade->static_data = $this->static_data;
 	}
 
 	private function invoke_protected(string $method, array $args)
@@ -186,6 +203,85 @@ class wow_api_sync_one_test extends TestCase
 		$this->assertTrue($result['stop_batch']);
 	}
 
+	// ── sync_one_profile() ───────────────────────────────────
+
+	public function test_sync_one_profile_female_sets_gender_id_1(): void
+	{
+		$this->character->scripted_response = array(
+			'response' => array('gender' => array('type' => 'FEMALE', 'name' => 'Female')),
+			'response_headers' => array('http_code' => 200),
+		);
+		$captured_sql = '';
+		$this->db->expects($this->once())->method('sql_query')
+			->with($this->callback(function ($sql) use (&$captured_sql) { $captured_sql = $sql; return true; }));
+
+		$player = array('player_id' => 42, 'player_name' => 'Hegazi', 'player_realm' => 'silvermoon');
+		$result = $this->invoke_protected('sync_one_profile', array($player, $this->battlenet));
+
+		$this->assertSame(array('success' => true, 'error_code' => null, 'stop_batch' => false), $result);
+		$this->assertStringContainsString('player_gender_id = 1', $captured_sql);
+		$this->assertStringContainsString('WHERE player_id = 42', $captured_sql);
+	}
+
+	public function test_sync_one_profile_male_sets_gender_id_0(): void
+	{
+		$this->character->scripted_response = array(
+			'response' => array('gender' => array('type' => 'MALE', 'name' => 'Male')),
+			'response_headers' => array('http_code' => 200),
+		);
+		$captured_sql = '';
+		$this->db->expects($this->once())->method('sql_query')
+			->with($this->callback(function ($sql) use (&$captured_sql) { $captured_sql = $sql; return true; }));
+
+		$player = array('player_id' => 42, 'player_name' => 'Sajaki', 'player_realm' => 'argent-dawn');
+		$result = $this->invoke_protected('sync_one_profile', array($player, $this->battlenet));
+
+		$this->assertSame(array('success' => true, 'error_code' => null, 'stop_batch' => false), $result);
+		$this->assertStringContainsString('player_gender_id = 0', $captured_sql);
+	}
+
+	public function test_sync_one_profile_missing_gender_skips_write(): void
+	{
+		$this->character->scripted_response = array(
+			'response' => array('level' => 82),
+			'response_headers' => array('http_code' => 200),
+		);
+		$this->db->expects($this->never())->method('sql_query');
+
+		$player = array('player_id' => 42, 'player_name' => 'Sajaki', 'player_realm' => 'argent-dawn');
+		$result = $this->invoke_protected('sync_one_profile', array($player, $this->battlenet));
+
+		$this->assertSame(array('success' => true, 'error_code' => null, 'stop_batch' => false), $result);
+	}
+
+	public function test_sync_one_profile_404_is_failure_without_stop_batch(): void
+	{
+		$this->character->scripted_response = array(
+			'response' => array('code' => 404),
+			'response_headers' => array('http_code' => 404),
+		);
+		$this->db->expects($this->never())->method('sql_query');
+
+		$player = array('player_id' => 42, 'player_name' => 'Sajaki', 'player_realm' => 'argent-dawn');
+		$result = $this->invoke_protected('sync_one_profile', array($player, $this->battlenet));
+
+		$this->assertSame(array('success' => false, 'error_code' => 404, 'stop_batch' => false), $result);
+	}
+
+	public function test_sync_one_profile_500_sets_stop_batch(): void
+	{
+		$this->character->scripted_response = array(
+			'response' => null,
+			'response_headers' => array('http_code' => 500),
+		);
+
+		$player = array('player_id' => 42, 'player_name' => 'Sajaki', 'player_realm' => 'argent-dawn');
+		$result = $this->invoke_protected('sync_one_profile', array($player, $this->battlenet));
+
+		$this->assertFalse($result['success']);
+		$this->assertTrue($result['stop_batch']);
+	}
+
 	// ── sync_one_equipment() ────────────────────────────────
 
 	public function test_sync_one_equipment_success(): void
@@ -218,11 +314,24 @@ class wow_api_sync_one_test extends TestCase
 
 	// ── resolve_item_icon_url() ──────────────────────────────
 
+	/** Minimal game object satisfying what get_game_from_db() normally returns. */
+	private function stub_game(string $apikey = 'apikey')
+	{
+		return new class($apikey) {
+			private $apikey;
+			public function __construct(string $apikey) { $this->apikey = $apikey; }
+			public function getApikey(): string { return $this->apikey; }
+			public function get_apilocale(): string { return 'en_US'; }
+			public function get_privkey(): string { return 'secret'; }
+		};
+	}
+
 	public function test_resolve_item_icon_url_zero_item_id_returns_empty_without_api_call(): void
 	{
 		$this->cache->expects($this->never())->method('get');
+		$this->api->expects($this->never())->method('create_battlenet');
 
-		$result = $this->invoke_protected('resolve_item_icon_url', array(0, $this->battlenet));
+		$result = $this->invoke_protected('resolve_item_icon_url', array(0, 'eu'));
 
 		$this->assertSame('', $result);
 		$this->assertSame(0, $this->static_data->call_count);
@@ -231,8 +340,9 @@ class wow_api_sync_one_test extends TestCase
 	public function test_resolve_item_icon_url_cache_hit_skips_api_call(): void
 	{
 		$this->cache->method('get')->willReturn('https://render.worldofwarcraft.com/icons/56/cached.jpg');
+		$this->api->expects($this->never())->method('create_battlenet');
 
-		$result = $this->invoke_protected('resolve_item_icon_url', array(50468, $this->battlenet));
+		$result = $this->invoke_protected('resolve_item_icon_url', array(50468, 'eu'));
 
 		$this->assertSame('https://render.worldofwarcraft.com/icons/56/cached.jpg', $result);
 		$this->assertSame(0, $this->static_data->call_count);
@@ -241,6 +351,9 @@ class wow_api_sync_one_test extends TestCase
 	public function test_resolve_item_icon_url_cache_miss_fetches_and_caches(): void
 	{
 		$this->cache->method('get')->willReturn(false);
+		$this->api->method('get_game_from_db')->willReturn($this->stub_game());
+		$this->api->method('get_ext_path')->willReturn('/ext/path/');
+		$this->api->method('create_battlenet')->willReturn($this->static_data_facade);
 		$this->static_data->scripted_response = array(
 			'response' => array('assets' => array(
 				array('key' => 'icon', 'value' => 'https://render.worldofwarcraft.com/icons/56/999.jpg'),
@@ -253,7 +366,7 @@ class wow_api_sync_one_test extends TestCase
 			$this->anything()
 		);
 
-		$result = $this->invoke_protected('resolve_item_icon_url', array(50468, $this->battlenet));
+		$result = $this->invoke_protected('resolve_item_icon_url', array(50468, 'eu'));
 
 		$this->assertSame('https://render.worldofwarcraft.com/icons/56/999.jpg', $result);
 		$this->assertSame(1, $this->static_data->call_count);
@@ -262,6 +375,9 @@ class wow_api_sync_one_test extends TestCase
 	public function test_resolve_item_icon_url_missing_icon_asset_returns_empty_and_does_not_cache(): void
 	{
 		$this->cache->method('get')->willReturn(false);
+		$this->api->method('get_game_from_db')->willReturn($this->stub_game());
+		$this->api->method('get_ext_path')->willReturn('/ext/path/');
+		$this->api->method('create_battlenet')->willReturn($this->static_data_facade);
 		$this->static_data->scripted_response = array(
 			'response' => array('assets' => array(
 				array('key' => 'other', 'value' => 'https://example.com/nope.jpg'),
@@ -270,7 +386,18 @@ class wow_api_sync_one_test extends TestCase
 		);
 		$this->cache->expects($this->never())->method('put');
 
-		$result = $this->invoke_protected('resolve_item_icon_url', array(50468, $this->battlenet));
+		$result = $this->invoke_protected('resolve_item_icon_url', array(50468, 'eu'));
+
+		$this->assertSame('', $result);
+	}
+
+	public function test_resolve_item_icon_url_no_api_key_returns_empty(): void
+	{
+		$this->cache->method('get')->willReturn(false);
+		$this->api->method('get_game_from_db')->willReturn($this->stub_game(''));
+		$this->api->expects($this->never())->method('create_battlenet');
+
+		$result = $this->invoke_protected('resolve_item_icon_url', array(50468, 'eu'));
 
 		$this->assertSame('', $result);
 	}
@@ -292,6 +419,9 @@ class wow_api_sync_one_test extends TestCase
 			'response_headers' => array('http_code' => 200),
 		);
 		$this->cache->method('get')->willReturn(false);
+		$this->api->method('get_game_from_db')->willReturn($this->stub_game());
+		$this->api->method('get_ext_path')->willReturn('/ext/path/');
+		$this->api->method('create_battlenet')->willReturn($this->static_data_facade);
 		$this->static_data->scripted_response = array(
 			'response' => array('assets' => array(
 				array('key' => 'icon', 'value' => 'https://render.worldofwarcraft.com/icons/56/999.jpg'),
@@ -305,7 +435,7 @@ class wow_api_sync_one_test extends TestCase
 			return true;
 		});
 
-		$player = array('player_id' => 42, 'player_name' => 'Sajaki', 'player_realm' => 'argent-dawn');
+		$player = array('player_id' => 42, 'player_name' => 'Sajaki', 'player_realm' => 'argent-dawn', 'player_region' => 'eu');
 		$result = $this->invoke_protected('sync_one_equipment', array($player, $this->battlenet, 'bb_player_equipment', 'bb_player_item_stat'));
 
 		$this->assertTrue($result['success']);
