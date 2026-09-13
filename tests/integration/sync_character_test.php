@@ -73,25 +73,36 @@ class sync_character_test extends mock_battlenet_test_case
 		// `catch (\Exception $e)` swallows the resulting "Could not find
 		// service: user" completely silently, making sync_character() return
 		// false before ever reaching the specs/equipment/portrait sync it's
-		// actually testing. Stub just enough of \phpbb\user for
-		// avathar\bbguild\model\games\game's constructor (5 region lang keys)
-		// and get_game_from_db()'s own add_lang_ext() call, same spirit as
-		// the $GLOBALS['user'] stubs in roster_sync_test.php/
-		// achievement_sync_test.php — but set on the container, since this
-		// code path reads it via $container->get('user'), not global $user.
+		// actually testing. avathar\bbguild\model\games\game's constructor
+		// strictly type-hints \phpbb\user, so a bare anonymous-class stub
+		// (matching the $GLOBALS['user'] stubs in roster_sync_test.php/
+		// achievement_sync_test.php) would TypeError — and TypeError extends
+		// \Error, not \Exception, so get_game_from_db()'s bare
+		// `catch (\Exception $e)` would NOT catch it, turning a clean
+		// assertion failure into an uncaught fatal. Use a real PHPUnit mock
+		// of \phpbb\user instead, which satisfies the type hint since it's
+		// an actual subclass. disableOriginalConstructor() skips needing
+		// \phpbb\user's own constructor args; onlyMethods(['add_lang_ext'])
+		// stubs get_game_from_db()'s direct call to a no-op; ->lang is set
+		// directly as a real property, which shadows \phpbb\user's
+		// __get('lang') magic method for reads (there's no __set, so this
+		// is safe) — satisfying game's constructor's 5 region lang key
+		// reads.
 		global $phpbb_container;
 		if (!$phpbb_container->has('user'))
 		{
-			$phpbb_container->set('user', new class {
-				public $lang = array(
-					'REGIONEU' => 'Europe',
-					'REGIONKR' => 'Korea',
-					'REGIONSEA' => 'South-East Asia',
-					'REGIONTW' => 'Taiwan',
-					'REGIONUS' => 'United States',
-				);
-				public function add_lang_ext($ext_name, $lang_file) { }
-			});
+			$user_stub = $this->getMockBuilder(\phpbb\user::class)
+				->disableOriginalConstructor()
+				->onlyMethods(array('add_lang_ext'))
+				->getMock();
+			$user_stub->lang = array(
+				'REGIONEU' => 'Europe',
+				'REGIONKR' => 'Korea',
+				'REGIONSEA' => 'South-East Asia',
+				'REGIONTW' => 'Taiwan',
+				'REGIONUS' => 'United States',
+			);
+			$phpbb_container->set('user', $user_stub);
 		}
 	}
 
