@@ -124,7 +124,9 @@ class sync_character_test extends mock_battlenet_test_case
 		}
 		if (!$phpbb_container->has('config'))
 		{
-			$phpbb_container->set('config', new \phpbb\config\config(array()));
+			// 'upload_path' matches sync_portraits_test.php's own setUp() —
+			// sync_character()'s portrait sync step reads this same key.
+			$phpbb_container->set('config', new \phpbb\config\config(array('upload_path' => 'files')));
 		}
 		if (!$phpbb_container->has('ext.manager'))
 		{
@@ -139,11 +141,20 @@ class sync_character_test extends mock_battlenet_test_case
 		}
 
 		$table_params = array(
+			// Used by get_game_from_db() to construct the game model.
 			'avathar.bbguild.tables.bb_classes'  => 'bb_classes',
 			'avathar.bbguild.tables.bb_races'    => 'bb_races',
 			'avathar.bbguild.tables.bb_language' => 'bb_language',
 			'avathar.bbguild.tables.bb_factions' => 'bb_factions',
 			'avathar.bbguild.tables.bb_games'    => 'bb_games',
+			// Used directly by sync_character() itself: the game_edition
+			// lookup (dc9c814, #362) and the equipment sync step's two table
+			// names. Genuinely registered in any real install (config/tables
+			// .yml) — the bare test-harness container just doesn't load
+			// that file the way a real bootstrap would.
+			'avathar.bbguild.tables.bb_guild'                 => 'bb_guild',
+			'avathar.bbguildwow.tables.bb_player_equipment'   => 'bb_player_equipment',
+			'avathar.bbguildwow.tables.bb_player_item_stat'   => 'bb_player_item_stat',
 		);
 		foreach ($table_params as $param_name => $table_name)
 		{
