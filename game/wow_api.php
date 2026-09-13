@@ -1264,6 +1264,7 @@ class wow_api implements game_api_interface
 		// whether player_spec/player_portrait_url are already populated), so a
 		// transient 404 must never blank out real, previously-synced data.
 		$specs_outcome = $this->sync_one_specs($player_row, $api, false);
+		fwrite(STDERR, 'SYNC_CHARACTER_DIAG specs=' . json_encode($specs_outcome) . "\n"); // TEMP DIAGNOSTIC — remove after CI investigation
 		if ($specs_outcome['stop_batch'])
 		{
 			unset($api);
@@ -1273,6 +1274,7 @@ class wow_api implements game_api_interface
 		$equipment_table = $phpbb_container->getParameter('avathar.bbguildwow.tables.bb_player_equipment');
 		$stat_table = $phpbb_container->getParameter('avathar.bbguildwow.tables.bb_player_item_stat');
 		$equipment_outcome = $this->sync_one_equipment($player_row, $api, $equipment_table, $stat_table);
+		fwrite(STDERR, 'SYNC_CHARACTER_DIAG equipment=' . json_encode($equipment_outcome) . "\n"); // TEMP DIAGNOSTIC — remove after CI investigation
 		if ($equipment_outcome['stop_batch'])
 		{
 			unset($api);
@@ -1284,6 +1286,7 @@ class wow_api implements game_api_interface
 		$portrait_dir = $phpbb_root_path . $portrait_rel;
 		$this->ensure_dir($portrait_dir);
 		$portrait_outcome = $this->sync_one_portrait($player_row, $api, $portrait_dir, $portrait_rel, $upload_path, $phpbb_root_path, false);
+		fwrite(STDERR, 'SYNC_CHARACTER_DIAG portrait=' . json_encode($portrait_outcome) . "\n"); // TEMP DIAGNOSTIC — remove after CI investigation
 		if ($portrait_outcome['stop_batch'])
 		{
 			unset($api);
