@@ -24,12 +24,6 @@
 		</div>
 		{% endif %}
 
-		{% if S_WOW_HAS_RENDER %}
-		<div class="wow-hero-render">
-			<img src="{{ WOW_PLAYER_RENDER }}" alt="{{ PLAYER_NAME }}" />
-		</div>
-		{% endif %}
-
 		{% if S_WOW_HAS_EQUIPMENT %}
 		<div class="wow-equipment-grid-right">
 			{% for item in wow_equipment %}
@@ -51,6 +45,10 @@
 			{% endfor %}
 		</div>
 		{% endif %}
+
+		<div class="wow-stats-sidebar" id="wow-stats-panel">
+			<p class="wow-async-loading">{{ lang('WOW_LOADING') }}</p>
+		</div>
 	</div>
 
 	{% if WOW_PLAYER_SPEC or WOW_AVG_ILVL > 0 %}
@@ -64,11 +62,6 @@
 		{% endif %}
 	</fieldset>
 	{% endif %}
-
-	<fieldset id="wow-stats-panel" class="wow-async-panel">
-		<legend>{{ lang('WOW_STATS') }}</legend>
-		<p class="wow-async-loading">{{ lang('WOW_LOADING') }}</p>
-	</fieldset>
 
 	<fieldset id="wow-professions-panel" class="wow-async-panel" style="display:none">
 		<legend>{{ lang('WOW_PROFESSIONS') }}</legend>
@@ -113,16 +106,25 @@
 		var panel = document.getElementById('wow-stats-panel');
 		if (!stats.length) { panel.style.display = 'none'; return; }
 
-		var html = '<div class="wow-stats-grid">';
+		var groups = { base: [], melee: [], spell: [] };
 		for (var i = 0; i < stats.length; i++) {
 			var s = stats[i];
-			html += '<dl class="wow-stat-row"><dt>' + esc(s.name) + ':</dt><dd>' + s.value + (s.pct ? '%' : '') + '</dd></dl>';
+			(groups[s.group] || groups.base).push(s);
 		}
-		html += '</div>';
 
-		var loading = panel.querySelector('.wow-async-loading');
-		if (loading) { loading.remove(); }
-		panel.insertAdjacentHTML('beforeend', html);
+		var labels = { base: '{{ lang('WOW_STAT_GROUP_BASE') }}', melee: '{{ lang('WOW_STAT_GROUP_MELEE') }}', spell: '{{ lang('WOW_STAT_GROUP_SPELL') }}' };
+		var html = '';
+		['base', 'melee', 'spell'].forEach(function(group) {
+			if (!groups[group].length) { return; }
+			html += '<div class="wow-stats-group"><h4>' + labels[group] + '</h4><dl class="wow-stats-grid">';
+			for (var j = 0; j < groups[group].length; j++) {
+				var s = groups[group][j];
+				html += '<dt>' + esc(s.name) + ':</dt><dd>' + s.value + (s.pct ? '%' : '') + '</dd>';
+			}
+			html += '</dl></div>';
+		});
+
+		panel.innerHTML = html;
 	}
 
 	function renderProfessions(professions) {

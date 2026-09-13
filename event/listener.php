@@ -16,6 +16,7 @@ namespace avathar\bbguildwow\event;
 use phpbb\config\config;
 use phpbb\controller\helper;
 use phpbb\db\driver\driver_interface;
+use phpbb\language\language;
 use phpbb\request\request;
 use phpbb\template\template;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -37,6 +38,9 @@ class listener implements EventSubscriberInterface
 	/** @var helper */
 	private $helper;
 
+	/** @var language */
+	private $language;
+
 	/** @var string */
 	private $guild_wow_table;
 
@@ -49,16 +53,18 @@ class listener implements EventSubscriberInterface
 	 * @param driver_interface $db
 	 * @param request          $request
 	 * @param helper           $helper
+	 * @param language         $language
 	 * @param string           $guild_wow_table
 	 * @param string           $bb_players_table
 	 */
-	public function __construct(config $config, template $template, driver_interface $db, request $request, helper $helper, $guild_wow_table, $bb_players_table)
+	public function __construct(config $config, template $template, driver_interface $db, request $request, helper $helper, language $language, $guild_wow_table, $bb_players_table)
 	{
 		$this->config = $config;
 		$this->template = $template;
 		$this->db = $db;
 		$this->request = $request;
 		$this->helper = $helper;
+		$this->language = $language;
 		$this->guild_wow_table = $guild_wow_table;
 		$this->bb_players_table = $bb_players_table;
 	}
@@ -415,14 +421,19 @@ class listener implements EventSubscriberInterface
 			}
 		}
 
+		if ($avg_ilvl > 0)
+		{
+			$this->template->assign_block_vars('header_pills', array(
+				'PILL_LABEL' => $this->language->lang('WOW_AVG_ILVL') . ': ' . $avg_ilvl,
+			));
+		}
+
 		$this->template->assign_vars(array(
 			'WOW_PLAYER_SPEC'     => $spec,
 			'WOW_AVG_ILVL'        => $avg_ilvl,
 			'WOW_STATS_URL'       => $this->helper->route('avathar_bbguildwow_character_stats', array('player_id' => $player_id)),
 			'S_WOW_PLAYER'        => true,
 			'S_WOW_HAS_EQUIPMENT' => !empty($equipment),
-			'WOW_PLAYER_RENDER'   => isset($row['player_render_url']) && !empty($row['player_render_url']) && $row['player_render_url'] !== 'N/A' ? $row['player_render_url'] : '',
-			'S_WOW_HAS_RENDER'    => isset($row['player_render_url']) && !empty($row['player_render_url']) && $row['player_render_url'] !== 'N/A',
 		));
 	}
 

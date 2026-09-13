@@ -67,6 +67,7 @@ services:
             - '@dbal.conn'
             - '@request'
             - '@controller.helper'
+            - '@language'
             - '%avathar.bbguildwow.tables.bb_guild_wow%'
             - '%avathar.bbguild.tables.bb_players%'
         tags:
@@ -147,6 +148,35 @@ services:
             - '%avathar.bbguild.tables.bb_players%'
             - '%avathar.bbguild.tables.bb_guild%'
             - '@language'
+
+    # --- Player detail tabs ---
+
+    avathar.bbguildwow.player_detail_tab.pvp:
+        class: avathar\bbguildwow\portal\player_detail_tabs\pvp_tab
+        arguments:
+            - '@avathar.bbguildwow.api'
+            - '@dbal.conn'
+            - '@template'
+            - '%avathar.bbguild.tables.bb_players%'
+            - '%avathar.bbguild.tables.bb_guild%'
+        tags:
+            - { name: bbguild.player_detail_tab }
+
+    avathar.bbguildwow.player_detail_tab.talents:
+        class: avathar\bbguildwow\portal\player_detail_tabs\talents_tab
+        arguments:
+            - '@template'
+            - '@language'
+        tags:
+            - { name: bbguild.player_detail_tab }
+
+    avathar.bbguildwow.player_detail_tab.raid_progression:
+        class: avathar\bbguildwow\portal\player_detail_tabs\raid_progression_tab
+        arguments:
+            - '@template'
+            - '@language'
+        tags:
+            - { name: bbguild.player_detail_tab }
 
     # --- Portal modules ---
 

@@ -416,14 +416,21 @@ h3.category {
     gap: 2px;
 }
 
-.wow-hero-render {
-    flex: 0 0 auto;
-    text-align: center;
+.wow-stats-sidebar {
+    flex: 1 1 220px;
+    min-width: 200px;
+    max-width: 280px;
 }
 
-.wow-hero-render img {
-    max-height: 340px;
-    width: auto;
+.wow-stats-group {
+    margin-bottom: 12px;
+}
+
+.wow-stats-group h4 {
+    font-size: 0.85em;
+    text-transform: uppercase;
+    opacity: 0.6;
+    margin: 0 0 4px;
 }
 
 .wow-equipment-slot {
