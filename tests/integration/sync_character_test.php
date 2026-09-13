@@ -131,6 +131,7 @@ class sync_character_test extends mock_battlenet_test_case
 			'player_name' => 'Sajaki',
 			'player_realm' => 'area-160',
 			'player_region' => 'eu',
+			'player_guild_id' => self::GUILD_ID,
 		));
 
 		$this->assertTrue($result);
@@ -173,6 +174,7 @@ class sync_character_test extends mock_battlenet_test_case
 			'player_name' => 'Sajaki',
 			'player_realm' => 'area-161',
 			'player_region' => 'eu',
+			'player_guild_id' => self::GUILD_ID,
 		));
 
 		$this->assertFalse($result);
