@@ -104,6 +104,54 @@ class sync_character_test extends mock_battlenet_test_case
 			);
 			$phpbb_container->set('user', $user_stub);
 		}
+
+		// Same bare-container gap as 'user' above, for every other dependency
+		// get_game_from_db() pulls from $phpbb_container to construct
+		// avathar\bbguild\model\games\game — all silently swallowed by the
+		// same catch(\Exception), one at a time, each round confirmed via a
+		// temporary stderr diagnostic (see the diag commits on this branch).
+		if (!$phpbb_container->has('dbal.conn'))
+		{
+			// Reuse this test's own real DB connection so get_game()'s query
+			// sees the same data seed_wow_game_credentials() writes.
+			$phpbb_container->set('dbal.conn', $this->get_db());
+		}
+		if (!$phpbb_container->has('cache.driver'))
+		{
+			// game's constructor only threads this through to $this->cache;
+			// get_game() never calls it, so an inert mock is enough.
+			$phpbb_container->set('cache.driver', $this->createMock(\phpbb\cache\driver\driver_interface::class));
+		}
+		if (!$phpbb_container->has('config'))
+		{
+			$phpbb_container->set('config', new \phpbb\config\config(array()));
+		}
+		if (!$phpbb_container->has('ext.manager'))
+		{
+			// game's constructor calls get_extension_path('avathar/bbguild', true)
+			// for $this->ext_path, unused by get_game()'s SQL-only read path.
+			$ext_manager_stub = $this->getMockBuilder(\phpbb\extension\manager::class)
+				->disableOriginalConstructor()
+				->onlyMethods(array('get_extension_path'))
+				->getMock();
+			$ext_manager_stub->method('get_extension_path')->willReturn('ext/avathar/bbguild/');
+			$phpbb_container->set('ext.manager', $ext_manager_stub);
+		}
+
+		$table_params = array(
+			'avathar.bbguild.tables.bb_classes'  => 'bb_classes',
+			'avathar.bbguild.tables.bb_races'    => 'bb_races',
+			'avathar.bbguild.tables.bb_language' => 'bb_language',
+			'avathar.bbguild.tables.bb_factions' => 'bb_factions',
+			'avathar.bbguild.tables.bb_games'    => 'bb_games',
+		);
+		foreach ($table_params as $param_name => $table_name)
+		{
+			if (!$phpbb_container->hasParameter($param_name))
+			{
+				$phpbb_container->setParameter($param_name, $this->get_table_prefix() . $table_name);
+			}
+		}
 	}
 
 	private function get_table_prefix(): string
