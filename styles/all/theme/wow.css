@@ -537,7 +537,6 @@ h3.category {
 }
 
 @media (max-width: 600px) {
-    .wow-equipment-grid,
     .wow-stats-grid {
         grid-template-columns: 1fr;
     }
