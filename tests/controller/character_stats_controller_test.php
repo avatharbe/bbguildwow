@@ -81,7 +81,7 @@ class character_stats_controller_test extends TestCase
 		$controller = $this->make_controller(
 			array('game_id' => 'wow', 'player_name' => 'Sajaki', 'player_realm' => 'silvermoon', 'player_region' => 'eu', 'game_edition' => 'retail'),
 			array(
-				'stats' => array('strength' => 123, 'versatility' => 45, 'melee_crit' => array('value' => 15.71)),
+				'stats' => array('strength' => 123, 'versatility' => 45, 'melee_crit' => array('value' => 15.71), 'mastery' => array('value' => 22.5), 'versatility_damage_done_bonus' => array('value' => 8.3)),
 				'professions' => array('primaries' => array(
 					array('profession' => array('name' => 'Blacksmithing'), 'tiers' => array(array('skill_points' => 300, 'max_skill_points' => 300))),
 				)),
@@ -107,6 +107,12 @@ class character_stats_controller_test extends TestCase
 		$this->assertSame('base', $data['stats'][1]['group']);
 		$this->assertTrue($data['stats'][2]['pct']);
 		$this->assertSame('melee', $data['stats'][2]['group']);
+		$this->assertTrue($data['stats'][3]['pct']);
+		$this->assertSame('spell', $data['stats'][3]['group']);
+		$this->assertSame(22.5, $data['stats'][3]['value']);
+		$this->assertTrue($data['stats'][4]['pct']);
+		$this->assertSame('spell', $data['stats'][4]['group']);
+		$this->assertSame(8.3, $data['stats'][4]['value']);
 		$this->assertSame('Blacksmithing', $data['professions'][0]['name']);
 		$this->assertSame(1500, $data['mplus']['rating']);
 		$this->assertSame('#ff8000', $data['mplus']['color']);

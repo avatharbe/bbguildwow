@@ -24,10 +24,6 @@
 		</div>
 		{% endif %}
 
-		<div class="wow-stats-sidebar" id="wow-stats-panel">
-			<p class="wow-async-loading">{{ lang('WOW_LOADING') }}</p>
-		</div>
-
 		{% if S_WOW_HAS_EQUIPMENT %}
 		<div class="wow-equipment-grid-right">
 			{% for item in wow_equipment %}
@@ -49,6 +45,10 @@
 			{% endfor %}
 		</div>
 		{% endif %}
+
+		<div class="wow-stats-sidebar" id="wow-stats-panel">
+			<p class="wow-async-loading">{{ lang('WOW_LOADING') }}</p>
+		</div>
 	</div>
 
 	{% if WOW_PLAYER_SPEC or WOW_AVG_ILVL > 0 %}

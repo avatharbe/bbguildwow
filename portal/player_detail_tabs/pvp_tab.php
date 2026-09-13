@@ -89,10 +89,17 @@ class pvp_tab implements player_detail_tab_interface
 
 		if ($edition === 'retail')
 		{
-			$raw_pvp = $this->wow_api->fetch_pvp_summary($row['player_name'], $row['player_realm'], $row['player_region'], $edition);
-			if ($raw_pvp && isset($raw_pvp['honor_level']))
+			try
 			{
-				$honor_level = (int) $raw_pvp['honor_level'];
+				$raw_pvp = $this->wow_api->fetch_pvp_summary($row['player_name'], $row['player_realm'], $row['player_region'], $edition);
+				if ($raw_pvp && isset($raw_pvp['honor_level']))
+				{
+					$honor_level = (int) $raw_pvp['honor_level'];
+				}
+			}
+			catch (\Throwable $e)
+			{
+				$honor_level = 0;
 			}
 		}
 
