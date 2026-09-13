@@ -2092,12 +2092,10 @@ class wow_api implements game_api_interface
 			);
 			$game->game_id = 'wow';
 			$game->get_game();
-			fwrite(STDERR, 'SYNC_CHARACTER_DIAG2 apikey=' . json_encode($game->getApikey()) . "\n"); // TEMP DIAGNOSTIC — remove after CI investigation
 			return $game;
 		}
 		catch (\Exception $e)
 		{
-			fwrite(STDERR, 'SYNC_CHARACTER_DIAG2 EXCEPTION ' . get_class($e) . ': ' . $e->getMessage() . "\n"); // TEMP DIAGNOSTIC — remove after CI investigation
 			return null;
 		}
 	}
