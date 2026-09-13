@@ -67,6 +67,7 @@ services:
             - '@dbal.conn'
             - '@request'
             - '@controller.helper'
+            - '@language'
             - '%avathar.bbguildwow.tables.bb_guild_wow%'
             - '%avathar.bbguild.tables.bb_players%'
         tags:

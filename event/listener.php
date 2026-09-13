@@ -16,6 +16,7 @@ namespace avathar\bbguildwow\event;
 use phpbb\config\config;
 use phpbb\controller\helper;
 use phpbb\db\driver\driver_interface;
+use phpbb\language\language;
 use phpbb\request\request;
 use phpbb\template\template;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -37,6 +38,9 @@ class listener implements EventSubscriberInterface
 	/** @var helper */
 	private $helper;
 
+	/** @var language */
+	private $language;
+
 	/** @var string */
 	private $guild_wow_table;
 
@@ -49,16 +53,18 @@ class listener implements EventSubscriberInterface
 	 * @param driver_interface $db
 	 * @param request          $request
 	 * @param helper           $helper
+	 * @param language         $language
 	 * @param string           $guild_wow_table
 	 * @param string           $bb_players_table
 	 */
-	public function __construct(config $config, template $template, driver_interface $db, request $request, helper $helper, $guild_wow_table, $bb_players_table)
+	public function __construct(config $config, template $template, driver_interface $db, request $request, helper $helper, language $language, $guild_wow_table, $bb_players_table)
 	{
 		$this->config = $config;
 		$this->template = $template;
 		$this->db = $db;
 		$this->request = $request;
 		$this->helper = $helper;
+		$this->language = $language;
 		$this->guild_wow_table = $guild_wow_table;
 		$this->bb_players_table = $bb_players_table;
 	}
