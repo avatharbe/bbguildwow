@@ -696,7 +696,7 @@ class wow_api implements game_api_interface
 	 * Sync one character's equipment. Extracted from sync_equipment()'s
 	 * per-player loop body so it can be shared with sync_character() (#362).
 	 *
-	 * @param array     $player          Row with at least player_id, player_name, player_realm
+	 * @param array     $player          Row with at least player_id, player_name, player_realm, player_region
 	 * @param battlenet $api             Facade with ->character set
 	 * @param string    $equipment_table
 	 * @param string    $stat_table
@@ -1194,7 +1194,7 @@ class wow_api implements game_api_interface
 		$stat_table = $phpbb_container->getParameter('avathar.bbguildwow.tables.bb_player_item_stat');
 		$stale_threshold = time() - 86400;
 
-		$sql = 'SELECT p.player_id, p.player_name, p.player_realm
+		$sql = 'SELECT p.player_id, p.player_name, p.player_realm, p.player_region
 			FROM ' . $this->bb_players_table . ' p
 			LEFT JOIN ' . $equipment_table . ' e
 				ON e.player_id = p.player_id AND e.slot_type = \'HEAD\'
@@ -1494,6 +1494,15 @@ class wow_api implements game_api_interface
 
 		$ext_path = $this->get_ext_path($phpbb_container);
 		$api = $this->create_battlenet('playable-data', $region, $game->getApikey(), $game->get_apilocale(), $game->get_privkey(), $ext_path);
+		if (!isset($api->static_data))
+		{
+			// Defensive: a caller-overridden create_battlenet() (e.g. a test
+			// double built for a different battlenet resource type) could
+			// return a facade that never populated ->static_data. Degrade to
+			// no-icon rather than a fatal call-on-null — this is best-effort
+			// enrichment, not a required field.
+			return '';
+		}
 		$data = $api->static_data->getItemMedia($item_id);
 		unset($api);
 

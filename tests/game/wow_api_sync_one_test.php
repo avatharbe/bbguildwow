@@ -391,6 +391,25 @@ class wow_api_sync_one_test extends TestCase
 		$this->assertSame('', $result);
 	}
 
+	public function test_resolve_item_icon_url_facade_without_static_data_returns_empty(): void
+	{
+		// A caller-overridden create_battlenet() (e.g. an integration test
+		// double built only for the 'character' resource type — see
+		// tests/integration/equipment_sync_test.php) can hand back a facade
+		// that never populated ->static_data. Must degrade gracefully, not
+		// fatal on a call to a null property.
+		$this->cache->method('get')->willReturn(false);
+		$this->api->method('get_game_from_db')->willReturn($this->stub_game());
+		$this->api->method('get_ext_path')->willReturn('/ext/path/');
+		$facade_without_static_data = (new \ReflectionClass(battlenet::class))->newInstanceWithoutConstructor();
+		$this->api->method('create_battlenet')->willReturn($facade_without_static_data);
+
+		$result = $this->invoke_protected('resolve_item_icon_url', array(50468, 'eu'));
+
+		$this->assertSame('', $result);
+		$this->assertSame(0, $this->static_data->call_count);
+	}
+
 	public function test_resolve_item_icon_url_no_api_key_returns_empty(): void
 	{
 		$this->cache->method('get')->willReturn(false);
