@@ -161,6 +161,22 @@ services:
         tags:
             - { name: bbguild.player_detail_tab }
 
+    avathar.bbguildwow.player_detail_tab.talents:
+        class: avathar\bbguildwow\portal\player_detail_tabs\talents_tab
+        arguments:
+            - '@template'
+            - '@language'
+        tags:
+            - { name: bbguild.player_detail_tab }
+
+    avathar.bbguildwow.player_detail_tab.raid_progression:
+        class: avathar\bbguildwow\portal\player_detail_tabs\raid_progression_tab
+        arguments:
+            - '@template'
+            - '@language'
+        tags:
+            - { name: bbguild.player_detail_tab }
+
     # --- Portal modules ---
 
     avathar.bbguildwow.portal.module.achievements:
