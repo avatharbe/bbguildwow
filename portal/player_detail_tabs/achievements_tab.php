@@ -108,15 +108,12 @@ class achievements_tab implements player_detail_tab_interface
 		// completed_only=true (bbguildwow#44 follow-up) excludes
 		// still-in-progress tracked rows at the SQL level, so $total below
 		// is an accurate page count for what this tab actually displays.
-		[$tracked, , $total] = $this->achievement_model->get_tracked_achievements($start, 0, $player_id, true);
-
-		// Page-local newest-first ordering (get_tracked_achievements()'s
-		// own default sort is by achievement id, not completion date).
-		// This only orders within the current page, not across the whole
-		// result set — a real cross-page date sort would need passing a
-		// sort-order override through to switch_order(), left as a
-		// follow-up rather than part of this pagination pass.
-		usort($tracked, fn (array $a, array $b) => (int) $b['achievements_completed'] <=> (int) $a['achievements_completed']);
+		// default_order='4.1' sorts by achievements_completed descending
+		// at the SQL level (index 4 of get_tracked_achievements()'s own
+		// $sort_order map, direction 1 = desc) — genuinely newest-first
+		// across the whole result set, not just within whichever 15-row
+		// page happened to come back.
+		[$tracked, , $total] = $this->achievement_model->get_tracked_achievements($start, 0, $player_id, true, '4.1');
 
 		foreach ($tracked as $row)
 		{

@@ -113,27 +113,32 @@ class achievements_tab_test extends TestCase
 
 	public function test_render_lists_only_completed_achievements_sorted_newest_first(): void
 	{
-		// What: three tracked rows — two completed (different timestamps),
-		// one still in progress (achievements_completed == 0).
-		// Why: proves the tab filters out in-progress rows and orders the
-		// completed ones newest-first, not just "some completed row shows
-		// up". completed_only=true now does the filtering at the SQL
-		// level (see model/achievement.php), so this fixture only
-		// contains completed rows — the in-progress row a prior version
-		// of this test included is covered instead by the count/points
-		// queries below, which are real, separate queries now.
+		// What: two completed rows, returned by the (mocked) DB in the
+		// same newest-first order a real "ORDER BY achievements_completed
+		// desc" query would give.
+		// Why: the tab no longer re-sorts client-side (see
+		// render()'s '4.1' default_order — sorting is now the SQL query's
+		// job, verified below via the captured ORDER BY clause), so this
+		// fixture simulates what the DB itself would already hand back,
+		// and the SQL-capture assertion is what actually proves the sort
+		// request reached the query rather than the fixture just
+		// happening to be listed in the right order.
 		$rows = [
-			['achievement_id' => 1, 'game_id' => 'wow', 'title' => 'Older', 'points' => 10,
-				'description' => 'Older desc', 'icon' => 'icon1.jpg', 'factionid' => 0, 'reward' => '',
-				'achievements_completed' => 1000, 'guild_id' => 0, 'player_id' => 42],
 			['achievement_id' => 2, 'game_id' => 'wow', 'title' => 'Newer', 'points' => 25,
 				'description' => 'Newer desc', 'icon' => 'icon2.jpg', 'factionid' => 0, 'reward' => '',
 				'achievements_completed' => 2000, 'guild_id' => 0, 'player_id' => 42],
+			['achievement_id' => 1, 'game_id' => 'wow', 'title' => 'Older', 'points' => 10,
+				'description' => 'Older desc', 'icon' => 'icon1.jpg', 'factionid' => 0, 'reward' => '',
+				'achievements_completed' => 1000, 'guild_id' => 0, 'player_id' => 42],
 		];
 
+		$captured_sql = array();
 		$db = $this->createMock(\phpbb\db\driver\driver_interface::class);
 		$db->method('sql_query')->willReturn('RESULT');
-		$db->method('sql_query_limit')->willReturn('LIST_RESULT');
+		$db->method('sql_query_limit')->willReturnCallback(function ($sql) use (&$captured_sql) {
+			$captured_sql[] = $sql;
+			return 'LIST_RESULT';
+		});
 		$db->method('sql_fetchrow')->willReturnOnConsecutiveCalls(...array_merge($rows, [false]));
 		$db->method('sql_escape')->willReturnArgument(0);
 		// Three sequential single-value fetches: get_tracked_achievements()'s
@@ -148,6 +153,8 @@ class achievements_tab_test extends TestCase
 		$path = $tab->render(42);
 
 		$this->assertSame('@avathar_bbguildwow/portal/achievements_tab.html', $path);
+		$this->assertCount(1, $captured_sql);
+		$this->assertStringContainsString('ORDER BY ac.achievements_completed desc', $captured_sql[0]);
 		$this->assertSame(2, $recorder->vars['WOW_ACHIEVEMENT_COUNT']);
 		$this->assertSame(35, $recorder->vars['WOW_ACHIEVEMENT_POINTS']);
 		$this->assertCount(2, $recorder->blocks['wow_achievement_row']);

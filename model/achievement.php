@@ -592,9 +592,18 @@ class achievement
 	 *               inflated by in-progress rows it filters out anyway).
 	 *               Defaults false to preserve the ACP achievement list's
 	 *               existing behaviour (acp/achievement_module.php).
+	 * @param string $default_order util::switch_order()'s default sort
+	 *               (element1.element2 — see $sort_order below for the
+	 *               index map), used only when the request has no
+	 *               explicit `o` param of its own. Defaults to '0.0'
+	 *               (id ascending), same as before this param existed;
+	 *               the achievements tab passes '4.1' (completion date
+	 *               descending) so paginated pages are genuinely the
+	 *               next-most-recent 15, not just an id-ordered page
+	 *               re-sorted internally.
 	 * @return array
 	 */
-	public function get_tracked_achievements($start, $guild_id, $player_id = 0, $completed_only = false)
+	public function get_tracked_achievements($start, $guild_id, $player_id = 0, $completed_only = false, $default_order = '0.0')
 	{
 		$db = $this->db;
 		$per_page = 15;
@@ -632,7 +641,7 @@ class achievement
 			3 => array('a.points', 'a.points desc'),
 			4 => array('ac.achievements_completed', 'ac.achievements_completed desc'),
 		);
-		$current_order = $this->util->switch_order($sort_order);
+		$current_order = $this->util->switch_order($sort_order, \avathar\bbguild\model\admin\constants::URI_ORDER, $default_order);
 
 		// Fetch paginated results — flat join, no criteria/rewards (shown in detail view)
 		$sql = 'SELECT a.id AS achievement_id, a.game_id, a.title, a.points,
