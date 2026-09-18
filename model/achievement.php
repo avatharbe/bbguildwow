@@ -655,6 +655,116 @@ class achievement
 		return array($achievements, $current_order, $achievcount);
 	}
 
+	/**
+	 * Store one character's completed achievements from a Battle.net
+	 * character-achievements API response (bbguildwow#44's sync side).
+	 * Mirrors setAchievements()'s response parsing, scoped to player_id
+	 * instead of guild_id -- track_rows carry guild_id=0/player_id=X,
+	 * the mirror image of setAchievements()'s guild_id=X/player_id=0, per
+	 * get_tracked_achievements()'s "not both with a zero that matches
+	 * everything" owner-filter contract.
+	 *
+	 * Unlike setAchievements(), this does NOT fetch full achievement
+	 * detail (title/points/description/icon) for catalog entries it
+	 * doesn't already know about -- that's a separate, expensive,
+	 * time-budgeted step already owned by the guild-level sync. It does
+	 * still insert minimal stub rows (ensure_achievement_stubs()) so a
+	 * character's achievement isn't silently dropped by
+	 * get_tracked_achievements()'s INNER JOIN against the catalog table
+	 * just because no guild sync has run yet.
+	 *
+	 * @param int   $player_id
+	 * @param array $data Parsed 'response' body from
+	 *                    battlenet_character::getCharacterAchievements()
+	 * @return array{success: bool, count: int}
+	 */
+	public function set_player_achievements(int $player_id, array $data): array
+	{
+		$achievements = isset($data['achievements']) ? $data['achievements'] : array();
+		if (empty($achievements))
+		{
+			return array('success' => false, 'count' => 0);
+		}
+
+		$this->db->sql_query('DELETE FROM ' . $this->bb_achievement_track_table . ' WHERE player_id = ' . $player_id);
+
+		$track_rows = array();
+		foreach ($achievements as $entry)
+		{
+			$achievement_id = isset($entry['achievement']['id']) ? (int) $entry['achievement']['id'] : 0;
+			if ($achievement_id === 0)
+			{
+				continue;
+			}
+
+			$track_rows[] = array(
+				'guild_id'               => 0,
+				'player_id'              => $player_id,
+				'achievement_id'         => $achievement_id,
+				'achievements_completed' => isset($entry['completed_timestamp']) ? (int) $entry['completed_timestamp'] : 0,
+			);
+		}
+
+		if (!empty($track_rows))
+		{
+			$this->db->sql_multi_insert($this->bb_achievement_track_table, $track_rows);
+			$this->ensure_achievement_stubs($achievements);
+		}
+
+		return array('success' => true, 'count' => count($track_rows));
+	}
+
+	/**
+	 * Insert minimal achievement-catalog rows (id/game_id/title only) for
+	 * any achievement id referenced by an API response that isn't already
+	 * in the catalog table, so get_tracked_achievements()'s INNER JOIN
+	 * against it doesn't silently drop a real tracked row. Full detail
+	 * (points/description/icon) is filled in separately, on a time
+	 * budget, by setAchievements()'s own detail-fetch pass -- this only
+	 * guarantees *something* displayable (title + date) exists immediately.
+	 *
+	 * @param array $achievements Raw 'achievements' array from a Battle.net
+	 *                            guild- or character-achievements response
+	 */
+	private function ensure_achievement_stubs(array $achievements): void
+	{
+		$db = $this->db;
+
+		$existing_ids = array();
+		$sql = 'SELECT id FROM ' . $this->bb_achievement_table . " WHERE game_id = '" . $db->sql_escape($this->game_id) . "'";
+		$result = $db->sql_query($sql);
+		while ($row = $db->sql_fetchrow($result))
+		{
+			$existing_ids[(int) $row['id']] = true;
+		}
+		$db->sql_freeresult($result);
+
+		$stub_rows = array();
+		foreach ($achievements as $entry)
+		{
+			$aid = isset($entry['achievement']['id']) ? (int) $entry['achievement']['id'] : 0;
+			if ($aid > 0 && !isset($existing_ids[$aid]))
+			{
+				$stub_rows[] = array(
+					'id'          => $aid,
+					'game_id'     => $this->game_id,
+					'title'       => isset($entry['achievement']['name']) ? $entry['achievement']['name'] : '',
+					'points'      => 0,
+					'description' => '',
+					'icon'        => '',
+					'factionid'   => 2,
+					'reward'      => '',
+				);
+				$existing_ids[$aid] = true;
+			}
+		}
+
+		if (!empty($stub_rows))
+		{
+			$db->sql_multi_insert($this->bb_achievement_table, $stub_rows);
+		}
+	}
+
 
 	/**
 	 * Sync guild achievements from the Battle.net Game Data API.
@@ -800,42 +910,7 @@ class achievement
 
 		$track_count = count($track_rows);
 
-		// Insert basic achievement stubs from the guild response for any
-		// achievements not yet in the detail table. This ensures the portal
-		// module can display them immediately (title + date).
-		$existing_ids = array();
-		$sql = 'SELECT id FROM ' . $this->bb_achievement_table . " WHERE game_id = '" . $db->sql_escape($this->game->game_id) . "'";
-		$result = $db->sql_query($sql);
-		while ($row = $db->sql_fetchrow($result))
-		{
-			$existing_ids[(int) $row['id']] = true;
-		}
-		$db->sql_freeresult($result);
-
-		$stub_rows = array();
-		foreach ($achievements as $entry)
-		{
-			$aid = isset($entry['achievement']['id']) ? (int) $entry['achievement']['id'] : 0;
-			if ($aid > 0 && !isset($existing_ids[$aid]))
-			{
-				$stub_rows[] = array(
-					'id'          => $aid,
-					'game_id'     => $this->game->game_id,
-					'title'       => isset($entry['achievement']['name']) ? $entry['achievement']['name'] : '',
-					'points'      => 0,
-					'description' => '',
-					'icon'        => '',
-					'factionid'   => 2,
-					'reward'      => '',
-				);
-				$existing_ids[$aid] = true;
-			}
-		}
-
-		if (!empty($stub_rows))
-		{
-			$db->sql_multi_insert($this->bb_achievement_table, $stub_rows);
-		}
+		$this->ensure_achievement_stubs($achievements);
 
 		// Now fetch full details for achievements missing icon/points/description.
 		// Use a time guard to stay within PHP's execution limit.

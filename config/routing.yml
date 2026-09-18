@@ -59,6 +59,12 @@ avathar_bbguildwow_sync_achievements:
     requirements:
         guild_id: \d+
 
+avathar_bbguildwow_sync_player_achievements:
+    path: /bbguildwow/sync-player-achievements/{guild_id}
+    defaults: { _controller: avathar.bbguildwow.achievement_sync_controller:sync_player_achievements }
+    requirements:
+        guild_id: \d+
+
 avathar_bbguildwow_achiev_detail:
     path: /bbguildwow/achievements/detail/{guild_id}/{achievement_id}
     defaults: { _controller: avathar.bbguildwow.achievement_controller:achievement_detail }

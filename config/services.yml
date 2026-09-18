@@ -21,6 +21,7 @@ services:
             - '@filesystem'
         calls:
             - [set_language, ['@language']]
+            - [set_achievement_model, ['@avathar.bbguildwow.achievement']]
 
     avathar.bbguildwow.provider:
         class: avathar\bbguildwow\game\wow_provider
@@ -124,6 +125,9 @@ services:
             - '%avathar.bbguild.tables.bb_guild%'
             - '%avathar.bbguild.tables.bb_games%'
             - '%avathar.bbguildwow.tables.bb_achievement%'
+            - '@avathar.bbguildwow.api'
+            - '%avathar.bbguild.tables.bb_players%'
+            - '%avathar.bbguildwow.tables.bb_achievement_track%'
 
     avathar.bbguildwow.achievement_controller:
         class: avathar\bbguildwow\controller\achievement_controller

@@ -14,6 +14,7 @@ namespace avathar\bbguildwow\game;
 
 use avathar\bbguild\model\games\game_api_interface;
 use avathar\bbguildwow\api\battlenet;
+use avathar\bbguildwow\model\achievement;
 use phpbb\language\language;
 
 /**
@@ -63,6 +64,16 @@ class wow_api implements game_api_interface
 	private $language;
 
 	/**
+	 * @var achievement|null Set via set_achievement_model() — same
+	 *                       optional-setter reasoning as $language;
+	 *                       required for sync_achievements()/
+	 *                       sync_one_achievements() to actually write
+	 *                       anything, but its absence doesn't break any
+	 *                       other wow_api method or existing test.
+	 */
+	private $achievement_model;
+
+	/**
 	 * @param \phpbb\cache\service              $cache
 	 * @param \phpbb\db\driver\driver_interface $db
 	 * @param string                            $guild_wow_table
@@ -90,6 +101,16 @@ class wow_api implements game_api_interface
 	public function set_language(language $language): void
 	{
 		$this->language = $language;
+	}
+
+	/**
+	 * Setter-injected for the same reason as set_language() above.
+	 *
+	 * @param achievement $achievement_model
+	 */
+	public function set_achievement_model(achievement $achievement_model): void
+	{
+		$this->achievement_model = $achievement_model;
 	}
 
 	/**
@@ -849,6 +870,53 @@ class wow_api implements game_api_interface
 	}
 
 	/**
+	 * Sync one character's completed achievements (bbguildwow#44's sync
+	 * side). Extracted as its own sync_one_*() so it follows the same
+	 * shape as sync_one_specs()/sync_one_equipment()/sync_one_portrait(),
+	 * even though today only sync_achievements() (the guild-batch method
+	 * below) calls it -- not sync_character() -- per the explicit choice
+	 * to keep this a guild-batch "backfill missing data" action, not part
+	 * of the always-on per-character cron.
+	 *
+	 * @param array     $player Row with at least player_id, player_name, player_realm
+	 * @param battlenet $api    Facade with ->character set
+	 * @return array{success: bool, error_code: string|int|null, stop_batch: bool}
+	 */
+	protected function sync_one_achievements(array $player, battlenet $api): array
+	{
+		$response = $api->character->getCharacterAchievements(
+			$player['player_realm'],
+			$player['player_name']
+		);
+		$data = isset($response['response']) ? $response['response'] : null;
+		$http_code = isset($response['response_headers']['http_code']) ? (int) $response['response_headers']['http_code'] : 0;
+
+		if (!is_array($data) || isset($data['code']))
+		{
+			$error_code = isset($data['code']) ? (int) $data['code'] : $http_code;
+			if ($error_code === 0)
+			{
+				$error_code = 'unknown';
+			}
+
+			return array('success' => false, 'error_code' => $error_code, 'stop_batch' => $http_code >= 500);
+		}
+
+		if ($this->achievement_model === null)
+		{
+			// Misconfiguration (set_achievement_model() never called) --
+			// not a per-character problem, so stop the whole batch rather
+			// than burning API calls on every remaining player only to
+			// fail the same way each time.
+			return array('success' => false, 'error_code' => 'unknown', 'stop_batch' => true);
+		}
+
+		$result = $this->achievement_model->set_player_achievements((int) $player['player_id'], $data);
+
+		return array('success' => $result['success'], 'error_code' => $result['success'] ? null : 'unknown', 'stop_batch' => false);
+	}
+
+	/**
 	 * Fetch character portraits from the Character Media API.
 	 *
 	 * Processes players that have an empty portrait URL, with a time guard
@@ -1022,6 +1090,120 @@ class wow_api implements game_api_interface
 
 		$remaining = count($players) - $fetched - $failed;
 		$message = $this->lang('WOW_API_SPECS_FETCHED', $fetched);
+		if (!empty($errors))
+		{
+			$parts = array();
+			foreach ($errors as $code => $names)
+			{
+				$parts[] = sprintf('%s: %s', $this->error_label($code), implode(', ', $names));
+			}
+			$message .= $this->lang('WOW_API_BATCH_FAILED', $failed, implode('; ', $parts));
+		}
+		if ($remaining > 0)
+		{
+			$message .= $this->lang('WOW_API_BATCH_REMAINING', $remaining);
+		}
+
+		return array('success' => true, 'message' => $message, 'count' => $fetched, 'errors' => $errors);
+	}
+
+	/**
+	 * Guild-batch achievement sync (bbguildwow#44's sync side) -- an
+	 * ACP-triggered "backfill missing data" action, same shape as
+	 * sync_specs()/sync_equipment()/sync_portraits(): time-budgeted per
+	 * request, meant to be called repeatedly by JS polling until
+	 * 'remaining' reaches 0 (large guilds take multiple requests; see
+	 * bbguildwow#44's follow-up discussion on why this isn't a single
+	 * blocking call).
+	 *
+	 * Unlike specs (player_spec = '' is the "needs sync" marker),
+	 * achievements have no single column to check -- "needs sync" here
+	 * means "no tracked achievement row for this player yet at all".
+	 * That makes this a one-time backfill per character, same as specs:
+	 * once a character has been synced here, a later re-click of this
+	 * same action won't pick them up again to catch newly-earned
+	 * achievements. Keeping characters continuously fresh is a
+	 * deliberately separate concern from this action, same as how specs/
+	 * equipment/portrait freshness is owned by the per-character cron
+	 * (sync_character()), not this button -- extending that ongoing-
+	 * freshness path to achievements is out of scope here (see
+	 * sync_one_achievements()'s docblock).
+	 *
+	 * @param int    $guild_id
+	 * @param string $region
+	 * @param string $apikey
+	 * @param string $locale
+	 * @param string $privkey
+	 * @param string $edition
+	 * @return array Result with 'success', 'message', 'count'
+	 */
+	public function sync_achievements(int $guild_id, string $region, string $apikey, string $locale, string $privkey, string $edition = 'retail'): array
+	{
+		global $phpbb_container;
+		$db = $this->db;
+
+		$track_table = $phpbb_container->getParameter('avathar.bbguildwow.tables.bb_achievement_track');
+
+		$sql = 'SELECT p.player_id, p.player_name, p.player_realm
+			FROM ' . $this->bb_players_table . ' p
+			WHERE p.player_guild_id = ' . $guild_id . '
+				AND p.game_id = \'wow\'
+				AND p.player_status = 1
+				AND NOT EXISTS (
+					SELECT 1 FROM ' . $track_table . ' ac WHERE ac.player_id = p.player_id
+				)
+			ORDER BY p.player_id';
+		$result = $db->sql_query($sql);
+
+		$players = array();
+		while ($row = $db->sql_fetchrow($result))
+		{
+			$players[] = $row;
+		}
+		$db->sql_freeresult($result);
+
+		if (empty($players))
+		{
+			return array('success' => true, 'message' => $this->lang('WOW_API_ACHIEVEMENTS_UP_TO_DATE'), 'count' => 0);
+		}
+
+		$api = $this->create_battlenet('character', $region, $apikey, $locale, $privkey, '', 3600, $edition);
+
+		$time_start = time();
+		$time_limit = 20;
+		$fetched = 0;
+		$failed = 0;
+		$errors = array();
+
+		foreach ($players as $player)
+		{
+			if ((time() - $time_start) >= $time_limit)
+			{
+				break;
+			}
+
+			$outcome = $this->sync_one_achievements($player, $api);
+
+			if ($outcome['success'])
+			{
+				$fetched++;
+			}
+			else
+			{
+				$errors[$outcome['error_code']][] = $player['player_name'];
+				$failed++;
+
+				if ($outcome['stop_batch'])
+				{
+					break;
+				}
+			}
+		}
+
+		unset($api);
+
+		$remaining = count($players) - $fetched - $failed;
+		$message = $this->lang('WOW_API_ACHIEVEMENTS_FETCHED', $fetched);
 		if (!empty($errors))
 		{
 			$parts = array();

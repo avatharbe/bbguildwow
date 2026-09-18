@@ -69,16 +69,18 @@ $lang = array_merge(
 	'WOW_PHASE_PORTRAITS'      => 'Portraits',
 	'WOW_PHASE_CATEGORIES'     => 'Achievement Categories',
 	'WOW_PHASE_ACHIEVEMENTS'   => 'Achievements',
+	'WOW_PHASE_PLAYER_ACHIEVEMENTS' => 'Character Achievements',
 	'WOW_GUILD_SYNC_EXPLAIN'   => 'Syncs guild data from the Battle.net API in 3 phases:<br />'
 		. '1. <strong>Roster</strong> — Guild roster (<code>/data/wow/guild/{realm}/{name}/roster</code>)<br />'
 		. '2. <strong>Specializations</strong> — per character (<code>/profile/wow/character/{realm}/{name}/specializations</code>)<br />'
 		. '3. <strong>Portraits</strong> — per character (<code>/profile/wow/character/{realm}/{name}/character-media</code>)<br />'
 		. 'Large guilds may take a few minutes.',
 	'WOW_SYNC_ACHIEVEMENTS_LABEL'   => 'Sync Achievements',
-	'WOW_SYNC_ACHIEVEMENTS_EXPLAIN' => 'Syncs achievement data from the Battle.net API in 2 phases:<br />'
+	'WOW_SYNC_ACHIEVEMENTS_EXPLAIN' => 'Syncs achievement data from the Battle.net API in 3 phases:<br />'
 		. '1. <strong>Achievement Categories</strong> — Category index + per-category detail (<code>/data/wow/achievement-category/index</code>)<br />'
 		. '2. <strong>Achievements</strong> — Guild achievements + per-achievement detail (<code>/data/wow/guild/{realm}/{name}/achievements</code>)<br />'
-		. 'Detail fetching is time-limited per batch.',
+		. '3. <strong>Character Achievements</strong> — per character, for the Achievements player-detail tab (<code>/profile/wow/character/{realm}/{name}/achievements</code>)<br />'
+		. 'Detail fetching is time-limited per batch; large guilds may take multiple clicks.',
 	'ACHIEV_SHOW_EMPTY'        => 'Show all categories',
 	'ACHIEV_HIDE_EMPTY'        => 'Hide empty categories',
 
@@ -151,6 +153,8 @@ $lang = array_merge(
 	'WOW_API_SPECS_FETCHED'        => 'Fetched %d specs.',
 	'WOW_API_EQUIPMENT_UP_TO_DATE' => 'All player equipment is up to date.',
 	'WOW_API_EQUIPMENT_FETCHED'    => 'Fetched equipment for %d players.',
+	'WOW_API_ACHIEVEMENTS_UP_TO_DATE' => 'All player achievements are up to date.',
+	'WOW_API_ACHIEVEMENTS_FETCHED'    => 'Fetched achievements for %d players.',
 	'WOW_API_BATCH_FAILED'         => ' %d failed [%s].',
 	'WOW_API_BATCH_REMAINING'      => ' %d remaining.',
 	'WOW_API_ERR_404'              => '404 Not Found',

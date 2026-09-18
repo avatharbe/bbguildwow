@@ -14,6 +14,7 @@
 namespace avathar\bbguildwow\controller;
 
 use avathar\bbguildwow\model\achievement;
+use avathar\bbguildwow\game\wow_api;
 use avathar\bbguild\model\admin\log;
 use avathar\bbguild\model\games\game;
 use avathar\bbguild\model\player\guilds;
@@ -48,6 +49,15 @@ class achievement_sync_controller
 	/** @var string */
 	protected $achievement_table;
 
+	/** @var wow_api */
+	protected $wow_api;
+
+	/** @var string */
+	protected $players_table;
+
+	/** @var string */
+	protected $achievement_track_table;
+
 	public function __construct(
 		achievement $achievement,
 		driver_interface $db,
@@ -56,7 +66,10 @@ class achievement_sync_controller
 		language $language,
 		string $guild_table,
 		string $games_table,
-		string $achievement_table
+		string $achievement_table,
+		wow_api $wow_api,
+		string $players_table,
+		string $achievement_track_table
 	)
 	{
 		$this->achievement = $achievement;
@@ -67,6 +80,9 @@ class achievement_sync_controller
 		$this->guild_table = $guild_table;
 		$this->games_table = $games_table;
 		$this->achievement_table = $achievement_table;
+		$this->wow_api = $wow_api;
+		$this->players_table = $players_table;
+		$this->achievement_track_table = $achievement_track_table;
 	}
 
 	/**
@@ -233,6 +249,104 @@ class achievement_sync_controller
 			'fetched'   => $sync_result['count'],
 			'total'     => $total,
 			'remaining' => $remaining,
+			'message'   => $sync_result['message'],
+		));
+	}
+
+	/**
+	 * Sync per-character achievements for this guild's roster
+	 * (bbguildwow#44's sync side). Time-budgeted per request like
+	 * wow_api::sync_specs()/sync_equipment() -- called repeatedly by JS
+	 * until 'remaining' reaches 0, since a large guild's characters won't
+	 * all fit in one request's time budget.
+	 *
+	 * Backfill semantics, not ongoing freshness: a character already
+	 * counted here (has at least one bb_achievement_track row) won't be
+	 * re-picked-up by a later click of this same action to catch newly-
+	 * earned achievements -- see wow_api::sync_achievements()'s docblock.
+	 *
+	 * @param int $guild_id
+	 * @return JsonResponse
+	 */
+	public function sync_player_achievements($guild_id)
+	{
+		if ($auth_error = $this->check_auth())
+		{
+			return $auth_error;
+		}
+
+		$guild_id = (int) $guild_id;
+
+		$sql = 'SELECT apikey, privkey, apilocale, region FROM ' . $this->games_table .
+			" WHERE game_id = 'wow'";
+		$result = $this->db->sql_query($sql);
+		$game_row = $this->db->sql_fetchrow($result);
+		$this->db->sql_freeresult($result);
+
+		if (!$game_row || empty($game_row['apikey']))
+		{
+			return new JsonResponse(array('error' => $this->language->lang('WOW_SYNC_CREDENTIALS_MISSING'), 'done' => true), 400);
+		}
+
+		$sql = 'SELECT name, region, game_edition FROM ' . $this->guild_table . ' WHERE id = ' . $guild_id;
+		$result = $this->db->sql_query($sql);
+		$guild_row = $this->db->sql_fetchrow($result);
+		$this->db->sql_freeresult($result);
+
+		$guild_name = $guild_row ? $guild_row['name'] : '(unknown)';
+		$region = (!empty($guild_row['region'])) ? $guild_row['region'] : $game_row['region'];
+		$edition = (!empty($guild_row['game_edition'])) ? $guild_row['game_edition'] : 'retail';
+
+		$sql = 'SELECT COUNT(*) AS total FROM ' . $this->players_table .
+			' WHERE player_guild_id = ' . $guild_id .
+			" AND game_id = 'wow' AND player_status = 1";
+		$result = $this->db->sql_query($sql);
+		$total = (int) $this->db->sql_fetchfield('total');
+		$this->db->sql_freeresult($result);
+
+		$sql = 'SELECT COUNT(*) AS remaining FROM ' . $this->players_table . ' p
+			WHERE p.player_guild_id = ' . $guild_id . "
+				AND p.game_id = 'wow' AND p.player_status = 1
+				AND NOT EXISTS (
+					SELECT 1 FROM " . $this->achievement_track_table . ' ac WHERE ac.player_id = p.player_id
+				)';
+		$result = $this->db->sql_query($sql);
+		$remaining_before = (int) $this->db->sql_fetchfield('remaining');
+		$this->db->sql_freeresult($result);
+
+		if ($remaining_before === 0)
+		{
+			return new JsonResponse(array(
+				'done' => true, 'fetched' => 0, 'total' => $total, 'remaining' => 0,
+				'message' => $this->language->lang('WOW_API_ACHIEVEMENTS_UP_TO_DATE'),
+			));
+		}
+
+		$sync_result = $this->wow_api->sync_achievements(
+			$guild_id, $region,
+			$game_row['apikey'], $game_row['apilocale'], $game_row['privkey'], $edition
+		);
+
+		$result = $this->db->sql_query($sql); // same NOT EXISTS query, re-run after the batch
+		$remaining_after = (int) $this->db->sql_fetchfield('remaining');
+		$this->db->sql_freeresult($result);
+
+		$is_done = $remaining_after === 0;
+
+		if ($is_done)
+		{
+			$this->bbguildlog->log_insert(array(
+				'log_type'   => 'L_ACTION_SPECS_SYNCED',
+				'log_result' => 'L_SUCCESS',
+				'log_action' => [$guild_name, $this->language->lang('WOW_SYNC_LOG_ACHIEVEMENTS', $sync_result['message'])],
+			));
+		}
+
+		return new JsonResponse(array(
+			'done'      => $is_done,
+			'fetched'   => $sync_result['count'],
+			'total'     => $total,
+			'remaining' => $remaining_after,
 			'message'   => $sync_result['message'],
 		));
 	}

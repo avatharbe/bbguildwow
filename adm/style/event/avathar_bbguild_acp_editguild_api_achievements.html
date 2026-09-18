@@ -17,6 +17,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     var categoryUrl = '{{ U_CATEGORY_SYNC }}';
     var achievUrl = '{{ U_ACHIEV_SYNC }}';
+    var playerAchievUrl = '{{ U_PLAYER_ACHIEV_SYNC }}';
     var logRow = document.getElementById('wow-achiev-sync-log');
     var phases = document.getElementById('wow-achiev-sync-phases');
     var btn = document.getElementById('achiev_sync_btn');
@@ -69,7 +70,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
             runBatchPhase('{{ lang('WOW_PHASE_CATEGORIES') }}', categoryUrl, function() {
                 runBatchPhase('{{ lang('WOW_PHASE_ACHIEVEMENTS') }}', achievUrl, function() {
-                    btn.disabled = false;
+                    runBatchPhase('{{ lang('WOW_PHASE_PLAYER_ACHIEVEMENTS') }}', playerAchievUrl, function() {
+                        btn.disabled = false;
+                    });
                 });
             });
         });

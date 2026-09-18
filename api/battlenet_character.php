@@ -138,6 +138,22 @@ class battlenet_character extends battlenet_resource
 	}
 
 	/**
+	 * Fetch character achievements (completed achievements + criteria
+	 * progress). Same response shape as the guild achievements endpoint
+	 * (achievement::setAchievements() parses that one) — a top-level
+	 * achievements[] array of { achievement: {id, name}, completed_timestamp,
+	 * criteria: {...} }.
+	 *
+	 * @param string $realm_slug     Lowercase hyphenated realm slug
+	 * @param string $character_name Lowercase character name
+	 * @return array
+	 */
+	public function getCharacterAchievements(string $realm_slug, string $character_name): array
+	{
+		return $this->consume($realm_slug . '/' . $this->normalize_name($character_name) . '/achievements', array());
+	}
+
+	/**
 	 * Normalize a character name for the Battle.net API.
 	 *
 	 * The API expects lowercase names with proper Unicode handling.

@@ -12,6 +12,7 @@ use avathar\bbguildwow\game\wow_api;
 use avathar\bbguildwow\api\battlenet;
 use avathar\bbguildwow\api\battlenet_character;
 use avathar\bbguildwow\api\battlenet_static_data;
+use avathar\bbguildwow\model\achievement;
 
 /**
  * Test subclass that returns a scripted consume() response instead of
@@ -277,6 +278,76 @@ class wow_api_sync_one_test extends TestCase
 
 		$player = array('player_id' => 42, 'player_name' => 'Sajaki', 'player_realm' => 'argent-dawn');
 		$result = $this->invoke_protected('sync_one_profile', array($player, $this->battlenet));
+
+		$this->assertFalse($result['success']);
+		$this->assertTrue($result['stop_batch']);
+	}
+
+	// ── sync_one_achievements() ─────────────────────────────
+
+	public function test_sync_one_achievements_success_delegates_to_achievement_model(): void
+	{
+		$response_data = array('achievements' => array(
+			array('achievement' => array('id' => 6, 'name' => 'Level 10'), 'completed_timestamp' => 1000),
+		));
+		$this->character->scripted_response = array(
+			'response' => $response_data,
+			'response_headers' => array('http_code' => 200),
+		);
+
+		$achievement_model = $this->getMockBuilder(achievement::class)
+			->disableOriginalConstructor()->getMock();
+		$achievement_model->expects($this->once())->method('set_player_achievements')
+			->with(42, $response_data)
+			->willReturn(array('success' => true, 'count' => 1));
+
+		$this->api->set_achievement_model($achievement_model);
+
+		$player = array('player_id' => 42, 'player_name' => 'Sajaki', 'player_realm' => 'argent-dawn');
+		$result = $this->invoke_protected('sync_one_achievements', array($player, $this->battlenet));
+
+		$this->assertSame(array('success' => true, 'error_code' => null, 'stop_batch' => false), $result);
+	}
+
+	public function test_sync_one_achievements_without_achievement_model_stops_batch(): void
+	{
+		// set_achievement_model() was never called (misconfiguration) --
+		// must not fatal on a null method call, and must stop the whole
+		// batch rather than repeat the same failure for every player.
+		$this->character->scripted_response = array(
+			'response' => array('achievements' => array()),
+			'response_headers' => array('http_code' => 200),
+		);
+
+		$player = array('player_id' => 42, 'player_name' => 'Sajaki', 'player_realm' => 'argent-dawn');
+		$result = $this->invoke_protected('sync_one_achievements', array($player, $this->battlenet));
+
+		$this->assertFalse($result['success']);
+		$this->assertTrue($result['stop_batch']);
+	}
+
+	public function test_sync_one_achievements_404_is_failure_without_stop_batch(): void
+	{
+		$this->character->scripted_response = array(
+			'response' => array('code' => 404),
+			'response_headers' => array('http_code' => 404),
+		);
+
+		$player = array('player_id' => 42, 'player_name' => 'Sajaki', 'player_realm' => 'argent-dawn');
+		$result = $this->invoke_protected('sync_one_achievements', array($player, $this->battlenet));
+
+		$this->assertSame(array('success' => false, 'error_code' => 404, 'stop_batch' => false), $result);
+	}
+
+	public function test_sync_one_achievements_500_sets_stop_batch(): void
+	{
+		$this->character->scripted_response = array(
+			'response' => null,
+			'response_headers' => array('http_code' => 500),
+		);
+
+		$player = array('player_id' => 42, 'player_name' => 'Sajaki', 'player_realm' => 'argent-dawn');
+		$result = $this->invoke_protected('sync_one_achievements', array($player, $this->battlenet));
 
 		$this->assertFalse($result['success']);
 		$this->assertTrue($result['stop_batch']);

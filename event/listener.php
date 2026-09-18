@@ -261,6 +261,7 @@ class listener implements EventSubscriberInterface
 				'U_PORTRAIT_SYNC'   => $this->helper->route('avathar_bbguildwow_sync_portraits', array('guild_id' => $guild_id)),
 				'U_CATEGORY_SYNC'   => $this->helper->route('avathar_bbguildwow_sync_categories', array('guild_id' => $guild_id)),
 				'U_ACHIEV_SYNC'     => $this->helper->route('avathar_bbguildwow_sync_achievements', array('guild_id' => $guild_id)),
+				'U_PLAYER_ACHIEV_SYNC' => $this->helper->route('avathar_bbguildwow_sync_player_achievements', array('guild_id' => $guild_id)),
 				'U_EQUIPMENT_SYNC'  => $this->helper->route('avathar_bbguildwow_sync_equipment', array('guild_id' => $guild_id)),
 			));
 		}
