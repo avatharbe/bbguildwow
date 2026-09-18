@@ -5,17 +5,25 @@
  * @license   http://opensource.org/licenses/gpl-2.0.php GNU General Public License v2
  *
  * Achievements player-detail tab (bbguildwow#44 / bbguild#365). Surfaces
- * the existing guild-level achievement model's player_id support
- * (achievement::get_tracked_achievements()) as a per-character view,
- * following the same player_detail_tab_interface pattern #375 already
- * established for talents/raid-progression/pvp. Unlike those three, this
- * one has a real data source from day one — no placeholder needed.
+ * the existing guild-level achievement model's player_id support as a
+ * per-character view, following the same player_detail_tab_interface
+ * pattern #375 already established for talents/raid-progression/pvp.
  *
- * Paginated (15 per page, matching get_tracked_achievements()'s own
- * $per_page) via phpBB's standard pagination service — same
- * request-'start'-param + generate_template_pagination() pattern
- * acp/achievement_module.php's guild-level achievement list already
- * uses, just against a Symfony route instead of an ACP index.php link.
+ * Bucketed by category, matching Blizzard's own armory achievements
+ * page: a row of category cards (name, points, a completion-percentage
+ * ring) at the top, then each category's completed achievements listed
+ * underneath in a collapsible <details> section — with a further
+ * sub-heading split for categories that have child categories (e.g.
+ * "Quests" > "Outland"), matching the armory's own category/sub-tab
+ * structure. Single page, no AJAX drill-down (a deliberate, smaller-
+ * scope choice than fully mirroring portal\modules\achievements's
+ * 3-level AJAX browser).
+ *
+ * The first version of this tab (a flat, paginated "recent completions"
+ * list) is gone — this replaces it entirely rather than adding to it,
+ * once real category data made the flat list's actual gap obvious: it
+ * had no sense of what a character had actually accomplished game-wide,
+ * just a chronological feed.
  *
  * Display-only: does not touch the guild-level achievement browser
  * (portal\modules\achievements) or its sync logic.
@@ -25,55 +33,25 @@ namespace avathar\bbguildwow\portal\player_detail_tabs;
 
 use avathar\bbguild\portal\player_detail_tab_interface;
 use avathar\bbguildwow\model\achievement;
-use phpbb\controller\helper;
-use phpbb\db\driver\driver_interface;
-use phpbb\pagination;
-use phpbb\request\request;
+use phpbb\language\language;
 use phpbb\template\template;
 
 class achievements_tab implements player_detail_tab_interface
 {
-	/** Matches get_tracked_achievements()'s own hardcoded $per_page. */
-	const PER_PAGE = 15;
-
 	/** @var achievement */
 	protected $achievement_model;
 
 	/** @var template */
 	protected $template;
 
-	/** @var driver_interface */
-	protected $db;
+	/** @var language */
+	protected $language;
 
-	/** @var request */
-	protected $request;
-
-	/** @var pagination */
-	protected $pagination;
-
-	/** @var helper */
-	protected $helper;
-
-	/** @var string */
-	protected $players_table;
-
-	public function __construct(
-		achievement $achievement_model,
-		template $template,
-		driver_interface $db,
-		request $request,
-		pagination $pagination,
-		helper $helper,
-		string $players_table
-	)
+	public function __construct(achievement $achievement_model, template $template, language $language)
 	{
 		$this->achievement_model = $achievement_model;
 		$this->template = $template;
-		$this->db = $db;
-		$this->request = $request;
-		$this->pagination = $pagination;
-		$this->helper = $helper;
-		$this->players_table = $players_table;
+		$this->language = $language;
 	}
 
 	public function get_tab_name(): string
@@ -99,70 +77,124 @@ class achievements_tab implements player_detail_tab_interface
 	public function render(int $player_id): ?string
 	{
 		$this->achievement_model->setGameId('wow');
+		$this->language->add_lang('wow', 'avathar/bbguildwow');
 
-		$start = $this->request->variable('start', 0);
+		$categories = $this->achievement_model->get_player_category_progress($player_id);
+		$rows = $this->achievement_model->get_player_completed_achievements_grouped($player_id);
 
-		// get_tracked_achievements() serves both the guild-level browser's
-		// list view and this per-character view — passing guild_id=0 with
-		// a non-zero player_id switches it to the player_id filter branch.
-		// completed_only=true (bbguildwow#44 follow-up) excludes
-		// still-in-progress tracked rows at the SQL level, so $total below
-		// is an accurate page count for what this tab actually displays.
-		// default_order='4.1' sorts by achievements_completed descending
-		// at the SQL level (index 4 of get_tracked_achievements()'s own
-		// $sort_order map, direction 1 = desc) — genuinely newest-first
-		// across the whole result set, not just within whichever 15-row
-		// page happened to come back.
-		[$tracked, , $total] = $this->achievement_model->get_tracked_achievements($start, 0, $player_id, true, '4.1');
-
-		foreach ($tracked as $row)
+		// Bucket the flat, pre-sorted row list into [top_id => [sub_key => [...rows]]],
+		// preserving sub-group order of first appearance (which get_player_completed_achievements_grouped()
+		// already sorted by category display_order / name).
+		$buckets = array();
+		foreach ($rows as $row)
 		{
-			$timestamp = (int) $row['achievements_completed'];
-			if ($timestamp > 9999999999)
+			$top_id = $row['top_id'];
+			$sub_key = $row['sub_name'] ?? '';
+			$buckets[$top_id][$sub_key]['sub_name'] = $row['sub_name'];
+			$buckets[$top_id][$sub_key]['achievements'][] = $row;
+		}
+
+		$total_points = 0;
+		$total_completed = 0;
+
+		foreach ($categories as $cat)
+		{
+			$total_points += $cat['earned_points'];
+			$total_completed += $cat['completed_count'];
+
+			if ($cat['total_count'] === 0)
 			{
-				// Battle.net timestamps are in milliseconds.
-				$timestamp = (int) ($timestamp / 1000);
+				// A category the catalog knows about but with zero
+				// achievements assigned to it (or its children) for this
+				// game -- nothing to show a ring or section for.
+				continue;
 			}
 
-			$this->template->assign_block_vars('wow_achievement_row', array(
-				'TITLE'       => $row['title'],
-				'DESCRIPTION' => $row['description'],
-				'POINTS'      => (int) $row['points'],
-				'ICON'        => $row['icon'],
-				'DATE'        => date('d/m/Y', $timestamp),
+			$percent = $cat['total_count'] > 0 ? (int) round($cat['completed_count'] / $cat['total_count'] * 100) : 0;
+
+			$this->template->assign_block_vars('achiev_category', array(
+				'ID'              => $cat['id'],
+				'NAME'            => $cat['name'],
+				'PERCENT'         => $percent,
+				'COMPLETED_COUNT' => $cat['completed_count'],
+				'TOTAL_COUNT'     => $cat['total_count'],
+				'EARNED_POINTS'   => $cat['earned_points'],
+				'S_EMPTY'         => ($cat['completed_count'] === 0),
 			));
+
+			if (!empty($buckets[$cat['id']]))
+			{
+				$this->assign_section($cat['id'], $cat['name'], $buckets[$cat['id']]);
+				unset($buckets[$cat['id']]);
+			}
+		}
+
+		// Anything left in $buckets belongs to a category outside the
+		// catalog's own top-level list entirely (category_id=0 stub rows,
+		// or a category row that's itself somehow missing) -- surface it
+		// rather than silently dropping real completed achievements.
+		foreach ($buckets as $leftover_top_id => $groups)
+		{
+			$name = null;
+			foreach ($groups as $group)
+			{
+				if (!empty($group['achievements'][0]['top_name']))
+				{
+					$name = $group['achievements'][0]['top_name'];
+					break;
+				}
+			}
+			$this->assign_section($leftover_top_id, $name ?? $this->language->lang('WOW_ACHIEVEMENTS_UNCATEGORIZED'), $groups);
 		}
 
 		$this->template->assign_vars(array(
-			'WOW_ACHIEVEMENT_COUNT'  => $total,
-			'WOW_ACHIEVEMENT_POINTS' => $this->achievement_model->get_player_completed_points($player_id),
+			'WOW_ACHIEVEMENT_COUNT'  => $total_completed,
+			'WOW_ACHIEVEMENT_POINTS' => $total_points,
 		));
-
-		$guild_id = $this->get_guild_id($player_id);
-		if ($guild_id !== null)
-		{
-			$pagination_url = $this->helper->route('avathar_bbguild_player', array(
-				'guild_id'  => $guild_id,
-				'player_id' => $player_id,
-				'tab_slug'  => $this->get_tab_slug(),
-			));
-			$this->pagination->generate_template_pagination($pagination_url, 'pagination', 'start', $total, self::PER_PAGE, $start);
-		}
 
 		return '@avathar_bbguildwow/portal/achievements_tab.html';
 	}
 
 	/**
-	 * @param int $player_id
-	 * @return int|null
+	 * Assign one category's <details> section: the section itself, then
+	 * one achievement_row per achievement, nested under it. A group with
+	 * a non-null sub_name (the category has children, e.g. "Quests" >
+	 * "Outland") gets its sub_name carried on every row in that group so
+	 * the template can render a sub-heading whenever it changes —
+	 * flattened rather than a third block-nesting level, which phpBB's
+	 * template engine doesn't reliably support beyond two.
+	 *
+	 * @param int    $top_id
+	 * @param string $top_name
+	 * @param array  $groups [sub_key => ['sub_name' => string|null, 'achievements' => array]]
 	 */
-	private function get_guild_id(int $player_id): ?int
+	private function assign_section(int $top_id, string $top_name, array $groups): void
 	{
-		$sql = 'SELECT player_guild_id FROM ' . $this->players_table . ' WHERE player_id = ' . $player_id;
-		$result = $this->db->sql_query($sql);
-		$guild_id = $this->db->sql_fetchfield('player_guild_id');
-		$this->db->sql_freeresult($result);
+		$this->template->assign_block_vars('achiev_section', array(
+			'ID'   => $top_id,
+			'NAME' => $top_name,
+		));
 
-		return $guild_id !== false ? (int) $guild_id : null;
+		foreach ($groups as $group)
+		{
+			foreach ($group['achievements'] as $row)
+			{
+				$timestamp = $row['achievements_completed'];
+				if ($timestamp > 9999999999)
+				{
+					// Battle.net timestamps are in milliseconds.
+					$timestamp = (int) ($timestamp / 1000);
+				}
+
+				$this->template->assign_block_vars('achiev_section.achievement_row', array(
+					'SUB_NAME'    => $group['sub_name'],
+					'TITLE'       => $row['title'],
+					'DESCRIPTION' => $row['description'],
+					'POINTS'      => $row['points'],
+					'ICON'        => $row['icon'],
+					'DATE'        => date('d/m/Y', $timestamp),
+				));
+			}
+		}
 	}
 }

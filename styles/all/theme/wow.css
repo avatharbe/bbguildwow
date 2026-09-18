@@ -147,6 +147,13 @@ h3.category {
     cursor: pointer;
     transition: background-color 0.15s, border-color 0.15s;
     text-align: center;
+    /* The guild-level browser's own cards are plain <div>s (AJAX-driven
+       click handler in achievements.js); the achievements tab's cards
+       are real <a href="#..."> anchors instead (no JS, just an in-page
+       jump to the matching <details> section below) -- reset link
+       styling so they still read as cards, not links. */
+    text-decoration: none;
+    color: inherit;
 }
 
 .achiev-cat-card:hover {
@@ -589,9 +596,99 @@ h3.category {
     font-weight: bold;
 }
 
+/* ===== Achievements tab (bbguildwow#44) =====
+   Reuses the guild-level achievement browser's own .achiev-cat-card/
+   .achiev-row/.achiev-points-badge/etc. styling (defined above) for
+   visual consistency instead of introducing a second, parallel style --
+   only the category-card grid spacing and the collapsible per-category
+   sections are new. */
+.wow-achiev-section {
+    border: 1px solid rgba(128, 128, 128, 0.2);
+    border-radius: 6px;
+    margin-bottom: 8px;
+    padding: 0 12px;
+}
+
+.wow-achiev-section summary {
+    padding: 10px 0;
+    font-weight: bold;
+    cursor: pointer;
+    list-style: none;
+}
+
+.wow-achiev-section summary::-webkit-details-marker {
+    display: none;
+}
+
+.wow-achiev-section summary::before {
+    content: '\25B8';
+    display: inline-block;
+    width: 1em;
+    opacity: 0.6;
+}
+
+.wow-achiev-section[open] summary::before {
+    content: '\25BE';
+}
+
+.wow-achiev-list {
+    margin: 0 0 8px;
+}
+
+.wow-achiev-subheading {
+    margin: 10px 0 2px;
+    font-size: 0.85em;
+    opacity: 0.7;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+/* ===== Talents tab (bbguildwow#45) ===== */
+.wow-talents-columns {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+
+.wow-talents-column {
+    flex: 1 1 200px;
+    min-width: 180px;
+}
+
+.wow-talents-column h4 {
+    margin: 0 0 6px;
+    font-size: 0.95em;
+    opacity: 0.7;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.wow-talent-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.wow-talent-row {
+    padding: 3px 0;
+    border-bottom: 1px solid rgba(128, 128, 128, 0.1);
+    font-size: 0.9em;
+    cursor: default;
+}
+
+.wow-talent-row:last-child {
+    border-bottom: none;
+}
+
 @media (max-width: 600px) {
     .wow-stats-grid {
         grid-template-columns: 1fr;
+    }
+
+    .wow-talents-columns {
+        flex-direction: column;
+        gap: 12px;
     }
 }
 

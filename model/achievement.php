@@ -1649,6 +1649,115 @@ class achievement
 	}
 
 	/**
+	 * Same shape as getCategoryProgress(), scoped to one player instead
+	 * of a whole guild -- the achievements tab's category cards (bbguildwow#44
+	 * follow-up, matching Blizzard's own armory achievements page: category
+	 * cards with a progress ring, drilling into per-category/per-subcategory
+	 * lists below). Only the LEFT JOIN's owner condition differs from the
+	 * guild version.
+	 *
+	 * @param int $player_id
+	 * @return array
+	 */
+	public function get_player_category_progress(int $player_id): array
+	{
+		$db = $this->db;
+
+		$sql = 'SELECT ac.id, ac.name, ac.display_order,
+				COUNT(a.id) AS total_count,
+				SUM(CASE WHEN at.achievements_completed > 0 THEN 1 ELSE 0 END) AS completed_count,
+				SUM(a.points) AS total_points,
+				COALESCE(SUM(CASE WHEN at.achievements_completed > 0 THEN a.points ELSE 0 END), 0) AS earned_points
+			FROM ' . $this->bb_achievement_category_table . ' ac
+			INNER JOIN ' . $this->bb_achievement_category_table . ' child
+				ON (child.parent_id = ac.id OR child.id = ac.id)
+			INNER JOIN ' . $this->bb_achievement_table . ' a
+				ON a.category_id = child.id AND a.game_id = \'wow\'
+			LEFT JOIN ' . $this->bb_achievement_track_table . ' at
+				ON at.achievement_id = a.id AND at.player_id = ' . $player_id . '
+			WHERE ac.parent_id = 0 AND ac.game_id = \'wow\'
+			GROUP BY ac.id, ac.name, ac.display_order
+			ORDER BY ac.display_order';
+		$result = $db->sql_query($sql);
+
+		$categories = array();
+		while ($row = $db->sql_fetchrow($result))
+		{
+			$categories[] = array(
+				'id'              => (int) $row['id'],
+				'name'            => $row['name'],
+				'display_order'   => (int) $row['display_order'],
+				'total_count'     => (int) $row['total_count'],
+				'completed_count' => (int) $row['completed_count'],
+				'total_points'    => (int) $row['total_points'],
+				'earned_points'   => (int) $row['earned_points'],
+			);
+		}
+		$db->sql_freeresult($result);
+
+		return $categories;
+	}
+
+	/**
+	 * A player's completed achievements, each carrying its own category
+	 * and (if the achievement's category is itself a child category, e.g.
+	 * "Quests > Outland") that category's parent -- what the achievements
+	 * tab groups into "bucket, then sub-bucket" sections. Achievements
+	 * with no category yet (category_id=0, e.g. a stub row inserted by
+	 * ensure_achievement_stubs() before a full guild-level detail sync
+	 * has run) come back with null category fields; the caller buckets
+	 * those under an "Uncategorized" fallback rather than dropping them.
+	 *
+	 * Ordered so a caller can build the nested bucket structure in one
+	 * linear pass: top category display order, then (within it) child
+	 * category name, then newest-completed first.
+	 *
+	 * @param int $player_id
+	 * @return array
+	 */
+	public function get_player_completed_achievements_grouped(int $player_id): array
+	{
+		$db = $this->db;
+
+		$sql = 'SELECT a.title, a.description, a.points, a.icon, ac.achievements_completed,
+				cat.id AS cat_id, cat.name AS cat_name, cat.display_order AS cat_order,
+				parent.id AS parent_id, parent.name AS parent_name, parent.display_order AS parent_order
+			FROM ' . $this->bb_achievement_track_table . ' ac
+			INNER JOIN ' . $this->bb_achievement_table . ' a ON a.id = ac.achievement_id
+			LEFT JOIN ' . $this->bb_achievement_category_table . ' cat ON cat.id = a.category_id
+			LEFT JOIN ' . $this->bb_achievement_category_table . ' parent ON parent.id = cat.parent_id
+			WHERE ac.player_id = ' . $player_id . '
+				AND ac.achievements_completed > 0
+				AND a.game_id = \'' . $db->sql_escape($this->game_id) . '\'
+			ORDER BY COALESCE(parent.display_order, cat.display_order, 9999),
+				COALESCE(parent.name, cat.name, \'\'),
+				cat.display_order, cat.name,
+				ac.achievements_completed DESC';
+		$result = $db->sql_query($sql);
+
+		$rows = array();
+		while ($row = $db->sql_fetchrow($result))
+		{
+			$rows[] = array(
+				'title'                  => $row['title'],
+				'description'            => $row['description'],
+				'points'                 => (int) $row['points'],
+				'icon'                   => $row['icon'],
+				'achievements_completed' => (int) $row['achievements_completed'],
+				// If cat has no parent, cat itself IS the top-level bucket
+				// (parent.* comes back null from the LEFT JOIN). If cat has
+				// a parent, parent is the top bucket and cat is the sub-bucket.
+				'top_id'                 => $row['parent_id'] !== null ? (int) $row['parent_id'] : ($row['cat_id'] !== null ? (int) $row['cat_id'] : 0),
+				'top_name'               => $row['parent_id'] !== null ? $row['parent_name'] : $row['cat_name'],
+				'sub_name'               => $row['parent_id'] !== null ? $row['cat_name'] : null,
+			);
+		}
+		$db->sql_freeresult($result);
+
+		return $rows;
+	}
+
+	/**
 	 * Create a URL-safe slug from a name.
 	 *
 	 * Battle.net slugs are lowercase, spaces become hyphens, accented characters
