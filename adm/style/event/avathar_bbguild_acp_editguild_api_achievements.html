@@ -26,18 +26,26 @@ document.addEventListener('DOMContentLoaded', function() {
     function startPhase(name) {
         logRow.style.display = '';
         var li = document.createElement('li');
-        li.style.padding = '2px 0';
-        li.innerHTML = '<strong>' + name + ':</strong> <span class="phase-status">...</span>';
+        li.style.padding = '4px 0';
+        li.innerHTML = '<strong>' + name + ':</strong> ' +
+            '<progress class="phase-progress" max="100" value="0" style="width:200px;vertical-align:middle;margin:0 8px;"></progress>' +
+            '<span class="phase-status">...</span>';
         phases.appendChild(li);
         currentLi = li;
     }
 
-    function updatePhase(text) {
-        if (currentLi) currentLi.querySelector('.phase-status').textContent = text;
+    // percent is omitted on error/pre-fetch states, where there's nothing
+    // meaningful to show on the bar yet -- it's left at whatever it last was.
+    function updatePhase(text, percent) {
+        if (!currentLi) return;
+        currentLi.querySelector('.phase-status').textContent = text;
+        if (typeof percent === 'number') {
+            currentLi.querySelector('.phase-progress').value = percent;
+        }
     }
 
-    function completePhase(text) {
-        if (currentLi) currentLi.querySelector('.phase-status').textContent = text;
+    function completePhase(text, percent) {
+        updatePhase(text, percent);
     }
 
     function fetchBatch(url, next) {
@@ -45,11 +53,12 @@ document.addEventListener('DOMContentLoaded', function() {
             if (data.error) { completePhase(data.error); if (next) next(); return; }
             var done = data.remaining === 0 || data.done;
             var synced = data.total - (data.remaining || 0);
-            updatePhase(synced + ' / ' + data.total);
+            var percent = data.total > 0 ? Math.round(synced / data.total * 100) : 100;
             if (!done) {
+                updatePhase(synced + ' / ' + data.total + ' (' + percent + '%)', percent);
                 fetchBatch(url, next);
             } else {
-                completePhase(synced + ' / ' + data.total + ' \u2713');
+                completePhase(synced + ' / ' + data.total + ' (100%) \u2713', 100);
                 if (next) next();
             }
         }).catch(function() {
