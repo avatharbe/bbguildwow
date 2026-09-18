@@ -219,9 +219,14 @@ class achievement_sync_controller
 			return new JsonResponse(array('error' => $e->getMessage(), 'done' => true), 500);
 		}
 
-		// Count achievements still needing details
+		// Count achievements still needing details. icon = '' alone, not
+		// "AND points = 0" -- points comes back set on the very first
+		// successful detail fetch regardless of whether icon extraction
+		// worked, so pairing it with points=0 would report $is_done as
+		// soon as every row has SOME detail, cutting the JS polling loop
+		// short with thousands of rows still missing just their icon.
 		$sql = 'SELECT COUNT(*) AS remaining FROM ' . $this->achievement_table .
-			" WHERE game_id = 'wow' AND icon = '' AND points = 0";
+			" WHERE game_id = 'wow' AND icon = ''";
 		$result = $this->db->sql_query($sql);
 		$remaining = (int) $this->db->sql_fetchfield('remaining');
 		$this->db->sql_freeresult($result);

@@ -984,10 +984,15 @@ class achievement
 		}
 		unset($detail_api);
 
-		// Count how many still need details
+		// Count how many still need details. icon = '' alone, not "AND
+		// points = 0" -- see the matching comment above $incomplete_ids:
+		// points comes back set on the very first successful detail
+		// fetch regardless of whether icon extraction worked, so pairing
+		// it with points=0 would report "done" the moment every row has
+		// SOME detail, even with thousands still missing just their icon.
 		$sql = 'SELECT COUNT(*) AS cnt FROM ' . $this->bb_achievement_table .
 			" WHERE game_id = '" . $db->sql_escape($this->game->game_id) . "'" .
-			" AND icon = '' AND points = 0";
+			" AND icon = ''";
 		$result = $db->sql_query($sql);
 		$remaining = (int) $db->sql_fetchfield('cnt');
 		$db->sql_freeresult($result);
