@@ -118,4 +118,112 @@ class achievement_test extends TestCase
 		$this->assertSame(array('success' => true, 'count' => 0), $result);
 		$this->assertNull($inserted_rows); // nothing valid to insert
 	}
+
+	/**
+	 * Routes each of get_player_achievement_tree()'s three queries
+	 * (category tree, per-category totals, completed rows) to its own
+	 * queued dataset by matching a distinctive SQL substring, rather
+	 * than assuming a fixed call order -- sql_fetchrow() then just
+	 * shifts off whichever dataset its own sql_query() call was routed
+	 * to (result "handles" here are just array keys, not real resources).
+	 */
+	private function make_tree_db(array $categories, array $totals, array $completed): \PHPUnit\Framework\MockObject\MockObject
+	{
+		$data = array();
+		$next_id = 0;
+
+		$db = $this->createMock(\phpbb\db\driver\driver_interface::class);
+		$db->method('sql_escape')->willReturnArgument(0);
+		$db->method('sql_query')->willReturnCallback(function ($sql) use (&$data, &$next_id, $categories, $totals, $completed) {
+			$id = $next_id++;
+			if (str_contains($sql, 'is_guild_category = 0 ORDER BY display_order'))
+			{
+				$data[$id] = $categories;
+			}
+			else if (str_contains($sql, 'GROUP BY a.category_id'))
+			{
+				$data[$id] = $totals;
+			}
+			else if (str_contains($sql, 'ac.achievements_completed > 0'))
+			{
+				$data[$id] = $completed;
+			}
+			else
+			{
+				$data[$id] = array();
+			}
+			return $id;
+		});
+		$db->method('sql_fetchrow')->willReturnCallback(function ($result) use (&$data) {
+			return empty($data[$result]) ? false : array_shift($data[$result]);
+		});
+		$db->method('sql_freeresult')->willReturn(true);
+
+		return $db;
+	}
+
+	public function test_get_player_achievement_tree_rolls_up_children_and_surfaces_uncategorized(): void
+	{
+		$categories = array(
+			array('id' => 1, 'name' => 'Quests', 'parent_id' => 0, 'display_order' => 0),
+			array('id' => 11, 'name' => 'Outland', 'parent_id' => 1, 'display_order' => 0),
+			array('id' => 2, 'name' => 'Exploration', 'parent_id' => 0, 'display_order' => 1),
+		);
+		$totals = array(
+			array('category_id' => 1, 'total_count' => 5, 'completed_count' => 1, 'total_points' => 50, 'earned_points' => 10),
+			array('category_id' => 11, 'total_count' => 3, 'completed_count' => 1, 'total_points' => 30, 'earned_points' => 5),
+			array('category_id' => 2, 'total_count' => 5, 'completed_count' => 1, 'total_points' => 50, 'earned_points' => 10),
+		);
+		$completed = array(
+			array('title' => 'Quest A', 'description' => '', 'points' => 10, 'icon' => '', 'category_id' => 1, 'achievements_completed' => 3000),
+			array('title' => 'Outland Quest B', 'description' => '', 'points' => 5, 'icon' => '', 'category_id' => 11, 'achievements_completed' => 2000),
+			array('title' => 'Explore C', 'description' => '', 'points' => 10, 'icon' => '', 'category_id' => 2, 'achievements_completed' => 1000),
+			array('title' => 'Mystery D', 'description' => '', 'points' => 5, 'icon' => '', 'category_id' => 0, 'achievements_completed' => 500),
+		);
+
+		$model = $this->make_achievement($this->make_tree_db($categories, $totals, $completed));
+		$tree = $model->get_player_achievement_tree(42);
+
+		$this->assertCount(3, $tree); // Quests, Exploration, + synthetic Uncategorized
+
+		$quests = $tree[0];
+		$this->assertSame(1, $quests['id']);
+		// Own (5/1/50/10) rolled up with Outland child's (3/1/30/5).
+		$this->assertSame(8, $quests['total_count']);
+		$this->assertSame(2, $quests['completed_count']);
+		$this->assertSame(80, $quests['total_points']);
+		$this->assertSame(15, $quests['earned_points']);
+		$this->assertSame(25, $quests['percent']); // 2/8
+		$this->assertCount(1, $quests['achievements']);
+		$this->assertSame('Quest A', $quests['achievements'][0]['title']);
+
+		$this->assertCount(1, $quests['children']);
+		$outland = $quests['children'][0];
+		$this->assertSame('Outland', $outland['name']);
+		$this->assertSame(3, $outland['total_count']);
+		$this->assertSame('Outland Quest B', $outland['achievements'][0]['title']);
+		$this->assertSame(array(), $outland['children']);
+
+		$exploration = $tree[1];
+		$this->assertSame('Exploration', $exploration['name']);
+		$this->assertSame(array(), $exploration['children']);
+
+		$uncategorized = $tree[2];
+		$this->assertSame(0, $uncategorized['id']);
+		$this->assertSame('Uncategorized', $uncategorized['name']); // LANG_FALLBACK, no language set
+		$this->assertSame(1, $uncategorized['total_count']);
+		$this->assertSame('Mystery D', $uncategorized['achievements'][0]['title']);
+	}
+
+	public function test_get_player_achievement_tree_drops_categories_with_no_achievements(): void
+	{
+		$categories = array(
+			array('id' => 9, 'name' => 'Empty Category', 'parent_id' => 0, 'display_order' => 0),
+		);
+
+		$model = $this->make_achievement($this->make_tree_db($categories, array(), array()));
+		$tree = $model->get_player_achievement_tree(42);
+
+		$this->assertSame(array(), $tree);
+	}
 }

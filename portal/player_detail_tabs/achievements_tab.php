@@ -12,12 +12,15 @@
  * Bucketed by category, matching Blizzard's own armory achievements
  * page: a row of category cards (name, points, a completion-percentage
  * ring) at the top, then each category's completed achievements listed
- * underneath in a collapsible <details> section — with a further
- * sub-heading split for categories that have child categories (e.g.
- * "Quests" > "Outland"), matching the armory's own category/sub-tab
- * structure. Single page, no AJAX drill-down (a deliberate, smaller-
- * scope choice than fully mirroring portal\modules\achievements's
- * 3-level AJAX browser).
+ * underneath in a collapsible <details> section. A category with real
+ * children (e.g. "Dungeons & Raids" > "Classic" / "Cataclysm Dungeon" /
+ * ...) unfurls into a tab strip instead of one flat list, and a child
+ * with children of its own would unfurl the same way again -- the tree
+ * itself decides how many levels there are (in practice almost always
+ * exactly one, confirmed against the live API, but nothing here assumes
+ * that). Single page, no AJAX drill-down (a deliberate, smaller-scope
+ * choice than fully mirroring portal\modules\achievements's 3-level AJAX
+ * browser).
  *
  * The first version of this tab (a flat, paginated "recent completions"
  * list) is gone — this replaces it entirely rather than adding to it,
@@ -79,122 +82,59 @@ class achievements_tab implements player_detail_tab_interface
 		$this->achievement_model->setGameId('wow');
 		$this->language->add_lang('wow', 'avathar/bbguildwow');
 
-		$categories = $this->achievement_model->get_player_category_progress($player_id);
-		$rows = $this->achievement_model->get_player_completed_achievements_grouped($player_id);
-
-		// Bucket the flat, pre-sorted row list into [top_id => [sub_key => [...rows]]],
-		// preserving sub-group order of first appearance (which get_player_completed_achievements_grouped()
-		// already sorted by category display_order / name).
-		$buckets = array();
-		foreach ($rows as $row)
-		{
-			$top_id = $row['top_id'];
-			$sub_key = $row['sub_name'] ?? '';
-			$buckets[$top_id][$sub_key]['sub_name'] = $row['sub_name'];
-			$buckets[$top_id][$sub_key]['achievements'][] = $row;
-		}
-
-		$total_points = 0;
-		$total_completed = 0;
-
-		foreach ($categories as $cat)
-		{
-			$total_points += $cat['earned_points'];
-			$total_completed += $cat['completed_count'];
-
-			if ($cat['total_count'] === 0)
-			{
-				// A category the catalog knows about but with zero
-				// achievements assigned to it (or its children) for this
-				// game -- nothing to show a ring or section for.
-				continue;
-			}
-
-			$percent = $cat['total_count'] > 0 ? (int) round($cat['completed_count'] / $cat['total_count'] * 100) : 0;
-
-			$this->template->assign_block_vars('achiev_category', array(
-				'ID'              => $cat['id'],
-				'NAME'            => $cat['name'],
-				'PERCENT'         => $percent,
-				'COMPLETED_COUNT' => $cat['completed_count'],
-				'TOTAL_COUNT'     => $cat['total_count'],
-				'EARNED_POINTS'   => $cat['earned_points'],
-				'S_EMPTY'         => ($cat['completed_count'] === 0),
-			));
-
-			if (!empty($buckets[$cat['id']]))
-			{
-				$this->assign_section($cat['id'], $cat['name'], $buckets[$cat['id']]);
-				unset($buckets[$cat['id']]);
-			}
-		}
-
-		// Anything left in $buckets belongs to a category outside the
-		// catalog's own top-level list entirely (category_id=0 stub rows,
-		// or a category row that's itself somehow missing) -- surface it
-		// rather than silently dropping real completed achievements.
-		foreach ($buckets as $leftover_top_id => $groups)
-		{
-			$name = null;
-			foreach ($groups as $group)
-			{
-				if (!empty($group['achievements'][0]['top_name']))
-				{
-					$name = $group['achievements'][0]['top_name'];
-					break;
-				}
-			}
-			$this->assign_section($leftover_top_id, $name ?? $this->language->lang('WOW_ACHIEVEMENTS_UNCATEGORIZED'), $groups);
-		}
+		$tree = array_map(array($this, 'format_node'), $this->achievement_model->get_player_achievement_tree($player_id));
 
 		$this->template->assign_vars(array(
-			'WOW_ACHIEVEMENT_COUNT'  => $total_completed,
-			'WOW_ACHIEVEMENT_POINTS' => $total_points,
+			'WOW_ACHIEVEMENT_COUNT'  => array_sum(array_column($tree, 'COMPLETED_COUNT')),
+			'WOW_ACHIEVEMENT_POINTS' => array_sum(array_column($tree, 'EARNED_POINTS')),
+			'WOW_ACHIEV_TREE'        => $tree,
 		));
 
 		return '@avathar_bbguildwow/portal/achievements_tab.html';
 	}
 
 	/**
-	 * Assign one category's <details> section: the section itself, then
-	 * one achievement_row per achievement, nested under it. A group with
-	 * a non-null sub_name (the category has children, e.g. "Quests" >
-	 * "Outland") gets its sub_name carried on every row in that group so
-	 * the template can render a sub-heading whenever it changes —
-	 * flattened rather than a third block-nesting level, which phpBB's
-	 * template engine doesn't reliably support beyond two.
+	 * Recursively reshape one get_player_achievement_tree() node (and its
+	 * children) into the upper-case template-var keys the .html file
+	 * expects, formatting each of the node's own completed-achievement
+	 * rows (Battle.net timestamps are in milliseconds) along the way.
 	 *
-	 * @param int    $top_id
-	 * @param string $top_name
-	 * @param array  $groups [sub_key => ['sub_name' => string|null, 'achievements' => array]]
+	 * @param array $node
+	 * @return array
 	 */
-	private function assign_section(int $top_id, string $top_name, array $groups): void
+	private function format_node(array $node): array
 	{
-		$this->template->assign_block_vars('achiev_section', array(
-			'ID'   => $top_id,
-			'NAME' => $top_name,
-		));
+		return array(
+			'ID'              => $node['id'],
+			'NAME'            => $node['name'],
+			'PERCENT'         => $node['percent'],
+			'COMPLETED_COUNT' => $node['completed_count'],
+			'TOTAL_COUNT'     => $node['total_count'],
+			'EARNED_POINTS'   => $node['earned_points'],
+			'ACHIEVEMENTS'    => array_map(array($this, 'format_achievement_row'), $node['achievements']),
+			'CHILDREN'        => array_map(array($this, 'format_node'), $node['children']),
+		);
+	}
 
-		foreach ($groups as $group)
+	/**
+	 * @param array $row
+	 * @return array
+	 */
+	private function format_achievement_row(array $row): array
+	{
+		$timestamp = $row['achievements_completed'];
+		if ($timestamp > 9999999999)
 		{
-			foreach ($group['achievements'] as $row)
-			{
-				$timestamp = $row['achievements_completed'];
-				if ($timestamp > 9999999999)
-				{
-					// Battle.net timestamps are in milliseconds.
-					$timestamp = (int) ($timestamp / 1000);
-				}
-
-				$this->template->assign_block_vars('achiev_section.achievement_row', array(
-					'SUB_NAME'    => $group['sub_name'],
-					'TITLE'       => $row['title'],
-					'DESCRIPTION' => $row['description'],
-					'POINTS'      => $row['points'],
-					'ICON'        => $row['icon'],
-					'DATE'        => date('d/m/Y', $timestamp),
-				));
-			}
+			// Battle.net timestamps are in milliseconds.
+			$timestamp = (int) ($timestamp / 1000);
 		}
+
+		return array(
+			'TITLE'       => $row['title'],
+			'DESCRIPTION' => $row['description'],
+			'POINTS'      => $row['points'],
+			'ICON'        => $row['icon'],
+			'DATE'        => date('d/m/Y', $timestamp),
+		);
 	}
 }

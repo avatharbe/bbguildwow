@@ -467,6 +467,7 @@ class achievement
 		'WOW_ACH_CAT_API_ERROR'           => 'Category index API error: %s',
 		'WOW_ACH_CAT_SYNCED_RESULT'       => 'Synced %d categories, inserted %d new achievements, mapped %d.',
 		'WOW_ACH_CAT_REMAINING'           => ' %d achievements still need category mapping — click "Sync Categories" again.',
+		'WOW_ACHIEVEMENTS_UNCATEGORIZED'  => 'Uncategorized',
 	);
 
 	/**
@@ -674,30 +675,6 @@ class achievement
 		$db->sql_freeresult($result);
 
 		return array($achievements, $current_order, $achievcount);
-	}
-
-	/**
-	 * Total points across a player's completed achievements. Separate
-	 * from get_tracked_achievements() since a paginated caller (the
-	 * achievements tab) needs this as a whole-player total, not a
-	 * per-page sum that would change as the viewer pages through results.
-	 *
-	 * @param int $player_id
-	 * @return int
-	 */
-	public function get_player_completed_points(int $player_id): int
-	{
-		$sql = 'SELECT SUM(a.points) AS total_points
-			FROM ' . $this->bb_achievement_track_table . ' ac
-			INNER JOIN ' . $this->bb_achievement_table . ' a ON a.id = ac.achievement_id
-			WHERE ac.player_id = ' . $player_id . '
-				AND ac.achievements_completed > 0
-				AND a.game_id = \'' . $this->db->sql_escape($this->game_id) . '\'';
-		$result = $this->db->sql_query($sql);
-		$total = (int) $this->db->sql_fetchfield('total_points');
-		$this->db->sql_freeresult($result);
-
-		return $total;
 	}
 
 	/**
@@ -1368,14 +1345,55 @@ class achievement
 			return array('success' => false, 'message' => $this->lang('WOW_ACH_CAT_API_ERROR', $detail), 'count' => 0);
 		}
 
-		// Truncate existing categories
-		$db->sql_query('DELETE FROM ' . $this->bb_achievement_category_table . " WHERE game_id = '" . $db->sql_escape($game->game_id) . "'");
-
+		// Categories are NOT truncated and rebuilt from scratch on every
+		// run -- a child discovered via getCategoryDetail() below (see
+		// "Character-scope only" further down) needs to survive into the
+		// next run, both so it doesn't have to be rediscovered from
+		// scratch every time (this call is already 20s-time-budgeted)
+		// and so achievements already mapped to it don't end up pointing
+		// at a category row that no longer exists. Existing rows are
+		// loaded up front instead, and only genuinely new ones get
+		// inserted below.
 		$categories = array();
+		// Ids whose subtree is character-scope (root_categories and their
+		// real descendants) rather than guild-scope (guild_categories /
+		// character_categories). Only character-scope leaves get their
+		// real children auto-discovered below -- the guild-scope branch's
+		// existing flat layout is left exactly as-is (out of scope here;
+		// its achievements are already correctly mapped today, just not
+		// grouped under their real parent).
+		$character_scope = array();
+		// parent_id of every category already known, from a prior run --
+		// merged with this run's own $insert_rows further down to compute
+		// the full, current leaf set (a leaf newly discovered in a
+		// previous run must not be treated as a "leaf candidate" again
+		// once ITS OWN children exist).
+		$existing_parent_of = array();
+
+		$sql = 'SELECT id, parent_id, is_guild_category FROM ' . $this->bb_achievement_category_table .
+			' WHERE game_id = \'' . $db->sql_escape($game->game_id) . '\'';
+		$result = $db->sql_query($sql);
+		while ($row = $db->sql_fetchrow($result))
+		{
+			$cat_id = (int) $row['id'];
+			$categories[$cat_id] = true;
+			$existing_parent_of[$cat_id] = (int) $row['parent_id'];
+			if (!$row['is_guild_category'])
+			{
+				$character_scope[$cat_id] = true;
+			}
+		}
+		$db->sql_freeresult($result);
+
 		$insert_rows = array();
 		$order = 0;
 
-		// Root categories
+		// Root categories. The Index's own `subcategories` field is
+		// unreliable -- it reports 0 children for categories that
+		// getCategoryDetail() shows clearly have them (confirmed live:
+		// "Dungeons & Raids" reports subcategories=0 here but 22 via
+		// Detail) -- so real children are discovered below, via Detail,
+		// same as achievement mapping already was.
 		$root_cats = isset($data['root_categories']) ? $data['root_categories'] : (isset($data['categories']) ? $data['categories'] : array());
 		foreach ($root_cats as $cat)
 		{
@@ -1384,36 +1402,24 @@ class achievement
 			{
 				continue;
 			}
+			$character_scope[$cat_id] = true;
+			if (isset($categories[$cat_id]))
+			{
+				// Already known from a previous run -- don't re-insert
+				// (the id is the primary key), just keep its display
+				// order for the ordering pass below.
+				$order++;
+				continue;
+			}
 			$insert_rows[] = array(
-				'id'            => $cat_id,
-				'game_id'       => $game->game_id,
-				'parent_id'     => 0,
-				'name'          => isset($cat['name']) ? $cat['name'] : '',
-				'display_order' => $order++,
+				'id'                 => $cat_id,
+				'game_id'            => $game->game_id,
+				'parent_id'          => 0,
+				'name'               => isset($cat['name']) ? $cat['name'] : '',
+				'display_order'      => $order++,
+				'is_guild_category'  => 0,
 			);
 			$categories[$cat_id] = true;
-
-			// Subcategories
-			if (isset($cat['subcategories']) && is_array($cat['subcategories']))
-			{
-				$sub_order = 0;
-				foreach ($cat['subcategories'] as $sub)
-				{
-					$sub_id = isset($sub['id']) ? (int) $sub['id'] : 0;
-					if ($sub_id === 0)
-					{
-						continue;
-					}
-					$insert_rows[] = array(
-						'id'            => $sub_id,
-						'game_id'       => $game->game_id,
-						'parent_id'     => $cat_id,
-						'name'          => isset($sub['name']) ? $sub['name'] : '',
-						'display_order' => $sub_order++,
-					);
-					$categories[$sub_id] = true;
-				}
-			}
 		}
 
 		// Also handle guild_categories and character_categories if present
@@ -1431,11 +1437,12 @@ class achievement
 					continue;
 				}
 				$insert_rows[] = array(
-					'id'            => $cat_id,
-					'game_id'       => $game->game_id,
-					'parent_id'     => 0,
-					'name'          => isset($cat['name']) ? $cat['name'] : '',
-					'display_order' => $order++,
+					'id'                 => $cat_id,
+					'game_id'            => $game->game_id,
+					'parent_id'          => 0,
+					'name'               => isset($cat['name']) ? $cat['name'] : '',
+					'display_order'      => $order++,
+					'is_guild_category'  => 1,
 				);
 				$categories[$cat_id] = true;
 			}
@@ -1446,26 +1453,43 @@ class achievement
 			$db->sql_multi_insert($this->bb_achievement_category_table, $insert_rows);
 		}
 
-		$cat_count = count($insert_rows);
+		// Total categories known after this run -- existing rows plus
+		// whatever's new above; incremented further below as the leaf
+		// loop discovers real children.
+		$cat_count = count($categories);
 
-		// Now fetch detail for each leaf category to map achievements to categories.
-		// Leaf categories are those that have no children (are not parent_id of any other).
-		$parent_ids = array();
+		// Now fetch detail for each leaf category to map achievements to
+		// categories, and (character-scope only) discover its real
+		// children from the same response's `subcategories` field, so a
+		// later sync run picks them up as leaves in their own right.
+		// Leaf categories are those that have no children (are not
+		// parent_id of any other) among the FULL known set -- existing
+		// rows from a previous run plus whatever's newly inserted this
+		// run -- not just this run's own inserts, or a category whose
+		// children were discovered in a prior run would wrongly be
+		// treated as a leaf again here.
+		$parent_id_of = $existing_parent_of;
 		foreach ($insert_rows as $row)
 		{
-			if ($row['parent_id'] > 0)
+			$parent_id_of[$row['id']] = $row['parent_id'];
+		}
+
+		$parent_ids = array();
+		foreach ($parent_id_of as $id => $parent_id)
+		{
+			if ($parent_id > 0)
 			{
-				$parent_ids[$row['parent_id']] = true;
+				$parent_ids[$parent_id] = true;
 			}
 		}
 
 		// All categories that are NOT a parent are leaf categories
 		$leaf_ids = array();
-		foreach ($insert_rows as $row)
+		foreach ($parent_id_of as $id => $parent_id)
 		{
-			if (!isset($parent_ids[$row['id']]))
+			if (!isset($parent_ids[$id]))
 			{
-				$leaf_ids[] = $row['id'];
+				$leaf_ids[] = $id;
 			}
 		}
 
@@ -1577,6 +1601,40 @@ class achievement
 					' AND category_id <> ' . (int) $leaf_id);
 				$mapped_count += count($achievement_ids);
 			}
+
+			// Character-scope only: discover this leaf's real children
+			// (Detail's `subcategories`, unlike the Index's, actually
+			// lists them) so a later sync run maps their achievements
+			// under their real parent instead of leaving them unmapped.
+			if (isset($character_scope[$leaf_id]) && isset($detail_data['subcategories']) && is_array($detail_data['subcategories']))
+			{
+				$child_rows = array();
+				$sub_order = 0;
+				foreach ($detail_data['subcategories'] as $sub)
+				{
+					$sub_id = isset($sub['id']) ? (int) $sub['id'] : 0;
+					if ($sub_id === 0 || isset($categories[$sub_id]))
+					{
+						continue;
+					}
+					$child_rows[] = array(
+						'id'                => $sub_id,
+						'game_id'           => $game->game_id,
+						'parent_id'         => $leaf_id,
+						'name'              => isset($sub['name']) ? $sub['name'] : '',
+						'display_order'     => $sub_order++,
+						'is_guild_category' => 0,
+					);
+					$categories[$sub_id] = true;
+					$character_scope[$sub_id] = true;
+				}
+
+				if (!empty($child_rows))
+				{
+					$db->sql_multi_insert($this->bb_achievement_category_table, $child_rows);
+					$cat_count += count($child_rows);
+				}
+			}
 		}
 
 		unset($api);
@@ -1649,48 +1707,32 @@ class achievement
 	}
 
 	/**
-	 * Same shape as getCategoryProgress(), scoped to one player instead
-	 * of a whole guild -- the achievements tab's category cards (bbguildwow#44
-	 * follow-up, matching Blizzard's own armory achievements page: category
-	 * cards with a progress ring, drilling into per-category/per-subcategory
-	 * lists below). Only the LEFT JOIN's owner condition differs from the
-	 * guild version.
+	 * Character-scope achievement categories for the current game as a
+	 * flat id-keyed list (id, name, parent_id) -- excludes the guild-scope
+	 * branch (is_guild_category) entirely, matching Blizzard's own
+	 * character armory page, which never shows a "Guild" section.
+	 * Insertion order matches display_order (the query's ORDER BY), which
+	 * get_player_achievement_tree() relies on to avoid a second sort.
 	 *
-	 * @param int $player_id
-	 * @return array
+	 * @return array id => ['id', 'name', 'parent_id', 'display_order']
 	 */
-	public function get_player_category_progress(int $player_id): array
+	private function get_character_category_tree(): array
 	{
 		$db = $this->db;
 
-		$sql = 'SELECT ac.id, ac.name, ac.display_order,
-				COUNT(a.id) AS total_count,
-				SUM(CASE WHEN at.achievements_completed > 0 THEN 1 ELSE 0 END) AS completed_count,
-				SUM(a.points) AS total_points,
-				COALESCE(SUM(CASE WHEN at.achievements_completed > 0 THEN a.points ELSE 0 END), 0) AS earned_points
-			FROM ' . $this->bb_achievement_category_table . ' ac
-			INNER JOIN ' . $this->bb_achievement_category_table . ' child
-				ON (child.parent_id = ac.id OR child.id = ac.id)
-			INNER JOIN ' . $this->bb_achievement_table . ' a
-				ON a.category_id = child.id AND a.game_id = \'wow\'
-			LEFT JOIN ' . $this->bb_achievement_track_table . ' at
-				ON at.achievement_id = a.id AND at.player_id = ' . $player_id . '
-			WHERE ac.parent_id = 0 AND ac.game_id = \'wow\'
-			GROUP BY ac.id, ac.name, ac.display_order
-			ORDER BY ac.display_order';
+		$sql = 'SELECT id, name, parent_id, display_order FROM ' . $this->bb_achievement_category_table .
+			' WHERE game_id = \'' . $db->sql_escape($this->game_id) . '\' AND is_guild_category = 0' .
+			' ORDER BY display_order';
 		$result = $db->sql_query($sql);
 
 		$categories = array();
 		while ($row = $db->sql_fetchrow($result))
 		{
-			$categories[] = array(
-				'id'              => (int) $row['id'],
-				'name'            => $row['name'],
-				'display_order'   => (int) $row['display_order'],
-				'total_count'     => (int) $row['total_count'],
-				'completed_count' => (int) $row['completed_count'],
-				'total_points'    => (int) $row['total_points'],
-				'earned_points'   => (int) $row['earned_points'],
+			$categories[(int) $row['id']] = array(
+				'id'            => (int) $row['id'],
+				'name'          => $row['name'],
+				'parent_id'     => (int) $row['parent_id'],
+				'display_order' => (int) $row['display_order'],
 			);
 		}
 		$db->sql_freeresult($result);
@@ -1699,40 +1741,70 @@ class achievement
 	}
 
 	/**
-	 * A player's completed achievements, each carrying its own category
-	 * and (if the achievement's category is itself a child category, e.g.
-	 * "Quests > Outland") that category's parent -- what the achievements
-	 * tab groups into "bucket, then sub-bucket" sections. Achievements
-	 * with no category yet (category_id=0, e.g. a stub row inserted by
-	 * ensure_achievement_stubs() before a full guild-level detail sync
-	 * has run) come back with null category fields; the caller buckets
-	 * those under an "Uncategorized" fallback rather than dropping them.
+	 * A player's per-category achievement totals, own achievements only
+	 * (not rolled up to ancestors -- get_player_achievement_tree() does
+	 * that walk). Character-scope categories only.
 	 *
-	 * Ordered so a caller can build the nested bucket structure in one
-	 * linear pass: top category display order, then (within it) child
-	 * category name, then newest-completed first.
+	 * @param int $player_id
+	 * @return array category_id => ['total_count', 'completed_count', 'total_points', 'earned_points']
+	 */
+	private function get_player_category_totals(int $player_id): array
+	{
+		$db = $this->db;
+
+		$sql = 'SELECT a.category_id,
+				COUNT(*) AS total_count,
+				SUM(CASE WHEN at.achievements_completed > 0 THEN 1 ELSE 0 END) AS completed_count,
+				SUM(a.points) AS total_points,
+				COALESCE(SUM(CASE WHEN at.achievements_completed > 0 THEN a.points ELSE 0 END), 0) AS earned_points
+			FROM ' . $this->bb_achievement_table . ' a
+			INNER JOIN ' . $this->bb_achievement_category_table . ' cat
+				ON cat.id = a.category_id AND cat.is_guild_category = 0
+			LEFT JOIN ' . $this->bb_achievement_track_table . ' at
+				ON at.achievement_id = a.id AND at.player_id = ' . $player_id . '
+			WHERE a.game_id = \'' . $db->sql_escape($this->game_id) . '\'
+			GROUP BY a.category_id';
+		$result = $db->sql_query($sql);
+
+		$totals = array();
+		while ($row = $db->sql_fetchrow($result))
+		{
+			$totals[(int) $row['category_id']] = array(
+				'total_count'     => (int) $row['total_count'],
+				'completed_count' => (int) $row['completed_count'],
+				'total_points'    => (int) $row['total_points'],
+				'earned_points'   => (int) $row['earned_points'],
+			);
+		}
+		$db->sql_freeresult($result);
+
+		return $totals;
+	}
+
+	/**
+	 * A player's completed achievements, each carrying its own leaf
+	 * category_id (not rolled up). Character-scope categories only, plus
+	 * genuinely uncategorized ones (category_id=0, e.g. a stub row from
+	 * ensure_achievement_stubs() before a full detail sync has run) --
+	 * those are kept (not silently dropped) rather than excluded like the
+	 * guild-scope branch is.
 	 *
 	 * @param int $player_id
 	 * @return array
 	 */
-	public function get_player_completed_achievements_grouped(int $player_id): array
+	private function get_player_completed_achievements(int $player_id): array
 	{
 		$db = $this->db;
 
-		$sql = 'SELECT a.title, a.description, a.points, a.icon, ac.achievements_completed,
-				cat.id AS cat_id, cat.name AS cat_name, cat.display_order AS cat_order,
-				parent.id AS parent_id, parent.name AS parent_name, parent.display_order AS parent_order
+		$sql = 'SELECT a.title, a.description, a.points, a.icon, a.category_id, ac.achievements_completed
 			FROM ' . $this->bb_achievement_track_table . ' ac
 			INNER JOIN ' . $this->bb_achievement_table . ' a ON a.id = ac.achievement_id
 			LEFT JOIN ' . $this->bb_achievement_category_table . ' cat ON cat.id = a.category_id
-			LEFT JOIN ' . $this->bb_achievement_category_table . ' parent ON parent.id = cat.parent_id
 			WHERE ac.player_id = ' . $player_id . '
 				AND ac.achievements_completed > 0
 				AND a.game_id = \'' . $db->sql_escape($this->game_id) . '\'
-			ORDER BY COALESCE(parent.display_order, cat.display_order, 9999),
-				COALESCE(parent.name, cat.name, \'\'),
-				cat.display_order, cat.name,
-				ac.achievements_completed DESC';
+				AND (cat.id IS NULL OR cat.is_guild_category = 0)
+			ORDER BY ac.achievements_completed DESC';
 		$result = $db->sql_query($sql);
 
 		$rows = array();
@@ -1743,18 +1815,127 @@ class achievement
 				'description'            => $row['description'],
 				'points'                 => (int) $row['points'],
 				'icon'                   => $row['icon'],
+				'category_id'            => (int) $row['category_id'],
 				'achievements_completed' => (int) $row['achievements_completed'],
-				// If cat has no parent, cat itself IS the top-level bucket
-				// (parent.* comes back null from the LEFT JOIN). If cat has
-				// a parent, parent is the top bucket and cat is the sub-bucket.
-				'top_id'                 => $row['parent_id'] !== null ? (int) $row['parent_id'] : ($row['cat_id'] !== null ? (int) $row['cat_id'] : 0),
-				'top_name'               => $row['parent_id'] !== null ? $row['parent_name'] : $row['cat_name'],
-				'sub_name'               => $row['parent_id'] !== null ? $row['cat_name'] : null,
 			);
 		}
 		$db->sql_freeresult($result);
 
 		return $rows;
+	}
+
+	/**
+	 * A player's character-scope achievement categories as a tree: one
+	 * node per root category, each carrying its own completed
+	 * achievements plus, recursively, any real children -- however deep
+	 * Blizzard's actual category tree happens to go for that branch (in
+	 * practice almost always exactly one level, confirmed by inspecting
+	 * the live API, but the walk itself doesn't assume that -- it stops
+	 * naturally once a node has no children, whatever the real depth).
+	 * A node with total_count=0 (nothing in the catalog for it or its
+	 * children) is dropped rather than shown as an empty card/tab.
+	 *
+	 * @param int $player_id
+	 * @return array list of root nodes, each:
+	 *     ['id', 'name', 'total_count', 'completed_count', 'total_points',
+	 *      'earned_points', 'percent', 'achievements' => [...], 'children' => [...same shape]]
+	 */
+	public function get_player_achievement_tree(int $player_id): array
+	{
+		$categories = $this->get_character_category_tree();
+		$totals = $this->get_player_category_totals($player_id);
+		$rows = $this->get_player_completed_achievements($player_id);
+
+		$achievements_by_category = array();
+		foreach ($rows as $row)
+		{
+			$achievements_by_category[$row['category_id']][] = $row;
+		}
+
+		// Built by iterating $categories, which is already in
+		// display_order -- so every children_by_parent[$id] list (roots
+		// included) comes out pre-sorted, no extra sort needed.
+		$children_by_parent = array();
+		foreach ($categories as $cat)
+		{
+			$children_by_parent[$cat['parent_id']][] = $cat['id'];
+		}
+
+		$build = function ($cat_id, $depth) use (&$build, $categories, $totals, $achievements_by_category, $children_by_parent) {
+			// Defensive cap -- real data never goes anywhere near this
+			// deep (confirmed at most 2 levels live), this just stops a
+			// malformed/cyclic parent_id chain from looping forever.
+			if ($depth > 8 || !isset($categories[$cat_id]))
+			{
+				return null;
+			}
+
+			$own = isset($totals[$cat_id]) ? $totals[$cat_id] :
+				array('total_count' => 0, 'completed_count' => 0, 'total_points' => 0, 'earned_points' => 0);
+			$total_count = $own['total_count'];
+			$completed_count = $own['completed_count'];
+			$total_points = $own['total_points'];
+			$earned_points = $own['earned_points'];
+
+			$children = array();
+			foreach (($children_by_parent[$cat_id] ?? array()) as $child_id)
+			{
+				$child_node = $build($child_id, $depth + 1);
+				if ($child_node === null || $child_node['total_count'] === 0)
+				{
+					continue;
+				}
+				$children[] = $child_node;
+				$total_count += $child_node['total_count'];
+				$completed_count += $child_node['completed_count'];
+				$total_points += $child_node['total_points'];
+				$earned_points += $child_node['earned_points'];
+			}
+
+			return array(
+				'id'              => $cat_id,
+				'name'            => $categories[$cat_id]['name'],
+				'total_count'     => $total_count,
+				'completed_count' => $completed_count,
+				'total_points'    => $total_points,
+				'earned_points'   => $earned_points,
+				'percent'         => $total_count > 0 ? (int) round($completed_count / $total_count * 100) : 0,
+				'achievements'    => $achievements_by_category[$cat_id] ?? array(),
+				'children'        => $children,
+			);
+		};
+
+		$roots = array();
+		foreach (($children_by_parent[0] ?? array()) as $root_id)
+		{
+			$node = $build($root_id, 0);
+			if ($node !== null && $node['total_count'] > 0)
+			{
+				$roots[] = $node;
+			}
+		}
+
+		// Achievements with no resolvable category (category_id=0, e.g.
+		// a stub row inserted before a full detail sync has run) have no
+		// matching node in $categories at all -- surface them under a
+		// synthetic fallback root rather than silently dropping them.
+		$uncategorized = $achievements_by_category[0] ?? array();
+		if (!empty($uncategorized))
+		{
+			$roots[] = array(
+				'id'              => 0,
+				'name'            => $this->lang('WOW_ACHIEVEMENTS_UNCATEGORIZED'),
+				'total_count'     => count($uncategorized),
+				'completed_count' => count($uncategorized),
+				'total_points'    => array_sum(array_column($uncategorized, 'points')),
+				'earned_points'   => array_sum(array_column($uncategorized, 'points')),
+				'percent'         => 100,
+				'achievements'    => $uncategorized,
+				'children'        => array(),
+			);
+		}
+
+		return $roots;
 	}
 
 	/**

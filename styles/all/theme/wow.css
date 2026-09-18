@@ -635,12 +635,51 @@ h3.category {
     margin: 0 0 8px;
 }
 
-.wow-achiev-subheading {
-    margin: 10px 0 2px;
-    font-size: 0.85em;
-    opacity: 0.7;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
+/* A category with real children (e.g. "Dungeons & Raids" > "Classic" /
+   "Cataclysm Dungeon" / ...) unfurls into a tab strip instead of one
+   flat list -- and a child with children of its own unfurls the same
+   way again, since achiev_node() in the template recurses. Tabs are
+   plain anchors + :target/:has(), scoped per .wow-achiev-tabs container
+   via the direct-child (>) selectors below, so this works at any depth
+   and with any number of tabs with no per-count CSS rules needed. */
+.wow-achiev-tabs {
+    margin: 4px 0 8px;
+}
+
+.wow-achiev-tab-labels {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 8px;
+}
+
+.wow-achiev-tab-label {
+    padding: 3px 10px;
+    border-radius: 3px;
+    font-size: 0.82em;
+    text-decoration: none;
+    color: inherit;
+    background: rgba(128, 128, 128, 0.12);
+}
+
+.wow-achiev-tab-label:hover {
+    background: rgba(128, 128, 128, 0.24);
+}
+
+.wow-achiev-tab-panel {
+    display: none;
+}
+
+.wow-achiev-tab-panel:target {
+    display: block;
+}
+
+.wow-achiev-tabs > .wow-achiev-tab-panel:first-of-type {
+    display: block;
+}
+
+.wow-achiev-tabs:has(> .wow-achiev-tab-panel:target) > .wow-achiev-tab-panel:first-of-type:not(:target) {
+    display: none;
 }
 
 /* ===== Talents tab (bbguildwow#45) ===== */

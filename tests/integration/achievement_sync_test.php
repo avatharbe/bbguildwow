@@ -262,18 +262,25 @@ class achievement_sync_test extends mock_battlenet_test_case
 
 	public function test_sync_categories_inserts_root_and_child_hierarchy(): void
 	{
+		// The Index's own `subcategories` field is unreliable (confirmed
+		// live against the real Battle.net API: it reports 0 children for
+		// categories that getCategoryDetail() shows clearly have some),
+		// so syncCategories() no longer trusts it -- root category 1 is
+		// treated as a leaf on this first pass, and its real child (id 2)
+		// is discovered from ITS OWN getCategoryDetail() response instead.
 		$cache = $this->make_stateful_cache();
 		$this->configure_mock_routes(array(
 			'/token' => array(array('status' => 200, 'body' => array('access_token' => 'tok', 'expires_in' => 3600))),
 			'/data/wow/achievement-category/index' => array(
 				array('status' => 200, 'body' => array('root_categories' => array(
-					array('id' => 1, 'name' => 'General', 'subcategories' => array(
-						array('id' => 2, 'name' => 'Leveling'),
-					)),
+					array('id' => 1, 'name' => 'General'),
 				))),
 			),
-			'/data/wow/achievement-category/2' => array(
-				array('status' => 200, 'body' => array('achievements' => array())),
+			'/data/wow/achievement-category/1' => array(
+				array('status' => 200, 'body' => array(
+					'achievements'   => array(),
+					'subcategories'  => array(array('id' => 2, 'name' => 'Leveling')),
+				)),
 			),
 		));
 

@@ -2,9 +2,10 @@
 /**
  * bbGuild WoW Extension — 2.1.0-b1 release checkpoint
  *
- * Converges the four feature migrations landed under this milestone
+ * Converges the five feature migrations landed under this milestone
  * (add_equipment_detail -> add_player_item_stat -> add_guild_sync_config ->
- * add_news_source, already a single linear chain) behind one canonically-named
+ * add_news_source -> add_achievement_category_guild_flag, already a single
+ * linear chain) behind one canonically-named
  * dependency, matching every prior milestone's convention (v200b2, v200b3,
  * v200b4, v200rc2) — so later work depends on the readable milestone name
  * instead of picking whichever feature-specific migration happens to be the
@@ -23,6 +24,6 @@ class release_2_1_0_b1 extends \phpbb\db\migration\migration
 {
 	public static function depends_on()
 	{
-		return ['\avathar\bbguildwow\migrations\v210b1\add_news_source'];
+		return ['\avathar\bbguildwow\migrations\v210b1\add_achievement_category_guild_flag'];
 	}
 }

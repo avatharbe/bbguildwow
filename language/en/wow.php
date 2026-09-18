@@ -125,6 +125,7 @@ $lang = array_merge(
 	'WOW_ACHIEVEMENTS_EARNED'  => 'achievements earned',
 	'WOW_ACHIEVEMENTS_NO_DATA' => 'No achievements earned yet.',
 	'WOW_ACHIEVEMENTS_UNCATEGORIZED' => 'Uncategorized',
+	'WOW_ACHIEVEMENTS_GLOBAL'  => 'Global',
 
 	// is_enableable() error messages
 	'BBGUILDWOW_PHP_VERSION_FAIL'		=> 'This extension requires PHP %1$s or higher. You are running PHP %2$s.',
