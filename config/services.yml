@@ -190,6 +190,11 @@ services:
         arguments:
             - '@avathar.bbguildwow.achievement'
             - '@template'
+            - '@dbal.conn'
+            - '@request'
+            - '@pagination'
+            - '@controller.helper'
+            - '%avathar.bbguild.tables.bb_players%'
         tags:
             - { name: bbguild.player_detail_tab }
 

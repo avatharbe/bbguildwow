@@ -582,12 +582,19 @@ class achievement
 	/**
 	 * get tracked achievements from local database
 	 *
-	 * @param     $start
-	 * @param     $guild_id
-	 * @param int $player_id
+	 * @param        $start
+	 * @param        $guild_id
+	 * @param int    $player_id
+	 * @param bool   $completed_only When true, excludes tracked-but-not-
+	 *               yet-completed rows from both the count and the page
+	 *               (bbguildwow#44's achievements tab only ever displays
+	 *               completed ones — added so its pagination total isn't
+	 *               inflated by in-progress rows it filters out anyway).
+	 *               Defaults false to preserve the ACP achievement list's
+	 *               existing behaviour (acp/achievement_module.php).
 	 * @return array
 	 */
-	public function get_tracked_achievements($start, $guild_id, $player_id = 0)
+	public function get_tracked_achievements($start, $guild_id, $player_id = 0, $completed_only = false)
 	{
 		$db = $this->db;
 		$per_page = 15;
@@ -600,6 +607,11 @@ class achievement
 		else
 		{
 			$owner_filter = 'ac.guild_id = ' . (int) $guild_id;
+		}
+
+		if ($completed_only)
+		{
+			$owner_filter .= ' AND ac.achievements_completed > 0';
 		}
 
 		// Count total (simple query, no joins to criteria/rewards)
@@ -653,6 +665,30 @@ class achievement
 		$db->sql_freeresult($result);
 
 		return array($achievements, $current_order, $achievcount);
+	}
+
+	/**
+	 * Total points across a player's completed achievements. Separate
+	 * from get_tracked_achievements() since a paginated caller (the
+	 * achievements tab) needs this as a whole-player total, not a
+	 * per-page sum that would change as the viewer pages through results.
+	 *
+	 * @param int $player_id
+	 * @return int
+	 */
+	public function get_player_completed_points(int $player_id): int
+	{
+		$sql = 'SELECT SUM(a.points) AS total_points
+			FROM ' . $this->bb_achievement_track_table . ' ac
+			INNER JOIN ' . $this->bb_achievement_table . ' a ON a.id = ac.achievement_id
+			WHERE ac.player_id = ' . $player_id . '
+				AND ac.achievements_completed > 0
+				AND a.game_id = \'' . $this->db->sql_escape($this->game_id) . '\'';
+		$result = $this->db->sql_query($sql);
+		$total = (int) $this->db->sql_fetchfield('total_points');
+		$this->db->sql_freeresult($result);
+
+		return $total;
 	}
 
 	/**

@@ -13,6 +13,11 @@
 			</li>
 			{% endfor %}
 		</ul>
+		<div class="pagination">
+			{% if loops.pagination|length %}
+			{% INCLUDE 'pagination.html' %}
+			{% endif %}
+		</div>
 		{% else %}
 		<p>{{ lang('WOW_ACHIEVEMENTS_NO_DATA') }}</p>
 		{% endif %}

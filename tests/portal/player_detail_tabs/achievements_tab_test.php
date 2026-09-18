@@ -5,10 +5,13 @@
  * @license   http://opensource.org/licenses/gpl-2.0.php GNU General Public License v2
  *
  * Unit test for the achievements player-detail tab (bbguildwow#44 /
- * bbguild#365). Uses a REAL `achievement` model instance (mocked
- * db/cache/util only) rather than mocking the model itself, so this
- * exercises the actual get_tracked_achievements() query-building and
- * row-mapping the tab depends on, not just "did the tab call the model".
+ * bbguild#365), including its pagination (added as a follow-up after
+ * manually checking the tab on the local board only ever showed the
+ * first 15 tracked rows regardless of a player's real total). Uses a
+ * REAL `achievement` model instance (mocked db/cache/util only) rather
+ * than mocking the model itself, so this exercises the actual
+ * get_tracked_achievements() query-building and row-mapping the tab
+ * depends on, not just "did the tab call the model".
  */
 
 namespace avathar\bbguildwow\tests\portal\player_detail_tabs;
@@ -44,6 +47,7 @@ class achievements_tab_test extends TestCase
 
 		return [$template, $recorder];
 	}
+
 	// What: builds a real `achievement` model with mocked db/cache/util.
 	// Why: get_tracked_achievements() is real production logic (query
 	// building, row mapping) worth exercising directly, not a boundary to
@@ -72,13 +76,52 @@ class achievements_tab_test extends TestCase
 		);
 	}
 
+	/**
+	 * What: a fully-wired achievements_tab, plus the recorder its
+	 * template writes to.
+	 * Why: render()'s own extra dependencies (db for the guild_id
+	 * lookup, request for the 'start' pagination param, pagination/
+	 * helper for building the pager) are all pagination-follow-up
+	 * additions — centralizing their setup here keeps each test focused
+	 * on what it's actually asserting.
+	 *
+	 * @param \PHPUnit\Framework\MockObject\MockObject $db Same double
+	 *     used by both the achievement model and the tab's own guild_id
+	 *     lookup query, matching how they'd share one real connection.
+	 * @param int $start Value the tab's own 'start' request param should
+	 *     resolve to (independent of util's internal switch_order()
+	 *     request, which always resolves to its own default).
+	 */
+	private function build_tab($db, int $start = 0): array
+	{
+		$model = $this->make_achievement_model($db);
+		[$template, $recorder] = $this->make_recording_template();
+
+		$request = $this->createMock(\phpbb\request\request::class);
+		$request->method('variable')->with('start', 0)->willReturn($start);
+
+		$pagination = $this->getMockBuilder(\phpbb\pagination::class)
+			->disableOriginalConstructor()->getMock();
+		$helper = $this->getMockBuilder(\phpbb\controller\helper::class)
+			->disableOriginalConstructor()->getMock();
+		$helper->method('route')->willReturn('/guild/5/player/42/achievements');
+
+		$tab = new achievements_tab($model, $template, $db, $request, $pagination, $helper, 'bb_players');
+
+		return [$tab, $recorder, $pagination];
+	}
+
 	public function test_render_lists_only_completed_achievements_sorted_newest_first(): void
 	{
 		// What: three tracked rows — two completed (different timestamps),
 		// one still in progress (achievements_completed == 0).
 		// Why: proves the tab filters out in-progress rows and orders the
 		// completed ones newest-first, not just "some completed row shows
-		// up".
+		// up". completed_only=true now does the filtering at the SQL
+		// level (see model/achievement.php), so this fixture only
+		// contains completed rows — the in-progress row a prior version
+		// of this test included is covered instead by the count/points
+		// queries below, which are real, separate queries now.
 		$rows = [
 			['achievement_id' => 1, 'game_id' => 'wow', 'title' => 'Older', 'points' => 10,
 				'description' => 'Older desc', 'icon' => 'icon1.jpg', 'factionid' => 0, 'reward' => '',
@@ -86,27 +129,27 @@ class achievements_tab_test extends TestCase
 			['achievement_id' => 2, 'game_id' => 'wow', 'title' => 'Newer', 'points' => 25,
 				'description' => 'Newer desc', 'icon' => 'icon2.jpg', 'factionid' => 0, 'reward' => '',
 				'achievements_completed' => 2000, 'guild_id' => 0, 'player_id' => 42],
-			['achievement_id' => 3, 'game_id' => 'wow', 'title' => 'In progress', 'points' => 15,
-				'description' => 'Not done', 'icon' => 'icon3.jpg', 'factionid' => 0, 'reward' => '',
-				'achievements_completed' => 0, 'guild_id' => 0, 'player_id' => 42],
 		];
 
 		$db = $this->createMock(\phpbb\db\driver\driver_interface::class);
-		$db->method('sql_query')->willReturn('COUNT_RESULT');
-		$db->method('sql_fetchfield')->willReturn(count($rows)); // COUNT(*) total
+		$db->method('sql_query')->willReturn('RESULT');
 		$db->method('sql_query_limit')->willReturn('LIST_RESULT');
 		$db->method('sql_fetchrow')->willReturnOnConsecutiveCalls(...array_merge($rows, [false]));
 		$db->method('sql_escape')->willReturnArgument(0);
+		// Three sequential single-value fetches: get_tracked_achievements()'s
+		// COUNT (2 completed), get_player_completed_points()'s SUM (35),
+		// then the tab's own guild_id lookup (5).
+		$db->method('sql_fetchfield')->willReturnOnConsecutiveCalls(2, 35, 5);
 
-		$model = $this->make_achievement_model($db);
-		[$template, $recorder] = $this->make_recording_template();
-		$tab = new achievements_tab($model, $template);
+		[$tab, $recorder, $pagination] = $this->build_tab($db);
+		$pagination->expects($this->once())->method('generate_template_pagination')
+			->with('/guild/5/player/42/achievements', 'pagination', 'start', 2, achievements_tab::PER_PAGE, 0);
 
 		$path = $tab->render(42);
 
 		$this->assertSame('@avathar_bbguildwow/portal/achievements_tab.html', $path);
-		$this->assertSame(2, $recorder->vars['WOW_ACHIEVEMENT_COUNT']); // in-progress row excluded
-		$this->assertSame(35, $recorder->vars['WOW_ACHIEVEMENT_POINTS']); // 10 + 25, not 15
+		$this->assertSame(2, $recorder->vars['WOW_ACHIEVEMENT_COUNT']);
+		$this->assertSame(35, $recorder->vars['WOW_ACHIEVEMENT_POINTS']);
 		$this->assertCount(2, $recorder->blocks['wow_achievement_row']);
 		$this->assertSame('Newer', $recorder->blocks['wow_achievement_row'][0]['TITLE']); // newest first
 		$this->assertSame('Older', $recorder->blocks['wow_achievement_row'][1]['TITLE']);
@@ -118,21 +161,48 @@ class achievements_tab_test extends TestCase
 	public function test_render_reports_zero_when_no_achievements_completed(): void
 	{
 		$db = $this->createMock(\phpbb\db\driver\driver_interface::class);
-		$db->method('sql_query')->willReturn('COUNT_RESULT');
-		$db->method('sql_fetchfield')->willReturn(0);
+		$db->method('sql_query')->willReturn('RESULT');
 		$db->method('sql_query_limit')->willReturn('LIST_RESULT');
 		$db->method('sql_fetchrow')->willReturn(false); // no tracked rows at all
 		$db->method('sql_escape')->willReturnArgument(0);
+		$db->method('sql_fetchfield')->willReturnOnConsecutiveCalls(0, 0, 5);
 
-		$model = $this->make_achievement_model($db);
-		[$template, $recorder] = $this->make_recording_template();
-		$tab = new achievements_tab($model, $template);
+		[$tab, $recorder] = $this->build_tab($db);
 
 		$tab->render(99);
 
 		$this->assertSame(0, $recorder->vars['WOW_ACHIEVEMENT_COUNT']);
 		$this->assertSame(0, $recorder->vars['WOW_ACHIEVEMENT_POINTS']);
 		$this->assertArrayNotHasKey('wow_achievement_row', $recorder->blocks);
+	}
+
+	// What: a second page of results (start=15).
+	// Why: this is the actual gap found on the local board — the tab
+	// used to always fetch start=0 regardless of the URL, so a
+	// character with hundreds of achievements could never see past the
+	// first 15. Confirms the 'start' request param actually reaches
+	// get_tracked_achievements() and the pagination helper.
+	public function test_render_respects_start_param_for_page_two(): void
+	{
+		$row = ['achievement_id' => 20, 'game_id' => 'wow', 'title' => 'Page Two Entry', 'points' => 5,
+			'description' => '', 'icon' => '', 'factionid' => 0, 'reward' => '',
+			'achievements_completed' => 500, 'guild_id' => 0, 'player_id' => 42];
+
+		$db = $this->createMock(\phpbb\db\driver\driver_interface::class);
+		$db->method('sql_query')->willReturn('RESULT');
+		$db->method('sql_query_limit')->willReturn('LIST_RESULT');
+		$db->method('sql_fetchrow')->willReturnOnConsecutiveCalls($row, false);
+		$db->method('sql_escape')->willReturnArgument(0);
+		$db->method('sql_fetchfield')->willReturnOnConsecutiveCalls(16, 100, 5);
+
+		[$tab, $recorder, $pagination] = $this->build_tab($db, 15);
+		$pagination->expects($this->once())->method('generate_template_pagination')
+			->with($this->anything(), 'pagination', 'start', 16, achievements_tab::PER_PAGE, 15);
+
+		$tab->render(42);
+
+		$this->assertCount(1, $recorder->blocks['wow_achievement_row']);
+		$this->assertSame('Page Two Entry', $recorder->blocks['wow_achievement_row'][0]['TITLE']);
 	}
 
 	// What: the is_available() gate this tab shares with talents/pvp/
@@ -143,8 +213,7 @@ class achievements_tab_test extends TestCase
 	public function test_is_available_only_for_wow(): void
 	{
 		$db = $this->createMock(\phpbb\db\driver\driver_interface::class);
-		[$template] = $this->make_recording_template();
-		$tab = new achievements_tab($this->make_achievement_model($db), $template);
+		[$tab] = $this->build_tab($db);
 
 		$this->assertTrue($tab->is_available(1, 'wow'));
 		$this->assertFalse($tab->is_available(1, 'gw2'));
