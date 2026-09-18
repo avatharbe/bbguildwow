@@ -66,7 +66,11 @@ class pvp_tab implements player_detail_tab_interface
 
 	public function is_available(int $player_id, string $game_id): bool
 	{
-		return $game_id === 'wow';
+		// Deliberately hidden for the 2.1.0 release: honor-level-only is
+		// too thin to ship as a real tab. Re-enable (drop back to
+		// `return $game_id === 'wow';`) once #23 (bracket ratings) lands
+		// -- milestoned 2.2.0.
+		return false;
 	}
 
 	public function render(int $player_id): ?string

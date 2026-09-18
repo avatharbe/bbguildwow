@@ -47,7 +47,11 @@ class raid_progression_tab implements player_detail_tab_interface
 
 	public function is_available(int $player_id, string $game_id): bool
 	{
-		return $game_id === 'wow';
+		// Deliberately hidden for the 2.1.0 release: this tab has no real
+		// data source yet (blocked on Gameworld#16) and is only a "coming
+		// soon" placeholder. Re-enable (drop back to
+		// `return $game_id === 'wow';`) once #46 lands -- milestoned 2.2.0.
+		return false;
 	}
 
 	public function render(int $player_id): ?string
