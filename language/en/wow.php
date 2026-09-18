@@ -115,6 +115,9 @@ $lang = array_merge(
 	'WOW_TALENTS'              => 'Talents',
 	'WOW_RAID_PROGRESSION'     => 'Raid Progression',
 	'WOW_TAB_COMING_SOON'      => 'Coming soon.',
+	'WOW_ACHIEVEMENTS'         => 'Achievements',
+	'WOW_ACHIEVEMENTS_EARNED'  => 'achievements earned',
+	'WOW_ACHIEVEMENTS_NO_DATA' => 'No achievements earned yet.',
 
 	// is_enableable() error messages
 	'BBGUILDWOW_PHP_VERSION_FAIL'		=> 'This extension requires PHP %1$s or higher. You are running PHP %2$s.',

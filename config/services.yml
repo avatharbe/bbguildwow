@@ -178,6 +178,14 @@ services:
         tags:
             - { name: bbguild.player_detail_tab }
 
+    avathar.bbguildwow.player_detail_tab.achievements:
+        class: avathar\bbguildwow\portal\player_detail_tabs\achievements_tab
+        arguments:
+            - '@avathar.bbguildwow.achievement'
+            - '@template'
+        tags:
+            - { name: bbguild.player_detail_tab }
+
     # --- Portal modules ---
 
     avathar.bbguildwow.portal.module.achievements:

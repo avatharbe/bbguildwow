@@ -1,0 +1,20 @@
+<div class="player-detail-body">
+	<fieldset>
+		<legend>{{ lang('WOW_ACHIEVEMENTS') }}</legend>
+		{% if WOW_ACHIEVEMENT_COUNT > 0 %}
+		<p class="wow-achiev-summary">{{ WOW_ACHIEVEMENT_COUNT }} {{ lang('WOW_ACHIEVEMENTS_EARNED') }} &middot; {{ WOW_ACHIEVEMENT_POINTS }} {{ lang('ACHIEV_POINTS_TOTAL') }}</p>
+		<ul class="wow-achiev-list">
+			{% for row in wow_achievement_row %}
+			<li class="wow-achiev-row">
+				{% if row.ICON %}<img class="wow-achiev-icon" src="{{ row.ICON }}" alt="" />{% endif %}
+				<span class="wow-achiev-title" title="{{ row.DESCRIPTION }}">{{ row.TITLE }}</span>
+				<span class="wow-achiev-points">{{ row.POINTS }} {{ lang('ACHIEV_POINTS_TOTAL') }}</span>
+				<span class="wow-achiev-date">{{ row.DATE }}</span>
+			</li>
+			{% endfor %}
+		</ul>
+		{% else %}
+		<p>{{ lang('WOW_ACHIEVEMENTS_NO_DATA') }}</p>
+		{% endif %}
+	</fieldset>
+</div>
