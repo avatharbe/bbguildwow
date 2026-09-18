@@ -169,8 +169,11 @@ services:
     avathar.bbguildwow.player_detail_tab.talents:
         class: avathar\bbguildwow\portal\player_detail_tabs\talents_tab
         arguments:
+            - '@avathar.bbguildwow.api'
+            - '@dbal.conn'
             - '@template'
-            - '@language'
+            - '%avathar.bbguild.tables.bb_players%'
+            - '%avathar.bbguild.tables.bb_guild%'
         tags:
             - { name: bbguild.player_detail_tab }
 

@@ -1297,6 +1297,43 @@ class wow_api implements game_api_interface
 	}
 
 	/**
+	 * Fetch character talent loadouts from the API (bbguildwow#45's sync
+	 * side). Same underlying endpoint sync_one_specs() already calls
+	 * (getCharacterSpecializations()) -- that method only ever reads
+	 * active_specialization.name out of the response; this exposes the
+	 * rest of it (per-spec talent loadouts) for the Talents tab.
+	 * Results are cached via the API layer (1h TTL).
+	 *
+	 * @param string $name    Character name
+	 * @param string $realm   Realm slug
+	 * @param string $region  Region code
+	 * @param string $edition Game edition
+	 * @return array|false Parsed specializations response, or false on failure
+	 */
+	public function fetch_character_talents(string $name, string $realm, string $region, string $edition = 'retail')
+	{
+		global $phpbb_container;
+
+		$game = $this->get_game_from_db($phpbb_container);
+		if (!$game || trim($game->getApikey()) == '')
+		{
+			return false;
+		}
+
+		$ext_path = $this->get_ext_path($phpbb_container);
+		$api = $this->create_battlenet('character', $region, $game->getApikey(), $game->get_apilocale(), $game->get_privkey(), $ext_path, 3600, $edition);
+		$data = $api->character->getCharacterSpecializations($this->to_slug($realm), $name);
+		unset($api);
+
+		if (isset($data['response']) && !isset($data['response']['code']))
+		{
+			return $data['response'];
+		}
+
+		return false;
+	}
+
+	/**
 	 * Fetch character Mythic Keystone profile from the API.
 	 * Results are cached via the API layer (1h TTL).
 	 *
