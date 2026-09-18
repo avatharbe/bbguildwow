@@ -251,6 +251,11 @@ h3.category {
     border-bottom: 1px solid rgba(128, 128, 128, 0.15);
     cursor: pointer;
     transition: background-color 0.1s;
+    /* The achievements tab's row is a real <a> (Wowhead's tooltips.js
+       only binds to A/AREA nodes) -- undo the browser's default link
+       styling so it still reads as a plain row, not a blue underlined link. */
+    text-decoration: none;
+    color: inherit;
 }
 
 .achiev-row:hover {

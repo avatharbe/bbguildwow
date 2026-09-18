@@ -1,10 +1,12 @@
-{# data-wowhead on the whole row -- same convention as the equipment
-   tooltips on this same player-detail page (bbguild_player_detail_after_content.html's
-   data-wowhead="item={{ item.ITEM_ID }}"); bbTips' Wowhead PowerTips
-   runtime intercepts hover on any element carrying the attribute, no
-   BBCode tag needed here. #}
+{# data-wowhead on the whole row -- Wowhead's own tooltips.js only binds
+   to <a>/<area> nodes (`if (a.nodeName !== "A" && a.nodeName !== "AREA")
+   return`, confirmed by reading the actual runtime script), so this has
+   to be a real anchor, not a div/span carrying the attribute -- a div
+   here silently never shows a tooltip at all, no console error either.
+   href is a plain Wowhead link as a graceful fallback/right-click target;
+   the tooltip itself comes entirely from data-wowhead. #}
 {% macro achiev_row(row) %}
-	<div class="achiev-row" data-wowhead="achievement={{ row.ID }}">
+	<a class="achiev-row" href="https://www.wowhead.com/achievement={{ row.ID }}" data-wowhead="achievement={{ row.ID }}">
 		<span class="achiev-row-icon">{% if row.ICON %}<img src="https://render.worldofwarcraft.com/icons/36/{{ row.ICON }}.jpg" width="36" height="36" alt="" />{% endif %}</span>
 		<span class="achiev-row-info">
 			<strong>{{ row.TITLE }}</strong>
@@ -14,7 +16,7 @@
 			{% if row.POINTS %}<span class="achiev-points-badge">{{ row.POINTS }}</span>{% endif %}
 			<span class="achiev-row-date">{{ row.DATE }}</span>
 		</span>
-	</div>
+	</a>
 {% endmacro %}
 
 {# Recursive: a node with children unfurls into a tab strip (one tab per
