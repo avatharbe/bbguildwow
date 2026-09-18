@@ -911,6 +911,15 @@ class wow_api implements game_api_interface
 			return array('success' => false, 'error_code' => 'unknown', 'stop_batch' => true);
 		}
 
+		// achievement_model is a shared service instance -- game_id must be
+		// set on every call, not assumed left over from some other
+		// consumer (or unset entirely, which is what actually happened
+		// here: ensure_achievement_stubs() then tries to INSERT a stub
+		// row with game_id=null, violating bb_achievement's NOT NULL
+		// constraint. Caught by manually exercising this against the real
+		// local board, not by the unit tests, which mock achievement_model
+		// entirely and so never touch its real game_id state.
+		$this->achievement_model->setGameId('wow');
 		$result = $this->achievement_model->set_player_achievements((int) $player['player_id'], $data);
 
 		return array('success' => $result['success'], 'error_code' => $result['success'] ? null : 'unknown', 'stop_batch' => false);
