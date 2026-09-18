@@ -40,6 +40,9 @@ class battlenet
 	/** @var battlenet_achievement */
 	public $achievement;
 
+	/** @var battlenet_achievement_media */
+	public $achievement_media;
+
 	/** @var battlenet_character */
 	public $character;
 
@@ -137,6 +140,17 @@ class battlenet
 				$this->achievement->privkey = $privkey;
 				$this->achievement->namespace_type = $namespace_type;
 				$this->achievement->edition = $edition;
+
+				// Wired alongside achievement, not as its own 'achievement-media'
+				// $API case -- every caller that fetches achievement detail
+				// wants its icon too, and this way it comes for free on the
+				// same facade instance/OAuth token instead of a second one.
+				$this->achievement_media = new battlenet_achievement_media($this->cache, $region, $this->cacheTtl);
+				$this->achievement_media->apikey = $apikey;
+				$this->achievement_media->locale = $locale;
+				$this->achievement_media->privkey = $privkey;
+				$this->achievement_media->namespace_type = $namespace_type;
+				$this->achievement_media->edition = $edition;
 				break;
 			case 'achievement-category':
 				$this->achievement_category = new battlenet_achievement_category($this->cache, $region, $this->cacheTtl);

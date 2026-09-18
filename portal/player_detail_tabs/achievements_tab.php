@@ -130,6 +130,7 @@ class achievements_tab implements player_detail_tab_interface
 		}
 
 		return array(
+			'ID'          => $row['id'],
 			'TITLE'       => $row['title'],
 			'DESCRIPTION' => $row['description'],
 			'POINTS'      => $row['points'],

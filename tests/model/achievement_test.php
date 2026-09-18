@@ -175,10 +175,10 @@ class achievement_test extends TestCase
 			array('category_id' => 2, 'total_count' => 5, 'completed_count' => 1, 'total_points' => 50, 'earned_points' => 10),
 		);
 		$completed = array(
-			array('title' => 'Quest A', 'description' => '', 'points' => 10, 'icon' => '', 'category_id' => 1, 'achievements_completed' => 3000),
-			array('title' => 'Outland Quest B', 'description' => '', 'points' => 5, 'icon' => '', 'category_id' => 11, 'achievements_completed' => 2000),
-			array('title' => 'Explore C', 'description' => '', 'points' => 10, 'icon' => '', 'category_id' => 2, 'achievements_completed' => 1000),
-			array('title' => 'Mystery D', 'description' => '', 'points' => 5, 'icon' => '', 'category_id' => 0, 'achievements_completed' => 500),
+			array('id' => 201, 'title' => 'Quest A', 'description' => '', 'points' => 10, 'icon' => '', 'category_id' => 1, 'achievements_completed' => 3000),
+			array('id' => 202, 'title' => 'Outland Quest B', 'description' => '', 'points' => 5, 'icon' => '', 'category_id' => 11, 'achievements_completed' => 2000),
+			array('id' => 203, 'title' => 'Explore C', 'description' => '', 'points' => 10, 'icon' => '', 'category_id' => 2, 'achievements_completed' => 1000),
+			array('id' => 204, 'title' => 'Mystery D', 'description' => '', 'points' => 5, 'icon' => '', 'category_id' => 0, 'achievements_completed' => 500),
 		);
 
 		$model = $this->make_achievement($this->make_tree_db($categories, $totals, $completed));
@@ -195,6 +195,7 @@ class achievement_test extends TestCase
 		$this->assertSame(15, $quests['earned_points']);
 		$this->assertSame(25, $quests['percent']); // 2/8
 		$this->assertCount(1, $quests['achievements']);
+		$this->assertSame(201, $quests['achievements'][0]['id']);
 		$this->assertSame('Quest A', $quests['achievements'][0]['title']);
 
 		$this->assertCount(1, $quests['children']);

@@ -48,14 +48,14 @@ class achievements_tab_test extends TestCase
 				'id' => 1, 'name' => 'Quests', 'total_count' => 10, 'completed_count' => 2,
 				'total_points' => 100, 'earned_points' => 15, 'percent' => 20,
 				'achievements' => [
-					['title' => 'Outland Quest A', 'description' => 'Do a thing.', 'points' => 10, 'icon' => 'icon_a', 'achievements_completed' => 2000],
+					['id' => 101, 'title' => 'Outland Quest A', 'description' => 'Do a thing.', 'points' => 10, 'icon' => 'icon_a', 'achievements_completed' => 2000],
 				],
 				'children' => [
 					[
 						'id' => 11, 'name' => 'Outland', 'total_count' => 3, 'completed_count' => 1,
 						'total_points' => 30, 'earned_points' => 5, 'percent' => 33,
 						'achievements' => [
-							['title' => 'Nested Quest', 'description' => '', 'points' => 5, 'icon' => '', 'achievements_completed' => 1000],
+							['id' => 102, 'title' => 'Nested Quest', 'description' => '', 'points' => 5, 'icon' => '', 'achievements_completed' => 1000],
 						],
 						'children' => [],
 					],
@@ -65,7 +65,7 @@ class achievements_tab_test extends TestCase
 				'id' => 2, 'name' => 'Exploration', 'total_count' => 5, 'completed_count' => 1,
 				'total_points' => 50, 'earned_points' => 10, 'percent' => 20,
 				'achievements' => [
-					['title' => 'Explore Zone C', 'description' => '', 'points' => 10, 'icon' => 'icon_c', 'achievements_completed' => 1500],
+					['id' => 103, 'title' => 'Explore Zone C', 'description' => '', 'points' => 10, 'icon' => 'icon_c', 'achievements_completed' => 1500],
 				],
 				'children' => [],
 			],
@@ -99,6 +99,7 @@ class achievements_tab_test extends TestCase
 		$this->assertSame(10, $quests['TOTAL_COUNT']);
 		$this->assertSame(15, $quests['EARNED_POINTS']);
 		$this->assertCount(1, $quests['ACHIEVEMENTS']);
+		$this->assertSame(101, $quests['ACHIEVEMENTS'][0]['ID']); // bbTips data-wowhead="achievement={{ row.ID }}"
 		$this->assertSame('Outland Quest A', $quests['ACHIEVEMENTS'][0]['TITLE']);
 		$this->assertSame('01/01/1970', $quests['ACHIEVEMENTS'][0]['DATE']);
 
@@ -124,7 +125,7 @@ class achievements_tab_test extends TestCase
 					// Battle.net completion timestamps come back in
 					// milliseconds; anything above the ~y2286 second-scale
 					// ceiling gets divided down before date().
-					['title' => 'A', 'description' => '', 'points' => 10, 'icon' => '', 'achievements_completed' => 1700000000000],
+					['id' => 104, 'title' => 'A', 'description' => '', 'points' => 10, 'icon' => '', 'achievements_completed' => 1700000000000],
 				],
 				'children' => [],
 			],

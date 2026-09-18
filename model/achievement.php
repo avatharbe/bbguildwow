@@ -936,12 +936,19 @@ class achievement
 
 		// Now fetch full details for achievements missing icon/points/description.
 		// Use a time guard to stay within PHP's execution limit.
+		//
+		// icon = '' alone, not "AND points = 0": points comes back set on
+		// the very first successful detail fetch regardless of whether the
+		// icon extraction itself worked, so a "both blank" condition would
+		// permanently stop revisiting a row once points was set even while
+		// its icon stayed blank -- which is exactly what happened before
+		// the icon fetch was wired up to the (separate) Media API below.
 		$time_start = time();
 		$time_limit = 20; // stop fetching after 20s to leave headroom
 
 		$sql = 'SELECT id FROM ' . $this->bb_achievement_table .
 			" WHERE game_id = '" . $db->sql_escape($this->game->game_id) . "'" .
-			" AND icon = '' AND points = 0" .
+			" AND icon = ''" .
 			' ORDER BY id';
 		$result = $db->sql_query($sql);
 
@@ -1058,6 +1065,15 @@ class achievement
 	/**
 	 * Fetch achievement detail using an existing API instance (avoids re-creating OAuth per call).
 	 *
+	 * The detail response itself only links to its icon via
+	 * `media.key.href` -- it never embeds the asset inline (confirmed
+	 * live against the real API, despite update_achievement_detail()'s
+	 * icon-extraction code assuming it would). The actual asset comes
+	 * from a second, separate call to the Media API; its `assets` are
+	 * merged into `$data['media']['assets']` here so that existing
+	 * extraction code just works once fed real data, instead of
+	 * duplicating the same asset-parsing loop a second time.
+	 *
 	 * @param battlenet $api
 	 * @param int       $achievement_id
 	 * @return array|false
@@ -1070,6 +1086,16 @@ class achievement
 		if (!isset($data) || !is_array($data) || isset($data['code']))
 		{
 			return false;
+		}
+
+		if ($api->achievement_media !== null)
+		{
+			$media_response = $api->achievement_media->getAchievementMedia($achievement_id);
+			$media_data = isset($media_response['response']) ? $media_response['response'] : null;
+			if (is_array($media_data) && !isset($media_data['code']) && isset($media_data['assets']))
+			{
+				$data['media']['assets'] = $media_data['assets'];
+			}
 		}
 
 		return $data;
@@ -1796,7 +1822,7 @@ class achievement
 	{
 		$db = $this->db;
 
-		$sql = 'SELECT a.title, a.description, a.points, a.icon, a.category_id, ac.achievements_completed
+		$sql = 'SELECT a.id, a.title, a.description, a.points, a.icon, a.category_id, ac.achievements_completed
 			FROM ' . $this->bb_achievement_track_table . ' ac
 			INNER JOIN ' . $this->bb_achievement_table . ' a ON a.id = ac.achievement_id
 			LEFT JOIN ' . $this->bb_achievement_category_table . ' cat ON cat.id = a.category_id
@@ -1811,6 +1837,7 @@ class achievement
 		while ($row = $db->sql_fetchrow($result))
 		{
 			$rows[] = array(
+				'id'                     => (int) $row['id'],
 				'title'                  => $row['title'],
 				'description'            => $row['description'],
 				'points'                 => (int) $row['points'],

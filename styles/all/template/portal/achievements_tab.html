@@ -1,5 +1,10 @@
+{# data-wowhead on the whole row -- same convention as the equipment
+   tooltips on this same player-detail page (bbguild_player_detail_after_content.html's
+   data-wowhead="item={{ item.ITEM_ID }}"); bbTips' Wowhead PowerTips
+   runtime intercepts hover on any element carrying the attribute, no
+   BBCode tag needed here. #}
 {% macro achiev_row(row) %}
-	<div class="achiev-row">
+	<div class="achiev-row" data-wowhead="achievement={{ row.ID }}">
 		<span class="achiev-row-icon">{% if row.ICON %}<img src="https://render.worldofwarcraft.com/icons/36/{{ row.ICON }}.jpg" width="36" height="36" alt="" />{% endif %}</span>
 		<span class="achiev-row-info">
 			<strong>{{ row.TITLE }}</strong>

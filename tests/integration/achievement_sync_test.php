@@ -12,6 +12,7 @@ use avathar\bbguild\model\player\guilds;
 use avathar\bbguildwow\api\battlenet;
 use avathar\bbguildwow\api\battlenet_achievement;
 use avathar\bbguildwow\api\battlenet_achievement_category;
+use avathar\bbguildwow\api\battlenet_achievement_media;
 use avathar\bbguildwow\api\battlenet_guild;
 use avathar\bbguildwow\model\achievement;
 
@@ -54,19 +55,33 @@ class mock_battlenet_achievement_category_for_achievements extends battlenet_ach
 	}
 }
 
+class mock_battlenet_achievement_media_for_achievements extends battlenet_achievement_media
+{
+	public function __construct(\phpbb\cache\service $cache, string $base_url, string $region = 'us', int $cache_ttl = 3600)
+	{
+		parent::__construct($cache, $region, $cache_ttl);
+		$this->api_url = array($region => $base_url);
+		$this->token_url = array($region => $base_url . 'token');
+		$this->apikey = 'test_client_id';
+		$this->privkey = 'test_client_secret';
+		$this->locale = 'en_US';
+	}
+}
+
 /**
- * battlenet facade with the three resource slots this test needs pre-set to
+ * battlenet facade with the resource slots this test needs pre-set to
  * their mock counterparts — achievement's create_battlenet() override
  * returns one of these regardless of which $api type was asked for, since
  * a single test only ever needs one resource live per call.
  */
 class mock_battlenet_facade_for_achievements extends battlenet
 {
-	public function __construct($guild = null, $achievement_resource = null, $achievement_category = null)
+	public function __construct($guild = null, $achievement_resource = null, $achievement_category = null, $achievement_media = null)
 	{
 		$this->guild = $guild;
 		$this->achievement = $achievement_resource;
 		$this->achievement_category = $achievement_category;
+		$this->achievement_media = $achievement_media;
 	}
 }
 
@@ -75,10 +90,11 @@ class achievement_with_mock_api extends achievement
 	public $mock_guild;
 	public $mock_achievement;
 	public $mock_achievement_category;
+	public $mock_achievement_media;
 
 	protected function create_battlenet(string $api, string $region, string $apikey, string $locale, string $privkey, string $ext_path = '', int $cache_ttl = 3600, string $edition = 'retail'): battlenet
 	{
-		return new mock_battlenet_facade_for_achievements($this->mock_guild, $this->mock_achievement, $this->mock_achievement_category);
+		return new mock_battlenet_facade_for_achievements($this->mock_guild, $this->mock_achievement, $this->mock_achievement_category, $this->mock_achievement_media);
 	}
 }
 
@@ -405,5 +421,59 @@ class achievement_sync_test extends mock_battlenet_test_case
 		$sql_result = $db->sql_query("SELECT COUNT(*) AS cnt FROM $track_table WHERE achievement_id = 42 AND guild_id = " . $this->guild_row_id);
 		$this->assertSame(1, (int) $db->sql_fetchfield('cnt'), 're-running must not duplicate the tracking row');
 		$db->sql_freeresult($sql_result);
+	}
+
+	/**
+	 * The achievement detail response only links to its icon via
+	 * `media.key.href` -- it never embeds the asset inline (confirmed
+	 * live against the real Battle.net API). fetch_achievement_detail_from()
+	 * has to make a second call to the separate Media API and merge its
+	 * `assets` in before update_achievement_detail() can extract anything.
+	 */
+	public function test_set_achievements_backfills_icon_from_the_media_api(): void
+	{
+		$cache = $this->make_stateful_cache();
+		$achievement_table = $this->get_table_prefix() . 'bb_achievement';
+
+		$this->configure_mock_routes(array(
+			'/token' => array(array('status' => 200, 'body' => array('access_token' => 'tok', 'expires_in' => 3600))),
+			'/data/wow/guild/area-52/my-guild' => array(array('status' => 200, 'body' => array('name' => 'My Guild'))),
+			'/data/wow/guild/area-52/my-guild/achievements' => array(
+				array('status' => 200, 'body' => array(
+					'total_points' => 500,
+					'achievements' => array(
+						array('achievement' => array('id' => 42, 'name' => 'Level 10'), 'completed_timestamp' => 1700000000),
+					),
+				)),
+			),
+			'/data/wow/achievement/42' => array(
+				array('status' => 200, 'body' => array(
+					'id' => 42, 'name' => 'Level 10', 'points' => 10, 'description' => 'Reach level 10.',
+					'media' => array('key' => array('href' => self::base_url() . 'data/wow/media/achievement/42'), 'id' => 42),
+				)),
+			),
+			'/data/wow/media/achievement/42' => array(
+				array('status' => 200, 'body' => array(
+					'id' => 42,
+					'assets' => array(array('key' => 'icon', 'value' => 'https://render.worldofwarcraft.com/eu/icons/56/236562.jpg', 'file_data_id' => 236562)),
+				)),
+			),
+		));
+
+		$model = $this->load_achievement();
+		$model->mock_guild = new mock_battlenet_guild_for_achievements($cache, self::base_url(), 'us');
+		$model->mock_achievement = new mock_battlenet_achievement_for_achievements($cache, self::base_url(), 'us');
+		$model->mock_achievement_media = new mock_battlenet_achievement_media_for_achievements($cache, self::base_url(), 'us');
+		$model->setGame($this->load_game());
+		$model->setEdition('retail');
+
+		$result = $model->setAchievements($this->load_guild(), $this->load_game());
+		$this->assertTrue($result['success']);
+
+		$db = $this->get_db();
+		$sql_result = $db->sql_query("SELECT icon FROM $achievement_table WHERE id = 42");
+		$icon = $db->sql_fetchfield('icon');
+		$db->sql_freeresult($sql_result);
+		$this->assertSame('236562', $icon);
 	}
 }
