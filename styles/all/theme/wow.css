@@ -212,11 +212,6 @@ h3.category {
     border-bottom: 1px solid rgba(128, 128, 128, 0.15);
     cursor: pointer;
     transition: background-color 0.1s;
-    /* The achievements tab's row is a real <a> (Wowhead's tooltips.js
-       only binds to A/AREA nodes) -- undo the browser's default link
-       styling so it still reads as a plain row, not a blue underlined link. */
-    text-decoration: none;
-    color: inherit;
 }
 
 .achiev-row:hover {
@@ -231,13 +226,30 @@ h3.category {
     opacity: 0.5;
 }
 
+/* Wraps only the icon+title/description, NOT the whole row (bbguildwow#50).
+   Wowhead's tooltip positions itself off the hovered anchor's own right
+   edge -- when that anchor was the ENTIRE full-width row, its right edge
+   sat at (or past) the viewport's right edge regardless of where in the
+   row the cursor actually was, so the tooltip's "is there room to the
+   right?" check always failed and it fell back to a badly-clamped
+   position. Confining the anchor to its natural content width (hugging
+   the icon+text, not stretched via flex:1) keeps its right edge
+   somewhere reasonable on screen instead. */
+.achiev-row-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    text-decoration: none;
+    color: inherit;
+}
+
 .achiev-row-icon img {
     border-radius: 3px;
     vertical-align: middle;
 }
 
 .achiev-row-info {
-    flex: 1;
     min-width: 0;
 }
 
@@ -252,6 +264,7 @@ h3.category {
 }
 
 .achiev-row-meta {
+    margin-left: auto;
     text-align: right;
     white-space: nowrap;
 }

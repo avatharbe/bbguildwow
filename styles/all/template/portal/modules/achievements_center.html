@@ -68,34 +68,36 @@
 
 	{# Same row markup/classes as the character achievements tab
 	   (achievements_tab.html's achiev_row macro) and this module's own
-	   Level 2 list below -- icon, then info (flex:1), then meta
-	   (points/date) last, right-aligned. Previously this used a
-	   separate .achiev-meta/.achiev-icon/.achiev-info scheme with meta
-	   listed FIRST in the DOM, which put the points/date on the left
-	   instead of the right regardless of its own text-align: right
-	   (that only centers text within the span, not the span's position
-	   in the flex row). #}
+	   Level 2 list below -- icon+info wrapped in an inner .achiev-row-link
+	   anchor (not the whole row -- see wow.css's .achiev-row-link comment,
+	   bbguildwow#50), meta (points/date) as a sibling, pushed right via
+	   margin-left: auto. Previously this used a separate
+	   .achiev-meta/.achiev-icon/.achiev-info scheme with meta listed
+	   FIRST in the DOM, which put the points/date on the left instead of
+	   the right regardless of its own text-align: right (that only
+	   centers text within the span, not the span's position in the flex
+	   row). #}
 	{% if recent_achievements %}
 	<h3 class="category">{{ lang('ACHIEV_RECENTLY_EARNED') }}</h3>
 	<div class="achievements-recent">
 		<ul>
 			{% for achievement in recent_achievements %}
-			<li>
+			<li class="achiev-row">
 				{# A real <a> -- Wowhead's tooltips.js only binds to <a>/<area> nodes (bbguildwow#44/#49).
 				   data-wh-rename-link/data-wh-iconize-link="false": without these, renameLinks/iconizeLinks
 				   (on board-wide for bare BBCode links) overwrite this row's innerHTML with just the
 				   achievement name once its tooltip data loads, destroying the custom layout. #}
-				<a class="achiev-row" href="https://www.wowhead.com/achievement={{ achievement.ID }}" data-wowhead="achievement={{ achievement.ID }}" data-wh-rename-link="false" data-wh-iconize-link="false">
+				<a class="achiev-row-link" href="https://www.wowhead.com/achievement={{ achievement.ID }}" data-wowhead="achievement={{ achievement.ID }}" data-wh-rename-link="false" data-wh-iconize-link="false">
 					<span class="achiev-row-icon">{% if achievement.ICON %}<img src="https://render.worldofwarcraft.com/icons/36/{{ achievement.ICON }}.jpg" width="36" height="36" alt="" />{% endif %}</span>
 					<span class="achiev-row-info">
 						<strong>{{ achievement.TITLE }}</strong>
 						{% if achievement.DESCRIPTION %}<span class="achiev-row-desc">{{ achievement.DESCRIPTION }}</span>{% endif %}
 					</span>
-					<span class="achiev-row-meta">
-						{% if achievement.POINTS %}<span class="achiev-points-badge">{{ achievement.POINTS }}</span>{% endif %}
-						<span class="achiev-row-date">{{ achievement.DATE }}</span>
-					</span>
 				</a>
+				<span class="achiev-row-meta">
+					{% if achievement.POINTS %}<span class="achiev-points-badge">{{ achievement.POINTS }}</span>{% endif %}
+					<span class="achiev-row-date">{{ achievement.DATE }}</span>
+				</span>
 			</li>
 			{% endfor %}
 		</ul>
@@ -137,26 +139,32 @@
 					var cls = a.completed ? 'achiev-row' : 'achiev-row achiev-incomplete';
 					var icon = a.icon ? '<img src="https://render.worldofwarcraft.com/icons/36/' + esc(a.icon) + '.jpg" width="36" height="36" alt="" />' : '';
 					var date = a.completed ? esc(a.completed_date) : '';
-					// A real <a> -- Wowhead's tooltips.js only binds to <a>/<area>
-					// nodes (bbguildwow#44/#49). Clicking still opens the detail
-					// modal (the delegated click handler below calls
-					// preventDefault() before showDetail()), so the href is only
-					// a fallback for anything that doesn't run that JS.
+					// The tooltip anchor wraps only icon+info, not the whole row
+					// (bbguildwow#50) -- a full-width anchor made Wowhead's
+					// tooltip position itself off the row's own right edge,
+					// which sits at the viewport edge regardless of cursor
+					// position within it. data-achievement-id/the click-to-open-
+					// detail-modal behavior stays on the OUTER row (the
+					// delegated click handler below calls preventDefault()
+					// before showDetail(), so the inner anchor's href is only
+					// a fallback for anything that doesn't run that JS).
 					// data-wh-rename-link/data-wh-iconize-link="false": without
 					// these, renameLinks/iconizeLinks (on board-wide for bare
-					// BBCode links) overwrite this row's innerHTML with just the
-					// achievement name once its tooltip data loads.
-					html += '<a class="' + cls + '" href="https://www.wowhead.com/achievement=' + a.id + '" data-wowhead="achievement=' + a.id + '" data-wh-rename-link="false" data-wh-iconize-link="false" data-achievement-id="' + a.id + '">' +
-						'<span class="achiev-row-icon">' + icon + '</span>' +
-						'<span class="achiev-row-info">' +
-							'<strong>' + esc(a.title) + '</strong>' +
-							'<span class="achiev-row-desc">' + esc(a.description) + '</span>' +
-						'</span>' +
+					// BBCode links) overwrite the anchor's innerHTML with just
+					// the achievement name once its tooltip data loads.
+					html += '<div class="' + cls + '" data-achievement-id="' + a.id + '">' +
+						'<a class="achiev-row-link" href="https://www.wowhead.com/achievement=' + a.id + '" data-wowhead="achievement=' + a.id + '" data-wh-rename-link="false" data-wh-iconize-link="false">' +
+							'<span class="achiev-row-icon">' + icon + '</span>' +
+							'<span class="achiev-row-info">' +
+								'<strong>' + esc(a.title) + '</strong>' +
+								'<span class="achiev-row-desc">' + esc(a.description) + '</span>' +
+							'</span>' +
+						'</a>' +
 						'<span class="achiev-row-meta">' +
 							(a.points ? '<span class="achiev-points-badge">' + a.points + '</span>' : '') +
 							(date ? '<span class="achiev-row-date">' + date + '</span>' : '') +
 						'</span>' +
-					'</a>';
+					'</div>';
 				}
 			}
 			document.getElementById('achiev-list-content').innerHTML = html;
