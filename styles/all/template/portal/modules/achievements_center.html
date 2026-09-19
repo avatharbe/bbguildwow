@@ -66,24 +66,29 @@
 		</div>
 	</div>
 
+	{# Same row markup/classes as the character achievements tab
+	   (achievements_tab.html's achiev_row macro) and this module's own
+	   Level 2 list below -- icon, then info (flex:1), then meta
+	   (points/date) last, right-aligned. Previously this used a
+	   separate .achiev-meta/.achiev-icon/.achiev-info scheme with meta
+	   listed FIRST in the DOM, which put the points/date on the left
+	   instead of the right regardless of its own text-align: right
+	   (that only centers text within the span, not the span's position
+	   in the flex row). #}
 	{% if recent_achievements %}
 	<h3 class="category">{{ lang('ACHIEV_RECENTLY_EARNED') }}</h3>
 	<div class="achievements-recent">
 		<ul>
 			{% for achievement in recent_achievements %}
-			<li{% if loop.last %} class="last"{% endif %}>
-				<span class="achiev-meta">
-					{% if achievement.POINTS %}<span class="achiev-points">{{ achievement.POINTS }}</span>{% endif %}
-					<span class="achiev-date">{{ achievement.DATE }}</span>
-				</span>
-				{% if achievement.ICON %}
-				<span class="achiev-icon">
-					<img src="https://render.worldofwarcraft.com/icons/18/{{ achievement.ICON }}.jpg" width="18" height="18" alt="" />
-				</span>
-				{% endif %}
-				<span class="achiev-info">
+			<li class="achiev-row">
+				<span class="achiev-row-icon">{% if achievement.ICON %}<img src="https://render.worldofwarcraft.com/icons/36/{{ achievement.ICON }}.jpg" width="36" height="36" alt="" />{% endif %}</span>
+				<span class="achiev-row-info">
 					<strong>{{ achievement.TITLE }}</strong>
-					{% if achievement.DESCRIPTION %}<span class="achiev-desc">{{ achievement.DESCRIPTION }}</span>{% endif %}
+					{% if achievement.DESCRIPTION %}<span class="achiev-row-desc">{{ achievement.DESCRIPTION }}</span>{% endif %}
+				</span>
+				<span class="achiev-row-meta">
+					{% if achievement.POINTS %}<span class="achiev-points-badge">{{ achievement.POINTS }}</span>{% endif %}
+					<span class="achiev-row-date">{{ achievement.DATE }}</span>
 				</span>
 			</li>
 			{% endfor %}

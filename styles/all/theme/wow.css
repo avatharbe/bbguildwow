@@ -58,52 +58,13 @@ h3.category {
     padding: 0;
 }
 
-.achievements-recent li {
-    padding: 6px 0;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.achievements-recent li:not(.last) {
-    border-bottom: 1px solid rgba(128, 128, 128, 0.2);
-}
-
-.achievements-recent .achiev-icon img {
-    vertical-align: middle;
-    border-radius: 2px;
-}
-
-.achievements-recent .achiev-info {
-    flex: 1;
-    min-width: 0;
-}
-
-.achievements-recent .achiev-info strong {
-    display: block;
-}
-
-.achievements-recent .achiev-desc {
-    display: block;
-    font-size: 0.85em;
-    opacity: 0.7;
-}
-
-.achievements-recent .achiev-meta {
-    text-align: right;
-    white-space: nowrap;
-    font-size: 0.85em;
-}
-
-.achievements-recent .achiev-points {
-    display: block;
-    font-weight: bold;
-}
-
-.achievements-recent .achiev-date {
-    display: block;
-    opacity: 0.7;
-}
+/* Rows themselves use .achiev-row/.achiev-row-icon/.achiev-row-info/
+   .achiev-row-meta -- the same classes as the character achievements
+   tab and this module's own Level 2 list, defined further down. A
+   separate .achiev-icon/.achiev-info/.achiev-meta scheme used to live
+   here, at higher specificity than .achiev-row (the extra `li` element
+   selector), so it silently won even when the row also carried
+   .achiev-row -- removed rather than left to conflict. */
 
 /* ===== Level 1: Filter bar ===== */
 .achiev-filter-bar {
