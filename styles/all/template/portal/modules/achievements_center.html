@@ -80,16 +80,19 @@
 	<div class="achievements-recent">
 		<ul>
 			{% for achievement in recent_achievements %}
-			<li class="achiev-row">
-				<span class="achiev-row-icon">{% if achievement.ICON %}<img src="https://render.worldofwarcraft.com/icons/36/{{ achievement.ICON }}.jpg" width="36" height="36" alt="" />{% endif %}</span>
-				<span class="achiev-row-info">
-					<strong>{{ achievement.TITLE }}</strong>
-					{% if achievement.DESCRIPTION %}<span class="achiev-row-desc">{{ achievement.DESCRIPTION }}</span>{% endif %}
-				</span>
-				<span class="achiev-row-meta">
-					{% if achievement.POINTS %}<span class="achiev-points-badge">{{ achievement.POINTS }}</span>{% endif %}
-					<span class="achiev-row-date">{{ achievement.DATE }}</span>
-				</span>
+			<li>
+				{# A real <a> -- Wowhead's tooltips.js only binds to <a>/<area> nodes (bbguildwow#44/#49). #}
+				<a class="achiev-row" href="https://www.wowhead.com/achievement={{ achievement.ID }}" data-wowhead="achievement={{ achievement.ID }}">
+					<span class="achiev-row-icon">{% if achievement.ICON %}<img src="https://render.worldofwarcraft.com/icons/36/{{ achievement.ICON }}.jpg" width="36" height="36" alt="" />{% endif %}</span>
+					<span class="achiev-row-info">
+						<strong>{{ achievement.TITLE }}</strong>
+						{% if achievement.DESCRIPTION %}<span class="achiev-row-desc">{{ achievement.DESCRIPTION }}</span>{% endif %}
+					</span>
+					<span class="achiev-row-meta">
+						{% if achievement.POINTS %}<span class="achiev-points-badge">{{ achievement.POINTS }}</span>{% endif %}
+						<span class="achiev-row-date">{{ achievement.DATE }}</span>
+					</span>
+				</a>
 			</li>
 			{% endfor %}
 		</ul>
@@ -131,7 +134,12 @@
 					var cls = a.completed ? 'achiev-row' : 'achiev-row achiev-incomplete';
 					var icon = a.icon ? '<img src="https://render.worldofwarcraft.com/icons/36/' + esc(a.icon) + '.jpg" width="36" height="36" alt="" />' : '';
 					var date = a.completed ? esc(a.completed_date) : '';
-					html += '<div class="' + cls + '" data-achievement-id="' + a.id + '">' +
+					// A real <a> -- Wowhead's tooltips.js only binds to <a>/<area>
+					// nodes (bbguildwow#44/#49). Clicking still opens the detail
+					// modal (the delegated click handler below calls
+					// preventDefault() before showDetail()), so the href is only
+					// a fallback for anything that doesn't run that JS.
+					html += '<a class="' + cls + '" href="https://www.wowhead.com/achievement=' + a.id + '" data-wowhead="achievement=' + a.id + '" data-achievement-id="' + a.id + '">' +
 						'<span class="achiev-row-icon">' + icon + '</span>' +
 						'<span class="achiev-row-info">' +
 							'<strong>' + esc(a.title) + '</strong>' +
@@ -141,7 +149,7 @@
 							(a.points ? '<span class="achiev-points-badge">' + a.points + '</span>' : '') +
 							(date ? '<span class="achiev-row-date">' + date + '</span>' : '') +
 						'</span>' +
-					'</div>';
+					'</a>';
 				}
 			}
 			document.getElementById('achiev-list-content').innerHTML = html;
@@ -234,6 +242,7 @@
 		}
 		var row = e.target.closest('.achiev-row');
 		if (row && row.dataset.achievementId) {
+			e.preventDefault();
 			showDetail(row.dataset.achievementId);
 			return;
 		}

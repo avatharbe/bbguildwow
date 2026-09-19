@@ -190,7 +190,7 @@ class achievements extends module_base
 	 */
 	protected function load_recent_achievements(): void
 	{
-		$sql = 'SELECT a.title, a.description, a.points, a.icon,
+		$sql = 'SELECT a.id, a.title, a.description, a.points, a.icon,
 				at.achievements_completed
 			FROM ' . $this->achievement_track_table . ' at
 			INNER JOIN ' . $this->achievement_table . ' a
@@ -212,6 +212,7 @@ class achievements extends module_base
 			}
 
 			$this->template->assign_block_vars('recent_achievements', array(
+				'ID'          => (int) $row['id'],
 				'TITLE'       => $row['title'],
 				'DESCRIPTION' => $row['description'],
 				'POINTS'      => (int) $row['points'],
