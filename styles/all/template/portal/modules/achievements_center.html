@@ -81,8 +81,11 @@
 		<ul>
 			{% for achievement in recent_achievements %}
 			<li>
-				{# A real <a> -- Wowhead's tooltips.js only binds to <a>/<area> nodes (bbguildwow#44/#49). #}
-				<a class="achiev-row" href="https://www.wowhead.com/achievement={{ achievement.ID }}" data-wowhead="achievement={{ achievement.ID }}">
+				{# A real <a> -- Wowhead's tooltips.js only binds to <a>/<area> nodes (bbguildwow#44/#49).
+				   data-wh-rename-link/data-wh-iconize-link="false": without these, renameLinks/iconizeLinks
+				   (on board-wide for bare BBCode links) overwrite this row's innerHTML with just the
+				   achievement name once its tooltip data loads, destroying the custom layout. #}
+				<a class="achiev-row" href="https://www.wowhead.com/achievement={{ achievement.ID }}" data-wowhead="achievement={{ achievement.ID }}" data-wh-rename-link="false" data-wh-iconize-link="false">
 					<span class="achiev-row-icon">{% if achievement.ICON %}<img src="https://render.worldofwarcraft.com/icons/36/{{ achievement.ICON }}.jpg" width="36" height="36" alt="" />{% endif %}</span>
 					<span class="achiev-row-info">
 						<strong>{{ achievement.TITLE }}</strong>
@@ -139,7 +142,11 @@
 					// modal (the delegated click handler below calls
 					// preventDefault() before showDetail()), so the href is only
 					// a fallback for anything that doesn't run that JS.
-					html += '<a class="' + cls + '" href="https://www.wowhead.com/achievement=' + a.id + '" data-wowhead="achievement=' + a.id + '" data-achievement-id="' + a.id + '">' +
+					// data-wh-rename-link/data-wh-iconize-link="false": without
+					// these, renameLinks/iconizeLinks (on board-wide for bare
+					// BBCode links) overwrite this row's innerHTML with just the
+					// achievement name once its tooltip data loads.
+					html += '<a class="' + cls + '" href="https://www.wowhead.com/achievement=' + a.id + '" data-wowhead="achievement=' + a.id + '" data-wh-rename-link="false" data-wh-iconize-link="false" data-achievement-id="' + a.id + '">' +
 						'<span class="achiev-row-icon">' + icon + '</span>' +
 						'<span class="achiev-row-info">' +
 							'<strong>' + esc(a.title) + '</strong>' +

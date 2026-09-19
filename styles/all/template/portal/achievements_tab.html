@@ -4,9 +4,19 @@
    to be a real anchor, not a div/span carrying the attribute -- a div
    here silently never shows a tooltip at all, no console error either.
    href is a plain Wowhead link as a graceful fallback/right-click target;
-   the tooltip itself comes entirely from data-wowhead. #}
+   the tooltip itself comes entirely from data-wowhead.
+
+   data-wh-rename-link="false" / data-wh-iconize-link="false": this
+   board has bbTips' renameLinks/iconizeLinks options on (for bare
+   BBCode links in post content, where Wowhead filling in the name/icon
+   is exactly what's wanted) -- confirmed in tooltips.js that without
+   these, the runtime overwrites the anchor's innerHTML with just the
+   entity name and injects its own icon on hover, destroying this row's
+   custom icon/title/description/points/date layout the moment it's
+   hovered. Both attributes are tooltips.js' own documented per-element
+   opt-out. #}
 {% macro achiev_row(row) %}
-	<a class="achiev-row" href="https://www.wowhead.com/achievement={{ row.ID }}" data-wowhead="achievement={{ row.ID }}">
+	<a class="achiev-row" href="https://www.wowhead.com/achievement={{ row.ID }}" data-wowhead="achievement={{ row.ID }}" data-wh-rename-link="false" data-wh-iconize-link="false">
 		<span class="achiev-row-icon">{% if row.ICON %}<img src="https://render.worldofwarcraft.com/icons/36/{{ row.ICON }}.jpg" width="36" height="36" alt="" />{% endif %}</span>
 		<span class="achiev-row-info">
 			<strong>{{ row.TITLE }}</strong>
