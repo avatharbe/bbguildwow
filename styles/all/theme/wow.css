@@ -741,6 +741,19 @@ h3.category {
     text-decoration: none;
 }
 
+/* bbTips' Wowhead runtime (tooltips.js) applies its icon directly on the
+   linked element itself via a ".icontinyl" class with a plain
+   "padding-left:18px !important" (confirmed by reading the live
+   tooltips.js/universal.css) -- it isn't a separate child node, so
+   there's no icon/text markup of our own to add spacing to. Text-content
+   tricks (leading nbsp) don't survive either: "renameLinks" rewrites the
+   element's innerHTML from Wowhead's own data after our markup renders.
+   The only thing left to win on is CSS specificity against Wowhead's
+   !important -- two classes beats their one regardless of load order. */
+.wow-talent-row .icontinyl {
+    padding-left: 30px !important;
+}
+
 .wow-talent-row:last-child {
     border-bottom: none;
 }

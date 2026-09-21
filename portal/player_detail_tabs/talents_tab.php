@@ -200,14 +200,7 @@ class talents_tab implements player_detail_tab_interface
 			$link = '';
 			if ($bbtips_wow !== null && $spell_id > 0)
 			{
-				// Leading U+00A0 x2 (not the "&nbsp;" entity -- build_link()
-				// runs this through htmlspecialchars(), which would escape
-				// the entity into literal text) puts a gap between
-				// bbTips' auto-inserted icon and the talent name, matching
-				// the equipment slots' explicit icon+nbsp+name markup. One
-				// nbsp alone was too narrow next to the icon's own width
-				// (bbguildwow#379-adjacent feedback) to read as a real gap.
-				$link = $bbtips_wow->build_link('spell', $spell_id, array('text' => "\u{00A0}\u{00A0}" . $name));
+				$link = $bbtips_wow->build_link('spell', $spell_id, array('text' => $name));
 			}
 
 			$this->template->assign_block_vars($block, array(
