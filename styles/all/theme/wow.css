@@ -751,7 +751,7 @@ h3.category {
    The only thing left to win on is CSS specificity against Wowhead's
    !important -- two classes beats their one regardless of load order. */
 .wow-talent-row .icontinyl {
-    padding-left: 30px !important;
+    padding-left: 23px !important;
 }
 
 .wow-talent-row:last-child {
