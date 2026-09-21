@@ -121,9 +121,19 @@ class talents_tab implements player_detail_tab_interface
 
 		if ($loadout !== null)
 		{
-			$this->assign_talent_rows('class_talent_row', $loadout['selected_class_talents'] ?? array());
-			$this->assign_talent_rows('spec_talent_row', $loadout['selected_spec_talents'] ?? array());
-			$this->assign_talent_rows('hero_talent_row', $loadout['selected_hero_talents'] ?? array());
+			// Same bbTips Wowhead-style tooltip as equipment (event/listener.php)
+			// rather than a plain title="" attribute, which renders as the
+			// browser's own unstyled tooltip instead of bbTips' popup.
+			global $phpbb_container;
+			$bbtips_wow = null;
+			if (isset($phpbb_container) && $phpbb_container->has('avathar.bbtips.linker'))
+			{
+				$bbtips_wow = $phpbb_container->get('avathar.bbtips.linker')->wow();
+			}
+
+			$this->assign_talent_rows('class_talent_row', $loadout['selected_class_talents'] ?? array(), $bbtips_wow);
+			$this->assign_talent_rows('spec_talent_row', $loadout['selected_spec_talents'] ?? array(), $bbtips_wow);
+			$this->assign_talent_rows('hero_talent_row', $loadout['selected_hero_talents'] ?? array(), $bbtips_wow);
 		}
 
 		return '@avathar_bbguildwow/portal/talents_tab.html';
@@ -170,10 +180,11 @@ class talents_tab implements player_detail_tab_interface
 	 * (seen in live responses -- some talent ids have no 'tooltip' at
 	 * all) are skipped rather than shown as a bare numeric id.
 	 *
-	 * @param string $block   Template block name
-	 * @param array  $talents e.g. loadout['selected_class_talents']
+	 * @param string     $block      Template block name
+	 * @param array      $talents    e.g. loadout['selected_class_talents']
+	 * @param mixed|null $bbtips_wow avathar\bbtips\provider\wow_provider, or null if bbTips isn't installed
 	 */
-	private function assign_talent_rows(string $block, array $talents): void
+	private function assign_talent_rows(string $block, array $talents, $bbtips_wow): void
 	{
 		foreach ($talents as $talent)
 		{
@@ -184,11 +195,20 @@ class talents_tab implements player_detail_tab_interface
 			}
 
 			$rank = (int) ($talent['rank'] ?? 1);
+			$spell_id = (int) ($talent['tooltip']['spell_tooltip']['spell']['id'] ?? 0);
+
+			$link = '';
+			if ($bbtips_wow !== null && $spell_id > 0)
+			{
+				$link = $bbtips_wow->build_link('spell', $spell_id, array('text' => $name));
+			}
+
 			$this->template->assign_block_vars($block, array(
 				'NAME' => $name,
 				'RANK' => $rank,
 				'S_MULTI_RANK' => $rank > 1,
-				'DESCRIPTION' => $talent['tooltip']['spell_tooltip']['description'] ?? '',
+				'SPELL_ID' => $spell_id,
+				'LINK' => $link,
 			));
 		}
 	}

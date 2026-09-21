@@ -50,7 +50,7 @@ class talents_tab_test extends TestCase
 						array(
 							'is_active' => true,
 							'selected_class_talents' => array(
-								array('rank' => 1, 'tooltip' => array('talent' => array('name' => 'Battle Stance'), 'spell_tooltip' => array('description' => 'A combat stance.'))),
+								array('rank' => 1, 'tooltip' => array('talent' => array('name' => 'Battle Stance'), 'spell_tooltip' => array('description' => 'A combat stance.', 'spell' => array('id' => 386164)))),
 								array('rank' => 1), // no tooltip at all -- seen in live responses, must be skipped
 							),
 							'selected_spec_talents' => array(
@@ -99,6 +99,10 @@ class talents_tab_test extends TestCase
 		$this->assertCount(1, $recorder->blocks['class_talent_row']); // the untooltipped entry was skipped
 		$this->assertSame('Battle Stance', $recorder->blocks['class_talent_row'][0]['NAME']);
 		$this->assertFalse($recorder->blocks['class_talent_row'][0]['S_MULTI_RANK']);
+		$this->assertSame(386164, $recorder->blocks['class_talent_row'][0]['SPELL_ID']);
+		// No global $phpbb_container in the test harness -- degrades to no
+		// bbTips link rather than fataling (bbguildwow#379-adjacent fix).
+		$this->assertSame('', $recorder->blocks['class_talent_row'][0]['LINK']);
 
 		$this->assertCount(1, $recorder->blocks['spec_talent_row']);
 		$this->assertSame('Deep Wounds', $recorder->blocks['spec_talent_row'][0]['NAME']);

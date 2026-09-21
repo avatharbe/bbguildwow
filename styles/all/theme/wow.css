@@ -735,7 +735,10 @@ h3.category {
     padding: 3px 0;
     border-bottom: 1px solid rgba(128, 128, 128, 0.1);
     font-size: 0.9em;
-    cursor: default;
+}
+
+.wow-talent-row a {
+    text-decoration: none;
 }
 
 .wow-talent-row:last-child {
