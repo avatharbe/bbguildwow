@@ -182,7 +182,7 @@ class sync_portraits_test extends mock_battlenet_test_case
 	{
 		$this->configure_mock_routes(array(
 			'/token' => array(array('status' => 200, 'body' => array('access_token' => 'tok', 'expires_in' => 3600))),
-			'/profile/wow/character/area-52/sajaki/character-media' => array(
+			'/profile/wow/character/area-55/sajaki/character-media' => array(
 				array('status' => 200, 'body' => array('assets' => array(
 					array('key' => 'avatar', 'value' => 'https://render.worldofwarcraft.com/avatar.jpg'),
 					array('key' => 'main-raw', 'value' => 'https://render.worldofwarcraft.com/render.jpg'),
@@ -192,8 +192,12 @@ class sync_portraits_test extends mock_battlenet_test_case
 
 		// Already has a locally-downloaded portrait (not empty, not a raw
 		// http fallback) -- the pre-fix WHERE clause would never select
-		// this row again.
-		$player_id = $this->seed_player('Sajaki', 'area-52', 'files/bbguildwow/portraits/already-synced.jpg');
+		// this row again. Distinct realm suffix (area-55) -- every sibling
+		// test method in this file seeds a player named "Sajaki" against
+		// its own unique realm to avoid the (player_guild_id, player_name,
+		// player_realm) unique constraint, since rows aren't cleaned up
+		// between test methods sharing GUILD_ID.
+		$player_id = $this->seed_player('Sajaki', 'area-55', 'files/bbguildwow/portraits/already-synced.jpg');
 
 		$api = $this->make_api();
 		$api->mock_resource = new mock_battlenet_character_for_portraits($this->make_stateful_cache(), self::base_url(), 'us');
