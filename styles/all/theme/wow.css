@@ -402,16 +402,34 @@ h3.category {
     gap: 2px;
 }
 
+/* The raw character render (Battle.net's "main-raw" asset) is a large
+   1600x1200 canvas with the character occupying only a small band in
+   the middle -- most of it is empty background. Crop into just the
+   character instead of shrinking the whole canvas to fit: a fixed-
+   aspect-ratio window with overflow hidden, and the image oversized/
+   offset so that region fills it. Crop box (measured via edge-detection
+   against a live render, bbguildwow#379-adjacent) is ~543,373 to
+   932,1003 of the 1600x1200 source, with ~15%/~8% padding added around
+   the character's own bounding box -- the exact numbers below are that
+   crop box expressed as width/height percentages and negative offsets. */
 .wow-character-render {
     flex: 0 1 300px;
     min-width: 200px;
     max-width: 300px;
+    aspect-ratio: 389 / 630;
+    overflow: hidden;
+    position: relative;
+    border-radius: 6px;
 }
 
 .wow-character-render img {
     display: block;
-    width: 100%;
-    height: auto;
+    position: absolute;
+    width: 411.31%;
+    height: 190.48%;
+    left: -139.59%;
+    top: -59.21%;
+    max-width: none;
 }
 
 /* No longer a flanking column inside .wow-character-panel -- moved below
