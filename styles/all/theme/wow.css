@@ -456,10 +456,12 @@ h3.category {
     display: flex;
     flex-wrap: wrap;
     gap: 12px;
+    margin-top: 12px;
 }
 
 .wow-info-panes .player-detail-pane {
     flex: 1 1 220px;
+    margin-top: 0;
     margin-bottom: 0;
 }
 
