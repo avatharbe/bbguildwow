@@ -73,7 +73,7 @@
 	</div>
 
 	{% if WOW_PLAYER_SPEC or WOW_AVG_ILVL > 0 or PLAYER_REALM %}
-	<div class="player-detail-pane">
+	<div class="player-detail-pane panel">
 		<h4 class="player-detail-pane-title">{{ lang('WOW_CHARACTER_INFO') }}</h4>
 		{% if PLAYER_REALM %}
 		<dl><dt>{{ lang('REALM') }}:</dt><dd>{% if PLAYER_REGION %}{{ PLAYER_REGION }}-{% endif %}{{ PLAYER_REALM }}</dd></dl>
@@ -87,12 +87,12 @@
 	</div>
 	{% endif %}
 
-	<div id="wow-professions-panel" class="player-detail-pane wow-async-panel" style="display:none">
+	<div id="wow-professions-panel" class="player-detail-pane panel wow-async-panel" style="display:none">
 		<h4 class="player-detail-pane-title">{{ lang('WOW_PROFESSIONS') }}</h4>
 		<div class="wow-async-body"></div>
 	</div>
 
-	<div id="wow-mplus-panel" class="player-detail-pane wow-async-panel" style="display:none">
+	<div id="wow-mplus-panel" class="player-detail-pane panel wow-async-panel" style="display:none">
 		<h4 class="player-detail-pane-title">{{ lang('WOW_MYTHIC_PLUS') }}</h4>
 		<div class="wow-async-body"></div>
 	</div>
@@ -134,7 +134,7 @@
 		var html = '';
 		['base', 'melee', 'spell'].forEach(function(group) {
 			if (!groups[group].length) { return; }
-			html += '<div class="wow-stats-group"><h4>' + labels[group] + '</h4><dl class="wow-stats-grid">';
+			html += '<div class="wow-stats-group panel"><h4>' + labels[group] + '</h4><dl class="wow-stats-grid">';
 			for (var j = 0; j < groups[group].length; j++) {
 				var s = groups[group][j];
 				html += '<dt>' + esc(s.name) + ':</dt><dd>' + s.value + (s.pct ? '%' : '') + '</dd>';

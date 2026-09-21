@@ -450,8 +450,11 @@ h3.category {
     flex: 1 1 220px;
 }
 
+/* Same box-model-only pane treatment as bbguild core's
+   .player-detail-pane -- background/color/border come from phpBB's own
+   stock ".panel" class (added alongside .wow-stats-group in the JS that
+   renders this markup) so it matches whichever style is active. */
 .wow-stats-group {
-    background: rgba(255, 255, 255, 0.04);
     border-radius: 8px;
     padding: 12px 14px;
     margin-bottom: 12px;
@@ -463,7 +466,7 @@ h3.category {
     opacity: 0.6;
     margin: 0 0 8px;
     padding-bottom: 6px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid rgba(128, 128, 128, 0.3);
 }
 
 .wow-equipment-slot {
