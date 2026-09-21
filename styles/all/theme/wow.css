@@ -448,6 +448,7 @@ h3.category {
 
 .wow-stats-sidebar .wow-stats-group {
     flex: 1 1 220px;
+    margin-bottom: 0;
 }
 
 /* Character Info + Guild Info panes (bbguildwow#379-adjacent) sit side
