@@ -200,7 +200,12 @@ class talents_tab implements player_detail_tab_interface
 			$link = '';
 			if ($bbtips_wow !== null && $spell_id > 0)
 			{
-				$link = $bbtips_wow->build_link('spell', $spell_id, array('text' => $name));
+				// Leading U+00A0 (not the "&nbsp;" entity -- build_link()
+				// runs this through htmlspecialchars(), which would escape
+				// the entity into literal text) puts a gap between
+				// bbTips' auto-inserted icon and the talent name, matching
+				// the equipment slots' explicit icon+nbsp+name markup.
+				$link = $bbtips_wow->build_link('spell', $spell_id, array('text' => "\u{00A0}" . $name));
 			}
 
 			$this->template->assign_block_vars($block, array(
