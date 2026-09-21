@@ -51,6 +51,12 @@ class listener implements EventSubscriberInterface
 	/** @var asset_url_resolver */
 	private $asset_url_resolver;
 
+	/** @var string */
+	private $bb_specializations_table;
+
+	/** @var string */
+	private $bb_language_table;
+
 	/**
 	 * @param config             $config
 	 * @param template           $template
@@ -61,8 +67,10 @@ class listener implements EventSubscriberInterface
 	 * @param string             $guild_wow_table
 	 * @param string             $bb_players_table
 	 * @param asset_url_resolver $asset_url_resolver
+	 * @param string             $bb_specializations_table
+	 * @param string             $bb_language_table
 	 */
-	public function __construct(config $config, template $template, driver_interface $db, request $request, helper $helper, language $language, $guild_wow_table, $bb_players_table, asset_url_resolver $asset_url_resolver)
+	public function __construct(config $config, template $template, driver_interface $db, request $request, helper $helper, language $language, $guild_wow_table, $bb_players_table, asset_url_resolver $asset_url_resolver, $bb_specializations_table, $bb_language_table)
 	{
 		$this->config = $config;
 		$this->template = $template;
@@ -73,6 +81,8 @@ class listener implements EventSubscriberInterface
 		$this->guild_wow_table = $guild_wow_table;
 		$this->bb_players_table = $bb_players_table;
 		$this->asset_url_resolver = $asset_url_resolver;
+		$this->bb_specializations_table = $bb_specializations_table;
+		$this->bb_language_table = $bb_language_table;
 	}
 
 	/**
@@ -326,7 +336,7 @@ class listener implements EventSubscriberInterface
 
 		$player_id = (int) $event['player_id'];
 
-		$sql = 'SELECT game_id, player_spec, player_render_url
+		$sql = 'SELECT game_id, player_spec, player_class_id, player_render_url
 			FROM ' . $this->bb_players_table . '
 			WHERE player_id = ' . $player_id;
 		$result = $this->db->sql_query($sql);
@@ -342,6 +352,29 @@ class listener implements EventSubscriberInterface
 		if (empty($spec) || $spec === 'N/A')
 		{
 			$spec = '';
+		}
+
+		// Role: derived from the character's active spec (as defined in
+		// the ACP's Specializations panel), not the legacy free-text
+		// player_role column -- WoW's roster sync only ever sets that to
+		// the literal 'NA' placeholder at character creation and never
+		// revisits it, so it can never reflect anything real for WoW.
+		$role = '';
+		if ($spec !== '')
+		{
+			$sql = 'SELECT l.name
+				FROM ' . $this->bb_specializations_table . ' s
+				LEFT JOIN ' . $this->bb_language_table . ' l
+					ON l.game_id = s.game_id AND l.attribute = \'role\' AND l.attribute_id = s.role_id
+						AND l.language = \'' . $this->db->sql_escape((string) $this->config['bbguild_lang']) . '\'
+				WHERE s.game_id = \'wow\'
+					AND s.class_id = ' . (int) $row['player_class_id'] . '
+					AND s.spec_name = \'' . $this->db->sql_escape($spec) . '\'';
+			$role_result = $this->db->sql_query($sql);
+			$role_row = $this->db->sql_fetchrow($role_result);
+			$this->db->sql_freeresult($role_result);
+
+			$role = $role_row ? (string) $role_row['name'] : '';
 		}
 
 		// Load equipment
@@ -439,6 +472,7 @@ class listener implements EventSubscriberInterface
 
 		$this->template->assign_vars(array(
 			'WOW_PLAYER_SPEC'     => $spec,
+			'WOW_ROLE'            => $role,
 			'WOW_AVG_ILVL'        => $avg_ilvl,
 			'WOW_STATS_URL'       => $this->helper->route('avathar_bbguildwow_character_stats', array('player_id' => $player_id)),
 			'WOW_RENDER_URL'      => $render_url,

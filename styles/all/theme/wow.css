@@ -450,6 +450,19 @@ h3.category {
     flex: 1 1 220px;
 }
 
+/* Character Info + Guild Info panes (bbguildwow#379-adjacent) sit side
+   by side, matching the Base/Melee/Spell stat-group row above. */
+.wow-info-panes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.wow-info-panes .player-detail-pane {
+    flex: 1 1 220px;
+    margin-bottom: 0;
+}
+
 /* Same box-model-only pane treatment as bbguild core's
    .player-detail-pane -- background/color/border come from phpBB's own
    stock ".panel" class (added alongside .wow-stats-group in the JS that

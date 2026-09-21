@@ -72,6 +72,8 @@ services:
             - '%avathar.bbguildwow.tables.bb_guild_wow%'
             - '%avathar.bbguild.tables.bb_players%'
             - '@avathar.bbguild.asset_url_resolver'
+            - '%avathar.bbguild.tables.bb_specializations%'
+            - '%avathar.bbguild.tables.bb_language%'
         tags:
             - { name: event.listener }
 

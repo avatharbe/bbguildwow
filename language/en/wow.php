@@ -97,6 +97,7 @@ $lang = array_merge(
 
 	// Player detail page
 	'WOW_CHARACTER_INFO'       => 'Character info',
+	'WOW_GUILD_INFO'           => 'Guild info',
 	'WOW_SPECIALIZATION'       => 'Specialization',
 	'WOW_AVG_ILVL'             => 'Average Item Level',
 	'WOW_STATS'                => 'Character Stats',

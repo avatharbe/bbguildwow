@@ -72,17 +72,42 @@
 		<p class="wow-async-loading">{{ lang('WOW_LOADING') }}</p>
 	</div>
 
-	{% if WOW_PLAYER_SPEC or WOW_AVG_ILVL > 0 or PLAYER_REALM %}
-	<div class="player-detail-pane panel">
-		<h4 class="player-detail-pane-title">{{ lang('WOW_CHARACTER_INFO') }}</h4>
-		{% if PLAYER_REALM %}
-		<dl><dt>{{ lang('REALM') }}:</dt><dd>{% if PLAYER_REGION %}{{ PLAYER_REGION }}-{% endif %}{{ PLAYER_REALM }}</dd></dl>
+	{% if WOW_PLAYER_SPEC or WOW_ROLE or WOW_AVG_ILVL > 0 or PLAYER_REALM or PLAYER_RANK %}
+	<div class="wow-info-panes">
+		{% if WOW_PLAYER_SPEC or WOW_ROLE or WOW_AVG_ILVL > 0 or PLAYER_REALM %}
+		<div class="player-detail-pane panel">
+			<h4 class="player-detail-pane-title">{{ lang('WOW_CHARACTER_INFO') }}</h4>
+			{% if PLAYER_REALM %}
+			<dl><dt>{{ lang('REALM') }}:</dt><dd>{% if PLAYER_REGION %}{{ PLAYER_REGION }}-{% endif %}{{ PLAYER_REALM }}</dd></dl>
+			{% endif %}
+			{% if WOW_PLAYER_SPEC %}
+			<dl><dt>{{ lang('WOW_SPECIALIZATION') }}:</dt><dd>{{ WOW_PLAYER_SPEC }}</dd></dl>
+			{% endif %}
+			{% if WOW_ROLE %}
+			<dl><dt>{{ lang('ROLE') }}:</dt><dd>{{ WOW_ROLE }}</dd></dl>
+			{% endif %}
+			{% if WOW_AVG_ILVL > 0 %}
+			<dl><dt>{{ lang('WOW_AVG_ILVL') }}:</dt><dd><strong>{{ WOW_AVG_ILVL }}</strong></dd></dl>
+			{% endif %}
+		</div>
 		{% endif %}
-		{% if WOW_PLAYER_SPEC %}
-		<dl><dt>{{ lang('WOW_SPECIALIZATION') }}:</dt><dd>{{ WOW_PLAYER_SPEC }}</dd></dl>
-		{% endif %}
-		{% if WOW_AVG_ILVL > 0 %}
-		<dl><dt>{{ lang('WOW_AVG_ILVL') }}:</dt><dd><strong>{{ WOW_AVG_ILVL }}</strong></dd></dl>
+
+		{% if PLAYER_RANK %}
+		<div class="player-detail-pane panel">
+			<h4 class="player-detail-pane-title">{{ lang('WOW_GUILD_INFO') }}</h4>
+			<dl><dt>{{ lang('RANK') }}:</dt><dd>{{ PLAYER_RANK }}</dd></dl>
+			<dl>
+				<dt>{{ lang('STATUS') }}:</dt>
+				<dd>
+					{% if S_PLAYER_ACTIVE %}
+					<span class="player-status-active">{{ lang('ACTIVE') }}</span>
+					{% else %}
+					<span class="player-status-inactive">{{ lang('INACTIVE') }}</span>
+					{% if PLAYER_DEACTIVATE_REASON %}<br /><em>{{ PLAYER_DEACTIVATE_REASON }}</em>{% endif %}
+					{% endif %}
+				</dd>
+			</dl>
+		</div>
 		{% endif %}
 	</div>
 	{% endif %}
