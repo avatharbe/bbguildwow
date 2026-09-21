@@ -15,6 +15,29 @@
     color: #b30000;
 }
 
+/* Guild front-page background, per faction. Blizzard's Guild API only
+   exposes a small emblem/border crest (tabard icon + colors), not a
+   landscape banner, so this is a locally supplied asset rather than
+   something fetched from the API. Source images are cropped to 990px
+   wide (bbguild#380-adjacent) to match pbwow3's content column, so
+   background-size: cover only has to crop vertically, not zoom the
+   whole image to cover an oversized width. The dark overlay keeps
+   panel-gutter text legible regardless of how bright the source art is. */
+.faction-bg-alliance,
+.faction-bg-horde {
+    background-size: cover;
+    background-position: center top;
+    background-repeat: no-repeat;
+}
+
+.faction-bg-alliance {
+    background-image: linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.45)), url("../../../images/factions/allianceguild-990-tall.jpg");
+}
+
+.faction-bg-horde {
+    background-image: linear-gradient(rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.45)), url("../../../images/factions/hordeguild-990-tall.jpg");
+}
+
 /* Achievement accent color — matches bbguild progress bar fill */
 #achiev-browser {
     --achiev-accent: #4caf50;
