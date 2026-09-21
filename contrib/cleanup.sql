@@ -23,7 +23,10 @@ DROP TABLE IF EXISTS phpbb_bb_achievement_track;
 DROP TABLE IF EXISTS phpbb_bb_relations_table;
 DROP TABLE IF EXISTS phpbb_bb_achievement_rewards;
 DROP TABLE IF EXISTS phpbb_bb_achievement_criteria;
+DROP TABLE IF EXISTS phpbb_bb_achievement_category;
 DROP TABLE IF EXISTS phpbb_bb_achievement;
+DROP TABLE IF EXISTS phpbb_bb_player_equipment;
+DROP TABLE IF EXISTS phpbb_bb_player_item_stat;
 DROP TABLE IF EXISTS phpbb_bb_guild_wow;
 
 -- ----------------------------------------------------------------------------
@@ -35,7 +38,7 @@ DELETE FROM phpbb_bb_classes WHERE game_id = 'wow';
 DELETE FROM phpbb_bb_races WHERE game_id = 'wow';
 DELETE FROM phpbb_bb_factions WHERE game_id = 'wow';
 DELETE FROM phpbb_bb_gameroles WHERE game_id = 'wow';
-DELETE FROM phpbb_bb_players WHERE player_game_id = 'wow';
+DELETE FROM phpbb_bb_players WHERE game_id = 'wow';
 DELETE FROM phpbb_bb_games WHERE game_id = 'wow';
 
 -- ----------------------------------------------------------------------------
@@ -48,19 +51,19 @@ DELETE FROM phpbb_config WHERE config_name = 'bbguild_show_achiev';
 -- 4. phpBB ACP modules
 -- ----------------------------------------------------------------------------
 
-DELETE FROM phpbb_modules WHERE module_basename LIKE '%bbguild_wow%';
+DELETE FROM phpbb_modules WHERE module_basename LIKE '%bbguildwow%';
 
 -- ----------------------------------------------------------------------------
 -- 5. phpBB extension registration
 -- ----------------------------------------------------------------------------
 
-DELETE FROM phpbb_ext WHERE ext_name = 'avathar/bbguild_wow';
+DELETE FROM phpbb_ext WHERE ext_name = 'avathar/bbguildwow';
 
 -- ----------------------------------------------------------------------------
 -- 6. phpBB migration tracking
 -- ----------------------------------------------------------------------------
 
-DELETE FROM phpbb_migrations WHERE migration_name LIKE '%avathar\\bbguild_wow%';
+DELETE FROM phpbb_migrations WHERE migration_name LIKE '%avathar\\\\bbguildwow%';
 
 -- ============================================================================
 -- Done. Now purge the phpBB cache and re-enable the extension from ACP.
