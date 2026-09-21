@@ -72,27 +72,30 @@
 		<p class="wow-async-loading">{{ lang('WOW_LOADING') }}</p>
 	</div>
 
-	{% if WOW_PLAYER_SPEC or WOW_AVG_ILVL > 0 %}
-	<fieldset>
-		<legend>{{ lang('WOW_CHARACTER_INFO') }}</legend>
+	{% if WOW_PLAYER_SPEC or WOW_AVG_ILVL > 0 or PLAYER_REALM %}
+	<div class="player-detail-pane">
+		<h4 class="player-detail-pane-title">{{ lang('WOW_CHARACTER_INFO') }}</h4>
+		{% if PLAYER_REALM %}
+		<dl><dt>{{ lang('REALM') }}:</dt><dd>{% if PLAYER_REGION %}{{ PLAYER_REGION }}-{% endif %}{{ PLAYER_REALM }}</dd></dl>
+		{% endif %}
 		{% if WOW_PLAYER_SPEC %}
 		<dl><dt>{{ lang('WOW_SPECIALIZATION') }}:</dt><dd>{{ WOW_PLAYER_SPEC }}</dd></dl>
 		{% endif %}
 		{% if WOW_AVG_ILVL > 0 %}
 		<dl><dt>{{ lang('WOW_AVG_ILVL') }}:</dt><dd><strong>{{ WOW_AVG_ILVL }}</strong></dd></dl>
 		{% endif %}
-	</fieldset>
+	</div>
 	{% endif %}
 
-	<fieldset id="wow-professions-panel" class="wow-async-panel" style="display:none">
-		<legend>{{ lang('WOW_PROFESSIONS') }}</legend>
+	<div id="wow-professions-panel" class="player-detail-pane wow-async-panel" style="display:none">
+		<h4 class="player-detail-pane-title">{{ lang('WOW_PROFESSIONS') }}</h4>
 		<div class="wow-async-body"></div>
-	</fieldset>
+	</div>
 
-	<fieldset id="wow-mplus-panel" class="wow-async-panel" style="display:none">
-		<legend>{{ lang('WOW_MYTHIC_PLUS') }}</legend>
+	<div id="wow-mplus-panel" class="player-detail-pane wow-async-panel" style="display:none">
+		<h4 class="player-detail-pane-title">{{ lang('WOW_MYTHIC_PLUS') }}</h4>
 		<div class="wow-async-body"></div>
-	</fieldset>
+	</div>
 
 </div>
 

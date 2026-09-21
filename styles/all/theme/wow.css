@@ -534,14 +534,11 @@ h3.category {
     }
 }
 
-/* ===== Player detail: WoW-specific sections ===== */
-.wow-player-detail fieldset {
+/* ===== Player detail: WoW-specific sections =====
+   Character Info/Professions/Mythic+ use bbguild core's shared
+   .player-detail-pane box (bbguildwow#379-adjacent, "panes per category"). */
+.wow-player-detail .player-detail-pane {
     margin-top: 12px;
-}
-
-.wow-player-detail fieldset legend {
-    font-weight: bold;
-    font-size: 1em;
 }
 
 .wow-async-loading {
