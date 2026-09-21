@@ -409,14 +409,17 @@ h3.category {
    aspect-ratio window with overflow hidden, and the image oversized/
    offset so that region fills it. Crop box (measured via edge-detection
    against a live render, bbguildwow#379-adjacent) is ~543,373 to
-   932,1003 of the 1600x1200 source, with ~15%/~8% padding added around
-   the character's own bounding box -- the exact numbers below are that
-   crop box expressed as width/height percentages and negative offsets. */
+   932,1050 of the 1600x1200 source -- the bottom edge has extra room
+   past the original tight bbox since a short/wide character (e.g. a
+   Dwarf) doesn't fill as much of the canvas vertically as the tall
+   Human the box was first tuned against, and got its feet clipped by
+   the original, tighter bottom edge. The numbers below are that crop
+   box expressed as width/height percentages and negative offsets. */
 .wow-character-render {
     flex: 0 1 300px;
     min-width: 200px;
     max-width: 300px;
-    aspect-ratio: 389 / 630;
+    aspect-ratio: 389 / 677;
     overflow: hidden;
     position: relative;
     border-radius: 6px;
@@ -426,9 +429,9 @@ h3.category {
     display: block;
     position: absolute;
     width: 411.31%;
-    height: 190.48%;
+    height: 177.25%;
     left: -139.59%;
-    top: -59.21%;
+    top: -55.1%;
     max-width: none;
 }
 
