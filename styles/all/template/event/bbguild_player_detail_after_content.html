@@ -30,6 +30,12 @@
 		</div>
 		{% endif %}
 
+		{% if S_WOW_HAS_RENDER %}
+		<div class="wow-character-render">
+			<img src="{{ WOW_RENDER_URL }}" alt="" />
+		</div>
+		{% endif %}
+
 		{% if S_WOW_HAS_EQUIPMENT %}
 		<div class="wow-equipment-grid-right">
 			{% for item in wow_equipment %}
@@ -57,10 +63,13 @@
 			{% endfor %}
 		</div>
 		{% endif %}
+	</div>
 
-		<div class="wow-stats-sidebar" id="wow-stats-panel">
-			<p class="wow-async-loading">{{ lang('WOW_LOADING') }}</p>
-		</div>
+	{# Moved below the equipment/render panel, no longer a flanking column
+	   alongside it, to make room for the character render (requested
+	   alongside adding the render). #}
+	<div class="wow-stats-sidebar" id="wow-stats-panel">
+		<p class="wow-async-loading">{{ lang('WOW_LOADING') }}</p>
 	</div>
 
 	{% if WOW_PLAYER_SPEC or WOW_AVG_ILVL > 0 %}

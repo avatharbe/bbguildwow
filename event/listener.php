@@ -13,6 +13,7 @@
 
 namespace avathar\bbguildwow\event;
 
+use avathar\bbguild\model\admin\asset_url_resolver;
 use phpbb\config\config;
 use phpbb\controller\helper;
 use phpbb\db\driver\driver_interface;
@@ -47,17 +48,21 @@ class listener implements EventSubscriberInterface
 	/** @var string */
 	private $bb_players_table;
 
+	/** @var asset_url_resolver */
+	private $asset_url_resolver;
+
 	/**
-	 * @param config           $config
-	 * @param template         $template
-	 * @param driver_interface $db
-	 * @param request          $request
-	 * @param helper           $helper
-	 * @param language         $language
-	 * @param string           $guild_wow_table
-	 * @param string           $bb_players_table
+	 * @param config             $config
+	 * @param template           $template
+	 * @param driver_interface   $db
+	 * @param request            $request
+	 * @param helper             $helper
+	 * @param language           $language
+	 * @param string             $guild_wow_table
+	 * @param string             $bb_players_table
+	 * @param asset_url_resolver $asset_url_resolver
 	 */
-	public function __construct(config $config, template $template, driver_interface $db, request $request, helper $helper, language $language, $guild_wow_table, $bb_players_table)
+	public function __construct(config $config, template $template, driver_interface $db, request $request, helper $helper, language $language, $guild_wow_table, $bb_players_table, asset_url_resolver $asset_url_resolver)
 	{
 		$this->config = $config;
 		$this->template = $template;
@@ -67,6 +72,7 @@ class listener implements EventSubscriberInterface
 		$this->language = $language;
 		$this->guild_wow_table = $guild_wow_table;
 		$this->bb_players_table = $bb_players_table;
+		$this->asset_url_resolver = $asset_url_resolver;
 	}
 
 	/**
@@ -429,12 +435,16 @@ class listener implements EventSubscriberInterface
 			));
 		}
 
+		$render_url = $this->asset_url_resolver->resolve_render_url((string) $row['player_render_url'], $player_id);
+
 		$this->template->assign_vars(array(
 			'WOW_PLAYER_SPEC'     => $spec,
 			'WOW_AVG_ILVL'        => $avg_ilvl,
 			'WOW_STATS_URL'       => $this->helper->route('avathar_bbguildwow_character_stats', array('player_id' => $player_id)),
+			'WOW_RENDER_URL'      => $render_url,
 			'S_WOW_PLAYER'        => true,
 			'S_WOW_HAS_EQUIPMENT' => !empty($equipment),
+			'S_WOW_HAS_RENDER'    => !empty($render_url),
 		));
 	}
 

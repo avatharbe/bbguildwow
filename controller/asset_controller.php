@@ -102,6 +102,32 @@ class asset_controller
 	}
 
 	/**
+	 * Serve a player's full-body character render image.
+	 *
+	 * @param int $player_id
+	 * @return Response
+	 */
+	public function serve_render($player_id)
+	{
+		$player_id = (int) $player_id;
+
+		$sql = 'SELECT player_render_url FROM ' . $this->players_table . ' WHERE player_id = ' . $player_id;
+		$result = $this->db->sql_query($sql);
+		$render_url = $this->db->sql_fetchfield('player_render_url');
+		$this->db->sql_freeresult($result);
+
+		if (empty($render_url) || strpos($render_url, 'bbguildwow/renders/') === false)
+		{
+			return new Response($this->lang_not_found(), 404);
+		}
+
+		$ext = strtolower(pathinfo($render_url, PATHINFO_EXTENSION));
+		$content_type = ($ext === 'png') ? 'image/png' : 'image/jpeg';
+
+		return $this->serve_file($render_url, $content_type);
+	}
+
+	/**
 	 * @return string
 	 */
 	private function lang_not_found(): string

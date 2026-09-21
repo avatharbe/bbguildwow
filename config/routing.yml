@@ -10,6 +10,12 @@ avathar_bbguildwow_portrait:
     requirements:
         player_id: \d+
 
+avathar_bbguildwow_render:
+    path: /bbguildwow/render/{player_id}
+    defaults: { _controller: avathar.bbguildwow.asset_controller:serve_render }
+    requirements:
+        player_id: \d+
+
 avathar_bbguildwow_achiev_categories:
     path: /bbguildwow/achievements/categories/{guild_id}
     defaults: { _controller: avathar.bbguildwow.achievement_controller:categories }

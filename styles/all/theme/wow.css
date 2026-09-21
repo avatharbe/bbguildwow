@@ -402,10 +402,31 @@ h3.category {
     gap: 2px;
 }
 
-.wow-stats-sidebar {
-    flex: 1 1 220px;
+.wow-character-render {
+    flex: 0 1 300px;
     min-width: 200px;
-    max-width: 280px;
+    max-width: 300px;
+}
+
+.wow-character-render img {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+/* No longer a flanking column inside .wow-character-panel -- moved below
+   it to make room for .wow-character-render. Stat groups (Base/Melee/
+   Spell) now have the full body-width available, so let them sit side
+   by side instead of stacked in a narrow column. */
+.wow-stats-sidebar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.wow-stats-sidebar .wow-stats-group {
+    flex: 1 1 220px;
 }
 
 .wow-stats-group {
@@ -486,7 +507,8 @@ h3.category {
     }
 
     .wow-equipment-grid-left,
-    .wow-equipment-grid-right {
+    .wow-equipment-grid-right,
+    .wow-character-render {
         max-width: none;
     }
 }

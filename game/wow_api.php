@@ -832,8 +832,13 @@ class wow_api implements game_api_interface
 					{
 						$avatar_url = $asset['value'];
 					}
-					else if ($asset['key'] === 'main')
+					else if ($asset['key'] === 'main-raw')
 					{
+						// Confirmed live against the real Character Media API --
+						// the full-body render asset is keyed 'main-raw', not
+						// 'main' (which this code checked for before and never
+						// matched, so player_render_url stayed empty for every
+						// character regardless of how many times this synced).
 						$render_url = $asset['value'];
 					}
 				}
@@ -948,6 +953,11 @@ class wow_api implements game_api_interface
 		$portrait_dir = $phpbb_root_path . $portrait_rel;
 		$this->ensure_dir($portrait_dir);
 
+		// player_render_url checked alongside player_portrait_url -- it was
+		// added after this query was first written, and a player whose
+		// portrait already downloaded successfully would otherwise never
+		// be selected again, permanently skipping the render backfill for
+		// every character synced before the render feature existed.
 		$sql = 'SELECT player_id, player_name, player_realm, player_region
 			FROM ' . $this->bb_players_table . '
 			WHERE player_guild_id = ' . $guild_id . '
@@ -955,7 +965,9 @@ class wow_api implements game_api_interface
 				AND player_status = 1
 				AND (player_portrait_url = \'\'
 					OR player_portrait_url IS NULL
-					OR player_portrait_url LIKE \'http%\')
+					OR player_portrait_url LIKE \'http%\'
+					OR player_render_url = \'\'
+					OR player_render_url IS NULL)
 			ORDER BY player_id';
 		$result = $db->sql_query($sql);
 

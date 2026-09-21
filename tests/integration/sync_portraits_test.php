@@ -148,7 +148,7 @@ class sync_portraits_test extends mock_battlenet_test_case
 			'/profile/wow/character/area-52/sajaki/character-media' => array(
 				array('status' => 200, 'body' => array('assets' => array(
 					array('key' => 'avatar', 'value' => 'https://render.worldofwarcraft.com/avatar.jpg'),
-					array('key' => 'main', 'value' => 'https://render.worldofwarcraft.com/render.jpg'),
+					array('key' => 'main-raw', 'value' => 'https://render.worldofwarcraft.com/render.jpg'),
 				))),
 			),
 		));
@@ -169,6 +169,43 @@ class sync_portraits_test extends mock_battlenet_test_case
 
 		$this->assertSame('https://render.worldofwarcraft.com/avatar.jpg', $row['player_portrait_url']);
 		$this->assertSame('https://render.worldofwarcraft.com/render.jpg', $row['player_render_url']);
+	}
+
+	/**
+	 * player_render_url was added after this query was first written --
+	 * a player whose portrait already downloaded successfully on a prior
+	 * run must still be re-selected until their render backfills too,
+	 * or every character synced before the render feature existed would
+	 * never get one.
+	 */
+	public function test_player_with_portrait_but_no_render_is_resynced(): void
+	{
+		$this->configure_mock_routes(array(
+			'/token' => array(array('status' => 200, 'body' => array('access_token' => 'tok', 'expires_in' => 3600))),
+			'/profile/wow/character/area-52/sajaki/character-media' => array(
+				array('status' => 200, 'body' => array('assets' => array(
+					array('key' => 'avatar', 'value' => 'https://render.worldofwarcraft.com/avatar.jpg'),
+					array('key' => 'main-raw', 'value' => 'https://render.worldofwarcraft.com/render.jpg'),
+				))),
+			),
+		));
+
+		// Already has a locally-downloaded portrait (not empty, not a raw
+		// http fallback) -- the pre-fix WHERE clause would never select
+		// this row again.
+		$player_id = $this->seed_player('Sajaki', 'area-52', 'files/bbguildwow/portraits/already-synced.jpg');
+
+		$api = $this->make_api();
+		$api->mock_resource = new mock_battlenet_character_for_portraits($this->make_stateful_cache(), self::base_url(), 'us');
+
+		$result = $api->sync_portraits(self::GUILD_ID, 'us', 'test_client_id', 'en_US', 'test_client_secret');
+
+		$this->assertSame(1, $result['count']);
+
+		$db = $this->get_db();
+		$sql_result = $db->sql_query('SELECT player_render_url FROM ' . $this->get_table_prefix() . 'bb_players WHERE player_id = ' . $player_id);
+		$this->assertSame('https://render.worldofwarcraft.com/render.jpg', $db->sql_fetchfield('player_render_url'));
+		$db->sql_freeresult($sql_result);
 	}
 
 	public function test_404_marks_portrait_unavailable_and_is_not_retried(): void
