@@ -1908,7 +1908,7 @@ class wow_api implements game_api_interface
 		global $user, $phpbb_container;
 
 		// Ensure the bbguild admin language file is loaded
-		$user->add_lang_ext('avathar/bbguild', 'admin');
+		$phpbb_container->get('language')->add_lang('admin', 'avathar/bbguild');
 
 		$player_ids = array();
 		$oldplayers = array();
@@ -2450,7 +2450,7 @@ class wow_api implements game_api_interface
 		try
 		{
 			$user = $container->get('user');
-			$user->add_lang_ext('avathar/bbguild', 'admin');
+			$container->get('language')->add_lang('admin', 'avathar/bbguild');
 
 			$game = new \avathar\bbguild\model\games\game(
 				$container->get('dbal.conn'),

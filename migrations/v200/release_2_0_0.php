@@ -1,26 +1,12 @@
 <?php
 /**
- * bbGuild WoW Extension — squashed migration for the complete 2.0.x line
+ * bbGuild WoW Extension — 2.0.0 migration
  *
- * Consolidates every migration that shipped under 2.0.0-b2 through
- * 2.0.0-rc2 into a single class:
- *
- *   - v200b2\release_2_0_0_b2          (achievement/guild schema, game seed, ACP modules)
- *   - v200b3\add_player_equipment      (bb_player_equipment table)
- *   - v200b3\add_player_render_url     (bb_players.player_render_url column)
- *   - v200b3\seed_specializations      (backfill bb_specializations for existing installs, #331)
- *   - v200b3\seed_spec_translations    (backfill bb_language spec translations, #26)
- *   - v200b3\release_2_0_0_b3          (checkpoint only, no schema/data of its own)
- *   - v200b4\release_2_0_0_b4          (drop legacy bbguild_wow_version config row)
- *   - v200rc2\release_2_0_0_rc2        (re-parent battlenet_module under Game settings)
- *
- * The original chain first parented the "BattleNet API" ACP module under
- * ACP_BBGUILD_MAINPAGE and later moved it to ACP_BBGUILD_GAMESETTINGS once
- * bbguild core created that category (core's rc4). Since this squashed
- * migration depends on bbguild core's fully-squashed 2.0.x migration
- * (which already includes rc4's effects), ACP_BBGUILD_GAMESETTINGS exists
- * before this migration's update_data() runs, so the module is registered
- * there directly — same end state, without the intermediate detour.
+ * Fresh-install-only: writes the full 2.0.0 schema/data/module state
+ * directly, including achievement/guild schema, game seed data, and ACP
+ * modules. The "BattleNet API" ACP module is registered directly under
+ * ACP_BBGUILD_GAMESETTINGS, which bbguild core's own 2.0.0 migration has
+ * already created by the time this migration's update_data() runs.
  *
  * @package   avathar\bbguildwow
  * @copyright 2026 avathar.be
@@ -37,10 +23,6 @@ class release_2_0_0 extends \phpbb\db\migration\container_aware_migration
 	{
 		return [
 			'\phpbb\db\migration\data\v320\v320',
-			// bbguild core's own squashed 2.0.x migration. As of writing this
-			// migration, bbguild core had NOT yet been squashed; this name is
-			// the expected result of that parallel task. Verify/correct if
-			// bbguild core landed under a different class name.
 			'\avathar\bbguild\migrations\v200\release_2_0_0',
 		];
 	}
@@ -52,9 +34,8 @@ class release_2_0_0 extends \phpbb\db\migration\container_aware_migration
 	public function effectively_installed()
 	{
 		// Version lives in ext::BBGUILDWOW_VERSION, not phpbb_config; check
-		// for the last effect of the chain instead — battlenet_module
-		// parented under the Game settings category (the former rc2 step,
-		// applied directly here — see class docblock).
+		// for battlenet_module being parented under the Game settings
+		// category instead.
 		$sql = 'SELECT m.module_id
 			FROM ' . $this->table_prefix . 'modules m
 			JOIN ' . $this->table_prefix . "modules p ON p.module_id = m.parent_id
@@ -240,7 +221,7 @@ class release_2_0_0 extends \phpbb\db\migration\container_aware_migration
 			['custom', [[$this, 'seed_wow_specializations']]],
 			// #26: locale display names for the specs just seeded above.
 			['custom', [[$this, 'seed_wow_spec_translations']]],
-			// Former b4: legacy version-string config row superseded by
+			// Legacy version-string config row superseded by
 			// ext::BBGUILDWOW_VERSION; one-way cleanup, nothing restores it.
 			['config.remove', ['bbguild_wow_version']],
 		];

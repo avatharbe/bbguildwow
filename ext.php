@@ -33,30 +33,30 @@ class ext extends base
 	{
 		$errors = [];
 
-		$user = $this->container->get('user');
-		$user->add_lang_ext('avathar/bbguildwow', 'wow');
+		$language = $this->container->get('language');
+		$language->add_lang('wow', 'avathar/bbguildwow');
 
 		if (version_compare(PHP_VERSION, self::MIN_PHP_VERSION, '<'))
 		{
-			$errors[] = $user->lang('BBGUILDWOW_PHP_VERSION_FAIL', self::MIN_PHP_VERSION, PHP_VERSION);
+			$errors[] = $language->lang('BBGUILDWOW_PHP_VERSION_FAIL', self::MIN_PHP_VERSION, PHP_VERSION);
 		}
 
 		if (phpbb_version_compare(PHPBB_VERSION, self::MIN_PHPBB_VERSION, '<'))
 		{
-			$errors[] = $user->lang('BBGUILDWOW_PHPBB_VERSION_FAIL', self::MIN_PHPBB_VERSION, PHPBB_VERSION);
+			$errors[] = $language->lang('BBGUILDWOW_PHPBB_VERSION_FAIL', self::MIN_PHPBB_VERSION, PHPBB_VERSION);
 		}
 
 		$ext_manager = $this->container->get('ext.manager');
 		if (!$ext_manager->is_enabled('avathar/bbguild'))
 		{
-			$errors[] = $user->lang('BBGUILDWOW_REQUIRES_BBGUILD');
+			$errors[] = $language->lang('BBGUILDWOW_REQUIRES_BBGUILD');
 		}
 		else
 		{
 			$core_version = class_exists('\avathar\bbguild\ext') ? \avathar\bbguild\ext::BBGUILD_VERSION : '0';
 			if (phpbb_version_compare($core_version, self::MIN_BBGUILD_VERSION, '<'))
 			{
-				$errors[] = $user->lang('BBGUILDWOW_REQUIRES_BBGUILD_VERSION', self::MIN_BBGUILD_VERSION, $core_version);
+				$errors[] = $language->lang('BBGUILDWOW_REQUIRES_BBGUILD_VERSION', self::MIN_BBGUILD_VERSION, $core_version);
 			}
 		}
 

@@ -1,19 +1,12 @@
 <?php
 /**
- * bbGuild WoW Extension — squashed migration for the complete 2.1.x (dev) line
+ * bbGuild WoW Extension — 2.1.0 migration
  *
- * Consolidates every migration landed under 2.1.0-b1 into a single class,
- * in their true dependency order (confirmed by v210b1\release_2_1_0_b1's
- * own docblock):
- *
- *   - v210b1\add_equipment_detail                 (item enchant/gem/bonus/set columns)
- *   - v210b1\add_player_item_stat                 (bb_player_item_stat table)
- *   - v210b1\add_guild_sync_config                (scheduled roster sync config)
- *   - v210b1\add_news_source                      (bb_news source/source_key columns)
- *   - v210b1\add_achievement_category_guild_flag  (bb_achievement_category.is_guild_category)
- *   - v210b1\widen_achievement_description         (bb_achievement.description -> TEXT_UNI)
- *   - v210b1\add_achievement_track_player_index    (bb_achievement_track idx_player)
- *   - v210b1\release_2_1_0_b1                      (checkpoint only, no schema/data of its own)
+ * Adds item enchant/gem/bonus/set columns, the bb_player_item_stat table,
+ * scheduled roster sync config, bb_news source/source_key columns,
+ * bb_achievement_category.is_guild_category, widens
+ * bb_achievement.description to TEXT_UNI, and adds an index on
+ * bb_achievement_track.
  *
  * @package   avathar\bbguildwow
  * @copyright 2026 avathar.be
@@ -27,17 +20,7 @@ class release_2_1_0 extends \phpbb\db\migration\migration
 	public static function depends_on()
 	{
 		return [
-			// This extension's own squashed 2.0.x migration (former first
-			// dependency: v200b3\add_player_equipment, via add_equipment_detail).
 			'\avathar\bbguildwow\migrations\v200\release_2_0_0',
-			// bbguild core's squashed 2.0.x migration (former dependency:
-			// v200b3\release_2_0_0_b3, via add_news_source). As of writing
-			// this migration, bbguild core had NOT yet been squashed; this
-			// name is the expected result of that parallel task. Verify/
-			// correct if bbguild core landed under a different class name.
-			// Transitively implied by the wow v200 dependency above too,
-			// but listed explicitly to mirror add_news_source's original
-			// direct dependency.
 			'\avathar\bbguild\migrations\v200\release_2_0_0',
 		];
 	}
@@ -49,9 +32,7 @@ class release_2_1_0 extends \phpbb\db\migration\migration
 	public function effectively_installed()
 	{
 		// Version lives in ext::BBGUILDWOW_VERSION, not phpbb_config; check
-		// for the last schema effect of the chain instead — the player-scoped
-		// index on bb_achievement_track added by the former
-		// add_achievement_track_player_index migration.
+		// for the player-scoped index on bb_achievement_track instead.
 		return $this->db_tools->sql_index_exists($this->table_prefix . 'bb_achievement_track', 'idx_player');
 	}
 

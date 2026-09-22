@@ -379,7 +379,7 @@ class achievement_sync_controller
 		try
 		{
 			$user = $phpbb_container->get('user');
-			$user->add_lang_ext('avathar/bbguild', 'admin');
+			$this->language->add_lang('admin', 'avathar/bbguild');
 
 			$game = new game(
 				$phpbb_container->get('dbal.conn'),
