@@ -38,6 +38,20 @@ class avathar_bbguildwow_roster_sync_test extends phpbb_functional_test_case
 			public $lang = array('ADMIN_ADD_PLAYER_SUCCESS' => 'Player %1$s added on %2$s');
 			public function add_lang_ext($ext_name, $lang_file) { }
 		};
+
+		// update_wow_roster() also calls $phpbb_container->get('language')
+		// ->add_lang() directly, alongside the $user stub above. This test's
+		// in-process $phpbb_container is the bare phpbb_mock_container_builder
+		// the functional test framework leaves behind, which has no
+		// 'language' service registered by default -- a no-op stub is enough
+		// since none of this file's assertions touch translated text.
+		global $phpbb_container;
+		if (!$phpbb_container->has('language'))
+		{
+			$phpbb_container->set('language', new class {
+				public function add_lang($lang_set, $ext_name = null) {}
+			});
+		}
 	}
 
 	protected function tearDown(): void

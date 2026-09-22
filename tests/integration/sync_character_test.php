@@ -140,6 +140,18 @@ class sync_character_test extends mock_battlenet_test_case
 			$phpbb_container->set('ext.manager', $ext_manager_stub);
 		}
 
+		if (!$phpbb_container->has('language'))
+		{
+			// get_game_from_db() also loads the bbguild admin language file
+			// via the language service before constructing game — the
+			// translated content isn't under test here, so a no-op stub is
+			// enough (same reasoning as the other stubs above).
+			$language_stub = new class {
+				public function add_lang($lang_set, $ext_name = null) {}
+			};
+			$phpbb_container->set('language', $language_stub);
+		}
+
 		$table_params = array(
 			// Used by get_game_from_db() to construct the game model.
 			'avathar.bbguild.tables.bb_classes'  => 'bb_classes',
