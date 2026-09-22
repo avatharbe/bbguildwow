@@ -3,8 +3,10 @@
 bbGuild WoW is the World of Warcraft plugin for bbGuild, a guild management extension for phpBB with roots in bbDKP and EQdkp. It brings WoW guild management into your forum, connecting to Blizzard’s Battle.net API to synchronize guild rosters, character profiles, specializations, equipment, and portraits. With support for Retail and Classic editions, plus an integrated achievement browser and guild activity feed, it helps your community keep track of its characters and progress in one place.
 
 ## Version 
-- **2.1.0-b1** (in development; requires bbGuild core >= 2.0.0)
+- **2.1.0-b1** (in development; requires bbGuild core >= 2.1.0)
 [![Tests](https://github.com/avatharbe/bbguildwow/actions/workflows/tests.yml/badge.svg)](https://github.com/avatharbe/bbguildwow/actions/workflows/tests.yml)
+
+**Documentation:** [avatharbe.github.io/bbguildwow](https://avatharbe.github.io/bbguildwow/)
 
 ## Features
 
@@ -35,7 +37,7 @@ bbGuild WoW is the World of Warcraft plugin for bbGuild, a guild management exte
 5. Look for `bbGuild - World of Warcraft` under Disabled Extensions and click `Enable`.
 6. Go to ACP > bbGuild > Games and install the **World of Warcraft** game.
 
-See [docs/INSTALL.md](docs/INSTALL.md) for detailed setup instructions including Battle.net API configuration.
+See the [Installation Guide](https://avatharbe.github.io/bbguildwow/INSTALL/) for detailed setup instructions including Battle.net API configuration.
 
 ## Uninstall
 
@@ -57,19 +59,21 @@ This extension integrates with the Blizzard Battle.net API for:
 - Achievement category and progress synchronization
 - Edition-aware API namespaces for WoW Classic support
 
-The API client uses OAuth 2.0 Client Credentials Grant with the modern `api.blizzard.com` endpoints and supports all five regions (US, EU, KR, TW, SEA). See [docs/BATTLENET_API.md](docs/BATTLENET_API.md) for details.
+The API client uses OAuth 2.0 Client Credentials Grant with the modern `api.blizzard.com` endpoints and supports all five regions (US, EU, KR, TW, SEA). See the [Battle.net API Reference](https://avatharbe.github.io/bbguildwow/BATTLENET_API/) for details.
 
 ## Documentation
 
-- [Installation Guide](docs/INSTALL.md) - Step-by-step setup
-- [Battle.net API Reference](docs/BATTLENET_API.md) - API integration details and known issues
-- [FAQ](docs/FAQ.md) - Frequently asked questions
-- [Changelog](CHANGELOG.md) - Version history
-- [Architecture](docs/ARCHITECTURE.md) - How the plugin system works
+Full documentation site: **[avatharbe.github.io/bbguildwow](https://avatharbe.github.io/bbguildwow/)**
+
+- [Installation Guide](https://avatharbe.github.io/bbguildwow/INSTALL/) - Step-by-step setup
+- [Battle.net API Reference](https://avatharbe.github.io/bbguildwow/BATTLENET_API/) - API integration details and known issues
+- [FAQ](https://avatharbe.github.io/bbguildwow/FAQ/) - Frequently asked questions
+- [Changelog](https://avatharbe.github.io/bbguildwow/CHANGELOG/) - Version history
+- [Architecture](https://avatharbe.github.io/bbguildwow/ARCHITECTURE/) - How the plugin system works
 
 ## For Developers
 
-This extension serves as the reference implementation for bbGuild game plugins. If you want to create a plugin for another game, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the plugin contract and structure.
+This extension serves as the reference implementation for bbGuild game plugins. If you want to create a plugin for another game, see the [Architecture](https://avatharbe.github.io/bbguildwow/ARCHITECTURE/) page for the plugin contract and structure.
 
 ## License
 

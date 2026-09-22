@@ -21,7 +21,7 @@ Recently shipped (2026-09-12):
 
 ## Architecture
 
-See **`docs/ARCHITECTURE.md`** for the full game-plugin contract (how bbGuild core discovers this plugin via tagged services) and **`docs/BATTLENET_API.md`** for Battle.net API details — note the latter's core Guild/Character/Realm/Achievement sections describe the **older Community API shape** (fields=, `side: 0/1`) and haven't been reconciled with the actual OAuth 2.0 / Game Data API implementation in `api/battlenet_resource.php`; only the Guild Activity section added alongside this file reflects the current API generation. Worth a full pass if anyone relies on that doc for the older endpoints.
+See **`contrib/ARCHITECTURE.md`** for the full game-plugin contract (how bbGuild core discovers this plugin via tagged services) and **`contrib/BATTLENET_API.md`** for Battle.net API details — note the latter's core Guild/Character/Realm/Achievement sections describe the **older Community API shape** (fields=, `side: 0/1`) and haven't been reconciled with the actual OAuth 2.0 / Game Data API implementation in `api/battlenet_resource.php`; only the Guild Activity section added alongside this file reflects the current API generation. Worth a full pass if anyone relies on that doc for the older endpoints.
 
 ### Directory Structure
 
@@ -33,19 +33,20 @@ bbguildwow/
 ├── cron/task/           # Scheduled sync: sync_guild.php (roster + activity feed, #11/#10)
 ├── event/               # phpBB event listener (player-detail display, config page, etc.)
 ├── game/                # wow_provider (game_provider_interface), wow_installer, wow_api (game_api_interface)
-├── migrations/          # v200b2 → v210b1 (current dev line); v210b1 covers equipment detail, item stats, sync config, news source
+├── migrations/          # v200/release_2_0_0.php + v210/release_2_1_0.php (squashed, #383) — each writes its milestone's full end state directly
 ├── model/                # Achievement model
 ├── portal/modules/      # Portal blocks: achievements, guild_news (activity feed display)
 ├── styles/               # Templates, CSS
 ├── sync/                 # character_sync_handler.php — bbguild core's per-character cron contract (#362)
 ├── language/             # en, fr, de, it, nl, es_x_tu, pl
-├── docs/                 # ARCHITECTURE.md, BATTLENET_API.md, FAQ.md, INSTALL.md
+├── contrib/              # ARCHITECTURE.md, BATTLENET_API.md, FAQ.md, INSTALL.md, CHANGELOG.md — published as a docs site
+├── docs/                 # docs/superpowers/ only — internal design-history plans/specs, not user-facing
 └── tests/                # api/, cron/, game/, config/, system/, integration/ (functional, needs real DB), functional/
 ```
 
 ### Database Tables
 
-Own tables (`bb_guild_wow`, achievement tables `bb_achievement*`, `bb_criteria_track`, `bb_relations_table`, `bb_player_equipment`, `bb_player_item_stat`) plus columns added to bbGuild core's shared tables via cross-extension `depends_on` migrations — notably `bb_news.news_source`/`news_source_key` (#10, `v210b1/add_news_source.php`) for distinguishing API-sourced activity-feed entries from manual posts and deduplicating repeated cron fetches.
+Own tables (`bb_guild_wow`, achievement tables `bb_achievement*`, `bb_criteria_track`, `bb_relations_table`, `bb_player_equipment`, `bb_player_item_stat`) plus columns added to bbGuild core's shared tables via cross-extension `depends_on` migrations — notably `bb_news.news_source`/`news_source_key` (#10) for distinguishing API-sourced activity-feed entries from manual posts and deduplicating repeated cron fetches.
 
 ### Cron
 

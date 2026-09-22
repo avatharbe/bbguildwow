@@ -7,3 +7,4 @@ contrib/wowkeys.txt
 *.key
 *.secret
 wowkeys.txt
+site/

@@ -1,0 +1,54 @@
+site_name: bbGuild - World of Warcraft
+site_url: https://avatharbe.github.io/bbguildwow/
+repo_url: https://github.com/avatharbe/bbguildwow
+repo_name: avatharbe/bbguildwow
+edit_uri: edit/main/contrib/
+
+docs_dir: contrib
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.action.edit
+
+nav:
+  - Home: index.md
+  - Installation: INSTALL.md
+  - Architecture: ARCHITECTURE.md
+  - Battle.net API: BATTLENET_API.md
+  - FAQ: FAQ.md
+  - Blizzard API (Retail): blizzard-api-retail.md
+  - Blizzard API (Classic): blizzard-api-classic.md
+  - Changelog: CHANGELOG.md
+
+exclude_docs: |
+  cleanup.sql
+  wowkeys.txt
+  armory screenshots/
+  classic-armory screenshots/
+
+markdown_extensions:
+  - admonition
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.highlight
+  - pymdownx.superfences
