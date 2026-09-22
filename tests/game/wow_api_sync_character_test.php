@@ -48,7 +48,7 @@ class wow_api_with_stubbed_sync_one extends wow_api
 		return $this->profile_result;
 	}
 
-	protected function sync_one_equipment(array $player, $api, string $equipment_table, string $stat_table): array
+	protected function sync_one_equipment(array $player, $api, string $equipment_table, string $stat_table, bool $mark_unavailable = true): array
 	{
 		$this->equipment_call_count++;
 		return $this->equipment_result;
