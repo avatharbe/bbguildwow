@@ -723,7 +723,7 @@ class wow_api implements game_api_interface
 	 * @param string    $stat_table
 	 * @return array{success: bool, error_code: string|int|null, stop_batch: bool}
 	 */
-	protected function sync_one_equipment(array $player, battlenet $api, string $equipment_table, string $stat_table): array
+	protected function sync_one_equipment(array $player, battlenet $api, string $equipment_table, string $stat_table, bool $mark_unavailable = true): array
 	{
 		$response = $api->character->getCharacterEquipment(
 			$player['player_realm'],
@@ -738,6 +738,30 @@ class wow_api implements game_api_interface
 			if ($error_code === 0)
 			{
 				$error_code = 'unknown';
+			}
+
+			// A 404 (deleted/renamed/transferred character) never writes an
+			// equipment row otherwise, so the guild-batch "remaining" query
+			// (LEFT JOIN ... WHERE e.player_id IS NULL OR e.last_update <
+			// stale_threshold) keeps re-selecting it forever -- the polling
+			// loop never reaches done:true. Write a HEAD-slot sentinel row
+			// (mirroring sync_one_specs()/sync_one_portrait()'s player_spec/
+			// player_portrait_url = 'N/A' marker) so it's excluded until the
+			// stale threshold, same as a real successful sync would be.
+			if ($http_code === 404 && $mark_unavailable)
+			{
+				$player_id = (int) $player['player_id'];
+				$this->db->sql_query('DELETE FROM ' . $equipment_table . ' WHERE player_id = ' . $player_id . " AND slot_type = 'HEAD'");
+				$this->db->sql_query('INSERT INTO ' . $equipment_table . ' ' . $this->db->sql_build_array('INSERT', array(
+					'player_id'   => $player_id,
+					'slot_type'   => 'HEAD',
+					'item_id'     => 0,
+					'item_name'   => '',
+					'item_level'  => 0,
+					'quality'     => '',
+					'icon_url'    => '',
+					'last_update' => time(),
+				)));
 			}
 
 			return array('success' => false, 'error_code' => $error_code, 'stop_batch' => $http_code >= 500);
@@ -1570,7 +1594,7 @@ class wow_api implements game_api_interface
 
 		$equipment_table = $phpbb_container->getParameter('avathar.bbguildwow.tables.bb_player_equipment');
 		$stat_table = $phpbb_container->getParameter('avathar.bbguildwow.tables.bb_player_item_stat');
-		$equipment_outcome = $this->sync_one_equipment($player_row, $api, $equipment_table, $stat_table);
+		$equipment_outcome = $this->sync_one_equipment($player_row, $api, $equipment_table, $stat_table, false);
 		if ($equipment_outcome['stop_batch'])
 		{
 			unset($api);
