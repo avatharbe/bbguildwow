@@ -5,19 +5,26 @@
 **bbguildwow** is the World of Warcraft game plugin for **bbGuild** (phpBB 3.3+ guild management). It's the plugin among the bbGuild family that goes beyond static game data — it talks to Blizzard's Battle.net API directly for guild roster sync, character profiles/equipment/portraits, achievements, and (as of #10) the guild activity feed.
 
 - **Author:** Andreas Vandenberghe (Sajaki)
-- **Version:** 2.1.0 (requires bbGuild core >= 2.1.0 — see `ext::BBGUILDWOW_VERSION`, `ext::MIN_BBGUILD_VERSION`)
+- **Version:** 2.1.1 (requires bbGuild core >= 2.1.0 — see `ext::BBGUILDWOW_VERSION`, `ext::MIN_BBGUILD_VERSION`)
 - **License:** GPL-2.0-only
 - **Repository:** https://github.com/avatharbe/bbguildwow
 
 ## Project Status
 
-bbGuild core hit **2.1.0 stable** 2026-09-22. bbguildwow's 2.1.0 work (milestone: guild page overhaul, tracking [bbguild#303](https://github.com/avatharbe/bbguild/issues/303)) shipped alongside it — see `contrib/CHANGELOG.md`'s `2.1.0` section for the full list, and [bbguild/CLAUDE.md](https://github.com/avatharbe/bbguild/blob/main/CLAUDE.md)'s roadmap section for the full family-wide 2.1.0/2.2.0/2.3.0 plan.
+bbGuild core hit **2.1.0 stable**, tagged `v2.1.0` 2026-09-22. bbguildwow's 2.1.0 work (milestone: guild page overhaul, tracking [bbguild#303](https://github.com/avatharbe/bbguild/issues/303)) shipped alongside it, then a same-day **2.1.1 patch** (`v2.1.1`) went out fixing equipment-sync stalls found during manual verification — see `contrib/CHANGELOG.md`'s `2.1.0`/`2.1.1` sections for the full list, and [bbguild/CLAUDE.md](https://github.com/avatharbe/bbguild/blob/main/CLAUDE.md)'s roadmap section for the full family-wide 2.1.0/2.2.0/2.3.0 plan. No GitHub Release published yet for either tag (release/announcement prep in progress).
 
-Recently shipped (2026-09-12):
+Recently shipped, 2.1.1 (2026-09-22):
+- **#387** — `bb_news.news_source_key` widened; Battle.net activity type strings like `CHARACTER_ACHIEVEMENT` were overflowing the original `VARCHAR(64)` dedup key, breaking guild sync with a "Data too long for column" error.
+- Equipment sync no longer polls forever when Battle.net 404s a character — `sync_one_equipment()` now marks it unavailable like its `sync_one_specs()`/`sync_one_portrait()` siblings already did.
+- Sync progress loops (achievements + roster/specs/portraits/equipment panels) no longer poll forever with no progress — stall detection replaced an exact-value comparison (unreliable, since Battle.net's own achievement totals can tick up mid-sync) with an absolute attempt cap.
+- Fixed duplicate sync-progress rows from the ACP guild-edit page's two independent trigger paths (auto-sync-on-load + manual button click) racing into the same `startPhase()`/`runBatchPhase()` chain.
+
+Recently shipped, 2.1.0 (2026-09-12):
 - **#361/#362** — bbGuild core's per-character `character_sync` cron + `sync/character_sync_handler.php` implementing its `character_sync_interface`, delegating to `wow_api::sync_character()`.
 - **#11** — Scheduled guild roster sync via phpBB cron (`cron/task/sync_guild.php`).
 - **#10** — Guild activity feed sync (Battle.net Guild Activity API → `bb_news`).
 - **#363** — Gear tooltips via bbTips, with captured enchant/gem/bonus IDs.
+- Docs site (MkDocs + GitHub Pages, `contrib/` consolidated as the source) + community health files (CoC, security policy, contributing guide, templates), matching core.
 
 ## Architecture
 
@@ -33,7 +40,7 @@ bbguildwow/
 ├── cron/task/           # Scheduled sync: sync_guild.php (roster + activity feed, #11/#10)
 ├── event/               # phpBB event listener (player-detail display, config page, etc.)
 ├── game/                # wow_provider (game_provider_interface), wow_installer, wow_api (game_api_interface)
-├── migrations/          # v200/release_2_0_0.php + v210/release_2_1_0.php (squashed, #383) — each writes its milestone's full end state directly
+├── migrations/          # v200/release_2_0_0.php + v210/release_2_1_0.php (squashed, #383) + v211/ (2.1.1: bb_news.news_source_key widen, #387) — each writes its milestone's full end state directly
 ├── model/                # Achievement model
 ├── portal/modules/      # Portal blocks: achievements, guild_news (activity feed display)
 ├── styles/               # Templates, CSS
