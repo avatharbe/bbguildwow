@@ -46,14 +46,41 @@ document.addEventListener('DOMContentLoaded', function() {
         fetchBatch(url, next);
     }
 
-    function fetchBatch(url, next) {
+    // maxStalls: give up after this many consecutive polls report the exact
+    // same "remaining" count -- without this, a batch that can never fully
+    // resolve (e.g. a character whose lookup keeps failing) polls forever,
+    // since done only ever becomes true when remaining reaches 0. The
+    // sync_one_equipment()/sync_one_specs()/sync_one_portrait() sentinel
+    // fixes on the server side address the common case (a genuine 404),
+    // but this is a client-side safety net for anything else that could
+    // leave "remaining" stuck.
+    var MAX_STALLS = 5;
+
+    function fetchBatch(url, next, lastRemaining, stallCount) {
+        stallCount = stallCount || 0;
         fetch(url).then(function(r) { return r.json(); }).then(function(data) {
             if (data.error) { completePhase(data.error); if (next) next(); return; }
             var done = data.remaining === 0 || data.done;
             var synced = data.total - (data.remaining || 0);
+
+            if (!done && data.remaining === lastRemaining)
+            {
+                stallCount++;
+            }
+            else if (!done)
+            {
+                stallCount = 0;
+            }
+
+            if (!done && stallCount >= MAX_STALLS) {
+                completePhase(synced + ' / ' + data.total + ' \u2014 ' + data.remaining + ' could not be synced after repeated attempts, giving up');
+                if (next) next();
+                return;
+            }
+
             updatePhase(synced + ' / ' + data.total);
             if (!done) {
-                fetchBatch(url, next);
+                fetchBatch(url, next, data.remaining, stallCount);
             } else {
                 completePhase(synced + ' / ' + data.total + ' \u2713');
                 if (next) next();
