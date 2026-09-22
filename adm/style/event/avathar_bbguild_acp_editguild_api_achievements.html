@@ -48,36 +48,36 @@ document.addEventListener('DOMContentLoaded', function() {
         updatePhase(text, percent);
     }
 
-    // maxStalls: give up after this many consecutive polls report the exact
-    // same "remaining" count -- without this, a batch that can never fully
-    // resolve (e.g. one category Battle.net consistently errors on) polls
-    // forever, since done only ever becomes true when remaining reaches 0.
-    // Confirmed live: 761 identical requests over 24 minutes stuck on
-    // "remaining: 2" with no give-up condition at all.
-    var MAX_STALLS = 5;
+    // MAX_ATTEMPTS: give up after this many polls within a single batch
+    // phase, regardless of whether "remaining" is stuck flat or wobbling --
+    // without this, a batch that can never fully resolve (e.g. one category
+    // Battle.net consistently errors on) polls forever, since done only
+    // ever becomes true when remaining reaches 0. An exact-repeat check on
+    // "remaining" alone isn't reliable here: Battle.net's own live
+    // achievement index changes over time (total observed ticking up
+    // mid-sync), so a newly-discovered achievement can nudge "remaining"
+    // up and back down around the genuinely-stuck items, resetting a
+    // naive stall counter without ever making real progress on those.
+    // Confirmed live: 1000+ identical-looking requests over 25+ minutes,
+    // never reaching done:true.
+    var MAX_ATTEMPTS = 60;
 
-    function fetchBatch(url, next, lastRemaining, stallCount) {
-        stallCount = stallCount || 0;
+    function fetchBatch(url, next, attempt) {
+        attempt = (attempt || 0) + 1;
         fetch(url).then(function(r) { return r.json(); }).then(function(data) {
             if (data.error) { completePhase(data.error); if (next) next(); return; }
             var done = data.remaining === 0 || data.done;
             var synced = data.total - (data.remaining || 0);
             var percent = data.total > 0 ? Math.round(synced / data.total * 100) : 100;
             if (!done) {
-                if (data.remaining === lastRemaining) {
-                    stallCount++;
-                } else {
-                    stallCount = 0;
-                }
-
-                if (stallCount >= MAX_STALLS) {
-                    completePhase(synced + ' / ' + data.total + ' \u2014 ' + data.remaining + ' could not be synced after repeated attempts, giving up', percent);
+                if (attempt >= MAX_ATTEMPTS) {
+                    completePhase(synced + ' / ' + data.total + ' \u2014 ' + data.remaining + ' could not be synced after ' + attempt + ' attempts, giving up', percent);
                     if (next) next();
                     return;
                 }
 
                 updatePhase(synced + ' / ' + data.total + ' (' + percent + '%)', percent);
-                fetchBatch(url, next, data.remaining, stallCount);
+                fetchBatch(url, next, attempt);
             } else {
                 completePhase(synced + ' / ' + data.total + ' (100%) \u2713', 100);
                 if (next) next();
