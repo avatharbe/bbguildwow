@@ -30,14 +30,14 @@ class ext_test extends TestCase
 			->with('avathar/bbguild')
 			->willReturn(true);
 
-		$user = $this->createMock(\phpbb\user::class);
-		$user->method('lang')->willReturnArgument(0);
+		$language = $this->createMock(\phpbb\language\language::class);
+		$language->method('lang')->willReturnArgument(0);
 
 		$this->container = $this->createMock(\Symfony\Component\DependencyInjection\ContainerInterface::class);
-		$this->container->method('get')->willReturnCallback(function ($id) use ($ext_manager, $user) {
+		$this->container->method('get')->willReturnCallback(function ($id) use ($ext_manager, $language) {
 			return match ($id) {
 				'ext.manager' => $ext_manager,
-				'user' => $user,
+				'language' => $language,
 				default => null,
 			};
 		});
@@ -72,14 +72,14 @@ class ext_test extends TestCase
 			->with('avathar/bbguild')
 			->willReturn(false);
 
-		$user = $this->createMock(\phpbb\user::class);
-		$user->method('lang')->willReturnArgument(0);
+		$language = $this->createMock(\phpbb\language\language::class);
+		$language->method('lang')->willReturnArgument(0);
 
 		$container = $this->createMock(\Symfony\Component\DependencyInjection\ContainerInterface::class);
-		$container->method('get')->willReturnCallback(function ($id) use ($ext_manager, $user) {
+		$container->method('get')->willReturnCallback(function ($id) use ($ext_manager, $language) {
 			return match ($id) {
 				'ext.manager' => $ext_manager,
-				'user' => $user,
+				'language' => $language,
 				default => null,
 			};
 		});
