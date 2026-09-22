@@ -137,7 +137,7 @@ class achievement_sync_test extends mock_battlenet_test_case
 		// bb_guild.id is NOT an autoincrement column (unlike bb_games/bb_players)
 		// — guilds::make_guild() itself allocates ids via MAX(id)+1 (see
 		// model/player/guilds.php:785), so mirror that here rather than relying
-		// on sql_nextid(), which would return the DEFAULT '0' every time and
+		// on sql_last_inserted_id(), which would return the DEFAULT '0' every time and
 		// collide across this file's two test methods.
 		$max_id_result = $db->sql_query('SELECT MAX(id) AS id FROM ' . $this->get_table_prefix() . 'bb_guild');
 		$max_id_row = $db->sql_fetchrow($max_id_result);

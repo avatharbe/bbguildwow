@@ -99,7 +99,7 @@ class equipment_sync_test extends mock_battlenet_test_case
 			'player_status'   => 1,
 		)));
 
-		return (int) $db->sql_nextid();
+		return (int) $db->sql_last_inserted_id();
 	}
 
 	/**

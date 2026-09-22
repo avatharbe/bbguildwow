@@ -112,7 +112,7 @@ class sync_portraits_test extends mock_battlenet_test_case
 			'player_portrait_url' => $portrait_url,
 		)));
 
-		return (int) $db->sql_nextid();
+		return (int) $db->sql_last_inserted_id();
 	}
 
 	/**

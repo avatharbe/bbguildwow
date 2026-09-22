@@ -79,7 +79,7 @@ class sync_specs_test extends mock_battlenet_test_case
 			'player_spec'     => '',
 		)));
 
-		return (int) $db->sql_nextid();
+		return (int) $db->sql_last_inserted_id();
 	}
 
 	/**
