@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.1.1 22/09/2026
+  - [FIX] Guild sync crashed with "Data too long for column 'news_source_key'" whenever a Battle.net activity type string (e.g. `CHARACTER_ACHIEVEMENT`) pushed the guild-activity dedup key past the original `VARCHAR(64)` (#387). Migration `v211/widen_news_source_key` widens `bb_news.news_source_key` to `VARCHAR(191)`.
+  - [FIX] Equipment sync never marked a genuine 404 as unavailable, so it kept re-polling the same missing character indefinitely. `wow_api::sync_one_equipment()` now writes the same 404-sentinel already used for specs/portraits.
+  - [FIX] The "Sync Achievements"/"Update Ranks and Players" progress panels polled forever when a batch phase could never fully resolve (e.g. a Battle.net category that consistently errors). Both `fetchBatch()` loops now give up after 60 attempts within the same phase instead of polling without end.
+
 ## 2.1.0 22/09/2026
   - [NEW] Player-detail sub-tabs (#375): registered PVP (honor level; bracket ratings pending #23), Talents, and Raid Progression (both placeholder — no data source exists yet) as player-detail tabs via bbguild core's new `player_detail_tab_interface`. Character tab restyled to match the classic-armory.org reference layout: hero render dropped (portrait moved to the header), equipment stays two columns, stats grouped into Base/Melee/Spell as a third sidebar column instead of a flat list.
   - [CHG] Character page (#364): the 4 live Battle.net calls behind stats/professions/Mythic+/PvP (`wow_api::fetch_character_stats()`/`fetch_character_professions()`/`fetch_mythic_keystone_profile()`/`fetch_pvp_summary()`) no longer run synchronously inside `on_player_detail_display()` — they're now served by a new `/bbguildwow/character-stats/{player_id}` JSON endpoint, fetched by JS after initial page paint, so viewing any character page no longer blocks on up to 4 live external API round-trips. Equipment now renders in two columns flanking the character's hero render (previously stacked above it), and stats are laid out in a matching compact grid once loaded.
