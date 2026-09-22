@@ -22,10 +22,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function startPhase(name) {
         logRow.style.display = '';
-        var li = document.createElement('li');
-        li.style.padding = '2px 0';
+        var li = phases.querySelector('li[data-phase="' + name + '"]');
+        if (!li) {
+            li = document.createElement('li');
+            li.style.padding = '2px 0';
+            li.dataset.phase = name;
+            phases.appendChild(li);
+        }
         li.innerHTML = '<strong>' + name + ':</strong> <span class="phase-status">...</span>';
-        phases.appendChild(li);
         currentLi = li;
     }
 
@@ -60,9 +64,26 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    function syncAll() {
-        phases.innerHTML = '';
+    // Shared guard: the manual "Update Ranks and Players" button and the
+    // auto-sync-on-load block below both start phases through this same
+    // panel; without a shared flag, a page reload landing mid-sync (specs
+    // or portraits still incomplete server-side) starts its own polling
+    // chain that the button click below can't see, and vice versa -- two
+    // independent chains end up racing for the same phase, each polling
+    // for real but only one visibly progressing (the other's <li> stuck
+    // at "...").
+    function beginSync() {
         if (armoryBtn) armoryBtn.disabled = true;
+    }
+
+    function endSync() {
+        if (armoryBtn) armoryBtn.disabled = false;
+    }
+
+    function syncAll() {
+        if (armoryBtn && armoryBtn.disabled) return;
+        phases.innerHTML = '';
+        beginSync();
 
         startPhase('{{ lang('WOW_PHASE_ROSTER') }}');
         updatePhase('...');
@@ -70,7 +91,7 @@ document.addEventListener('DOMContentLoaded', function() {
         fetch(rosterUrl).then(function(r) { return r.json(); }).then(function(data) {
             if (!data.success) {
                 completePhase(data.message || 'Error');
-                if (armoryBtn) armoryBtn.disabled = false;
+                endSync();
                 return;
             }
             completePhase(data.message + ' \u2713');
@@ -78,13 +99,13 @@ document.addEventListener('DOMContentLoaded', function() {
             runBatchPhase('{{ lang('WOW_PHASE_SPECS') }}', specUrl, function() {
                 runBatchPhase('{{ lang('WOW_PHASE_PORTRAITS') }}', portraitUrl, function() {
                     runBatchPhase('{{ lang('WOW_PHASE_EQUIPMENT') }}', equipmentUrl, function() {
-                        if (armoryBtn) armoryBtn.disabled = false;
+                        endSync();
                     });
                 });
             });
         }).catch(function(err) {
             completePhase('Error: ' + err.message);
-            if (armoryBtn) armoryBtn.disabled = false;
+            endSync();
         });
     }
 
@@ -96,22 +117,31 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Auto-sync missing specs and portraits on page load
-    fetch(specUrl).then(function(r) { return r.json(); }).then(function(specData) {
-        var needSpecs = !specData.done && specData.remaining > 0;
-        fetch(portraitUrl).then(function(r) { return r.json(); }).then(function(portData) {
-            var needPortraits = !portData.done && portData.remaining > 0;
-            if (needSpecs) {
-                runBatchPhase('{{ lang('WOW_PHASE_SPECS') }}', specUrl, function() {
-                    if (needPortraits) {
-                        runBatchPhase('{{ lang('WOW_PHASE_PORTRAITS') }}', portraitUrl, function() {});
-                    }
-                });
-            } else if (needPortraits) {
-                runBatchPhase('{{ lang('WOW_PHASE_PORTRAITS') }}', portraitUrl, function() {});
-            }
+    // Auto-sync missing specs and portraits on page load -- guarded by the
+    // same armoryBtn.disabled flag as syncAll() so a reload landing
+    // mid-sync doesn't start a second, independent polling chain.
+    if (!armoryBtn || !armoryBtn.disabled) {
+        beginSync();
+        fetch(specUrl).then(function(r) { return r.json(); }).then(function(specData) {
+            var needSpecs = !specData.done && specData.remaining > 0;
+            fetch(portraitUrl).then(function(r) { return r.json(); }).then(function(portData) {
+                var needPortraits = !portData.done && portData.remaining > 0;
+                if (needSpecs) {
+                    runBatchPhase('{{ lang('WOW_PHASE_SPECS') }}', specUrl, function() {
+                        if (needPortraits) {
+                            runBatchPhase('{{ lang('WOW_PHASE_PORTRAITS') }}', portraitUrl, endSync);
+                        } else {
+                            endSync();
+                        }
+                    });
+                } else if (needPortraits) {
+                    runBatchPhase('{{ lang('WOW_PHASE_PORTRAITS') }}', portraitUrl, endSync);
+                } else {
+                    endSync();
+                }
+            });
         });
-    });
+    }
 });
 </script>
 {% endif %}
