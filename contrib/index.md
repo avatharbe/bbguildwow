@@ -12,7 +12,7 @@ progress in one place.
 [Get it on GitHub](https://github.com/avatharbe/bbguildwow){ .md-button }
 [bbGuild Core](https://github.com/avatharbe/bbguild){ .md-button }
 
-**Version:** 2.1.0-b1 (in development; requires bbGuild core >= 2.1.0)
+**Version:** 2.1.0 (requires bbGuild core >= 2.1.0)
 
 ## Features
 

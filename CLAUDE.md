@@ -5,13 +5,13 @@
 **bbguildwow** is the World of Warcraft game plugin for **bbGuild** (phpBB 3.3+ guild management). It's the plugin among the bbGuild family that goes beyond static game data — it talks to Blizzard's Battle.net API directly for guild roster sync, character profiles/equipment/portraits, achievements, and (as of #10) the guild activity feed.
 
 - **Author:** Andreas Vandenberghe (Sajaki)
-- **Version:** 2.1.0-b1 (in development; requires bbGuild core >= 2.0.0 — see `ext::BBGUILDWOW_VERSION`, `ext::MIN_BBGUILD_VERSION`)
+- **Version:** 2.1.0 (requires bbGuild core >= 2.1.0 — see `ext::BBGUILDWOW_VERSION`, `ext::MIN_BBGUILD_VERSION`)
 - **License:** GPL-2.0-only
 - **Repository:** https://github.com/avatharbe/bbguildwow
 
 ## Project Status
 
-bbGuild core hit **2.0.0 stable** 2026-09-12. bbguildwow's 2.1.0 work (milestone: guild page overhaul, tracking [bbguild#303](https://github.com/avatharbe/bbguild/issues/303)) is in progress on top of that — see `CHANGELOG.md`'s `Unreleased (2.1.0-b1)` section for the current list, and [bbguild/CLAUDE.md](https://github.com/avatharbe/bbguild/blob/main/CLAUDE.md)'s roadmap section for the full family-wide 2.1.0/2.2.0/2.3.0 plan.
+bbGuild core hit **2.1.0 stable** 2026-09-22. bbguildwow's 2.1.0 work (milestone: guild page overhaul, tracking [bbguild#303](https://github.com/avatharbe/bbguild/issues/303)) shipped alongside it — see `contrib/CHANGELOG.md`'s `2.1.0` section for the full list, and [bbguild/CLAUDE.md](https://github.com/avatharbe/bbguild/blob/main/CLAUDE.md)'s roadmap section for the full family-wide 2.1.0/2.2.0/2.3.0 plan.
 
 Recently shipped (2026-09-12):
 - **#361/#362** — bbGuild core's per-character `character_sync` cron + `sync/character_sync_handler.php` implementing its `character_sync_interface`, delegating to `wow_api::sync_character()`.
@@ -65,7 +65,7 @@ Unit-style tests (mocked phpBB classes) run via the shared local harness at `~/.
 
 ## Completed Fixes (recent)
 
-See `CHANGELOG.md` for the full history. Highlights from the 2.1.0-b1 dev line:
+See `contrib/CHANGELOG.md` for the full history. Highlights from the 2.1.0 line:
 - **#10** — Guild activity feed sync; dedup via a structural hash of the raw activity entry (not the derived display text), so it's correct independent of whether the Battle.net response's exact type-string/field mapping is fully understood.
 - **#11** — Scheduled roster sync cron, reusing the existing AJAX sync path's `wow_api` methods rather than duplicating orchestration logic.
 - **#35** — Roster sync never deactivated characters who left the guild (`player_status` only ever set on insert).
