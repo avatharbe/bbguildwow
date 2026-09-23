@@ -11,7 +11,7 @@
 
 ## Project Status
 
-bbGuild core hit **2.1.0 stable**, tagged `v2.1.0` 2026-09-22. bbguildwow's 2.1.0 work (milestone: guild page overhaul, tracking [bbguild#303](https://github.com/avatharbe/bbguild/issues/303)) shipped alongside it, then a same-day **2.1.1 patch** (`v2.1.1`) went out fixing equipment-sync stalls found during manual verification — see `contrib/CHANGELOG.md`'s `2.1.0`/`2.1.1` sections for the full list, and [bbguild/CLAUDE.md](https://github.com/avatharbe/bbguild/blob/main/CLAUDE.md)'s roadmap section for the full family-wide 2.1.0/2.2.0/2.3.0 plan. No GitHub Release published yet for either tag (release/announcement prep in progress).
+bbGuild core hit **2.1.0 stable**, tagged `v2.1.0` 2026-09-22. bbguildwow's 2.1.0 work (milestone: guild page overhaul, tracking [bbguild#303](https://github.com/avatharbe/bbguild/issues/303)) shipped alongside it, then a same-day **2.1.1 patch** (`v2.1.1`) went out fixing equipment-sync stalls found during manual verification — see `contrib/CHANGELOG.md`'s `2.1.0`/`2.1.1` sections for the full list, and [bbguild/CLAUDE.md](https://github.com/avatharbe/bbguild/blob/main/CLAUDE.md)'s roadmap section for the full family-wide 2.1.0/2.2.0/2.3.0 plan. Both went public 2026-09-22: [`v2.1.1`](https://github.com/avatharbe/bbguildwow/releases/tag/v2.1.1) carries the GitHub Release (it supersedes the same-day `v2.1.0` tag, which has no separate Release object), and the author's forum release posts + SEO pass went out alongside core's.
 
 Recently shipped, 2.1.1 (2026-09-22):
 - **#387** — `bb_news.news_source_key` widened; Battle.net activity type strings like `CHARACTER_ACHIEVEMENT` were overflowing the original `VARCHAR(64)` dedup key, breaking guild sync with a "Data too long for column" error.
